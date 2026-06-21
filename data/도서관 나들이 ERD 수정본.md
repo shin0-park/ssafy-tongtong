@@ -28,8 +28,11 @@
 | updated_at      | 수정일    |
   
 ****관계****  
-* User 1 : N UserLibrarySave  
-* User 1 : N UserReview  
+* User 1 : N UserLibrarySave
+* User 1 : N UserBookSave
+* User 1 : N UserProgramSave
+* User 1 : N UserReview
+* User 1 : 1 UserPreference
   
 ## Library  
 도서관의 기본 정보를 저장한다. 전국도서관 표준데이터, 부산 도서관 API, 정보나루 API 등을 기반으로 적재한다.  
@@ -467,12 +470,13 @@
 | reader_recommendation | 다독자를 위한 추천도서 |
 | new_arrival           | 신착도서         |
 | hot_trend             | 대출 급상승 도서    |
+| co_loan               | 함께 대출된 도서    |
   
 ****관계****  
 * Book 1 : N BookRankingSnapshot  
-* Library 1 : N BookRankingSnapshot  
+* Library 1 : N BookRankingSnapshot
 ## 사용 예시  
-* 책 둘러보기 탭에서 최근 1주 또는 1개월 기준 부산 인기대출도서를 보여준다.  
+* 책 둘러보기 탭에서 최근 1주 또는 1개월 기준 인기대출도서를 보여준다.  
 * 특정 책을 클릭했을 때 source_isbn13 기준으로 마니아 추천도서 또는 다독자 추천도서를 보여준다.  
 * 사용자가 도서명을 검색하면 도서 검색 API를 호출하고, 검색 결과를 Book에 캐시한다.  
 * 추천 목록에 포함된 도서는 Book에 저장하고, 목록 자체는 BookRankingSnapshot에 저장한다.  
@@ -533,6 +537,138 @@
 * 같은 사용자가 같은 도서관을 중복 저장하지 않도록 user_id + library_id 조합을 unique로 관리한다.  
 * MVP에서는 저장 여부와 메모만 관리한다.  
 * 추후 방문 예정일, 방문 완료 여부, 저장 폴더 등을 확장할 수 있다.  
+  
+## UserBookSave  
+사용자가 관심 있는 책을 저장한 정보를 기록한다.나의 나들이 페이지에서 찜한 책 목록을 보여주고, 사용자의 관심 주제와 독서 취향을 집계할 때 사용한다.  
+
+| 필드명        | 설명      |
+| ---------- | ------- |
+| id         | 저장 PK   |
+| user_id    | User FK |
+| book_id    | Book FK |
+| memo       | 사용자 메모  |
+| created_at | 저장일     |
+| updated_at | 수정일     |
+  
+****관계****  
+* User 1 : N UserBookSave  
+* Book 1 : N UserBookSave  
+## 비고  
+* 같은 사용자가 같은 책을 중복 저장하지 않도록 user_id + book_id 조합을 unique로 관리한다.  
+* MVP에서는 저장 여부와 메모만 관리한다.  
+* 책의 KDC 주제분류, 저자, 출판년도 등을 활용해 사용자의 관심 도서 주제를 집계할 수 있다.  
+* 추후 읽음 여부, 읽은 날짜, 개인 평점, 독서 상태 등을 확장할 수 있다.  
+  
+## UserProgramSave  
+사용자가 관심 있거나 참여 예정인 도서관 프로그램을 저장한 정보를 기록한다.나의 나들이 페이지에서 저장한 프로그램 목록을 보여주고, 사용자의 프로그램 관심사를 집계할 때 사용한다.  
+
+| 필드명        | 설명             |
+| ---------- | -------------- |
+| id         | 저장 PK          |
+| user_id    | User FK        |
+| program_id | Program FK     |
+| status     | 사용자 기준 프로그램 상태 |
+| memo       | 사용자 메모         |
+| created_at | 저장일            |
+| updated_at | 수정일            |
+  
+****status 예시****  
+
+| 값            | 설명    |
+| ------------ | ----- |
+| interested   | 관심 있음 |
+| planned      | 참여 예정 |
+| participated | 참여 완료 |
+| canceled     | 취소    |
+  
+****관계****  
+* User 1 : N UserProgramSave  
+* Program 1 : N UserProgramSave  
+## 비고  
+* 같은 사용자가 같은 프로그램을 중복 저장하지 않도록 user_id + program_id 조합을 unique로 관리한다.  
+* MVP에서는 저장 여부, 사용자 기준 상태, 메모만 관리한다.  
+* 프로그램의 category, target, library_id를 활용해 사용자의 프로그램 관심사를 집계할 수 있다.  
+* 추후 신청 여부, 알림 여부, 참여 후기 연결 등을 확장할 수 있다.  
+  
+## UserPreference  
+사용자의 저장, 찜, 후기, 프로그램 관심 데이터를 바탕으로 계산한 취향 요약 정보를 저장한다.나의 나들이 페이지에서 사용자의 도서관 이용 성향을 보여주고, 개인화된 추천 문구 또는 추천 조건을 생성할 때 사용한다.  
+
+| 필드명                | 설명                      |
+| ------------------ | ----------------------- |
+| id                 | 사용자 취향 PK               |
+| user_id            | User FK                 |
+| primary_purpose    | 대표 이용 목적                |
+| preference_title   | 취향 요약 제목                |
+| preference_summary | 취향 요약 문장                |
+| ai_summary         | AI가 생성한 사용자용 취향 설명      |
+| ai_prompt_context  | AI 요약 생성에 사용한 압축 입력 데이터 |
+| calculated_at      | 취향 계산 시각                |
+| created_at         | 생성일                     |
+| updated_at         | 수정일                     |
+  
+****primary_purpose 예시****  
+
+| 값       | 설명        |
+| ------- | --------- |
+| study   | 조용히 공부    |
+| book    | 책 탐색      |
+| kids    | 아이와 함께    |
+| program | 문화프로그램    |
+| mood    | 분위기 좋은 공간 |
+| nearby  | 가까운 곳     |
+  
+****관계****  
+* User 1 : 1 UserPreference  
+* UserPreference 1 : N UserPreferenceItem  
+## 비고  
+* UserPreference는 사용자의 현재 취향 프로필을 저장한다.  
+* 사용자가 도서관, 책, 프로그램을 저장하거나 후기를 작성하면 일정 시점에 다시 계산할 수 있다.  
+* AI API를 사용하지 않아도 preference_title, preference_summary는 규칙 기반으로 생성할 수 있다.  
+* AI API를 사용할 경우 ai_prompt_context를 기반으로 ai_summary를 생성한다.  
+* ai_prompt_context는 상위 태그, 도서 주제, 프로그램 분류, 선호 지역 등을 JSON 형태로 저장한다.
+* 추천 순위 계산은 AI가 아니라 태그, 목적, 지역, 도서 주제 등의 정량 집계 결과를 기반으로 수행한다.
+* 같은 UserPreference 안에서 item_type + item_code 조합은 중복되지 않도록 관리한다.  
+  
+## UserPreferenceItem  
+사용자 취향을 구성하는 세부 집계 항목을 저장한다.태그, 도서 주제, 프로그램 유형, 지역, 방문 목적 등 여러 종류의 선호 항목을 공통 구조로 저장한다.  
+
+| 필드명                  | 설명                |
+| -------------------- | ----------------- |
+| id                   | 취향 항목 PK          |
+| user_preference_id   | UserPreference FK |
+| item_type            | 취향 항목 유형          |
+| item_code            | 항목 코드             |
+| item_label           | 화면 표시명            |
+| score                | 선호 점수             |
+| count                | 집계 횟수             |
+| rank                 | 선호 순위             |
+| source_count_library | 도서관 저장 기반 집계 수    |
+| source_count_book    | 책 저장 기반 집계 수      |
+| source_count_program | 프로그램 저장 기반 집계 수   |
+| source_count_review  | 후기 기반 집계 수        |
+| created_at           | 생성일               |
+| updated_at           | 수정일               |
+  
+****item_type 예시****  
+
+| 값                | 설명        |
+| ---------------- | --------- |
+| library_tag      | 도서관 태그    |
+| book_kdc         | 도서 KDC 주제 |
+| program_category | 프로그램 분류   |
+| region           | 선호 지역     |
+| purpose          | 이용 목적     |
+| facility         | 선호 시설     |
+  
+****관계****  
+* UserPreference 1 : N UserPreferenceItem  
+## 비고  
+* 하나의 사용자는 여러 취향 항목을 가질 수 있다.  
+* score는 추천 계산에 사용할 수 있는 가중 점수이다.  
+* count는 단순 등장 횟수이다.  
+* rank는 같은 item_type 내 선호 순위이다.  
+* source_count 필드를 통해 어떤 행동에서 해당 취향이 강하게 나타났는지 확인할 수 있다.  
+* AI 요약 생성 시 상위 UserPreferenceItem만 추려서 프롬프트에 전달한다.  
   
 ## 9. 사용자 후기 개체  
 ## UserReview  
@@ -605,3 +741,9 @@
 * Book 1 : N BookRankingSnapshot  
 * Library 1 : N BookRankingSnapshot  
 * UserReview 1 : N UserReviewImage  
+* User 1 : N UserBookSave
+* Book 1 : N UserBookSave
+* User 1 : N UserProgramSave
+* Program 1 : N UserProgramSave
+* User 1 : 1 UserPreference
+* UserPreference 1 : N UserPreferenceItem
