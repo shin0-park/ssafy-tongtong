@@ -1,5 +1,6 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
+from django.conf import settings
 from django.db import models
 
 from apps.common.models import TimeStampedModel
@@ -77,3 +78,64 @@ class UserPreferredRegion(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user.email} {self.region_key}"
+
+
+class UserPreferredTag(TimeStampedModel):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="preferred_tags",
+    )
+    tag = models.ForeignKey(
+        "tags.Tag",
+        on_delete=models.PROTECT,
+        related_name="preferred_by_users",
+        help_text="Tag.is_profile_selectable=True 검증은 serializer/service에서 수행합니다.",
+    )
+    weight = models.DecimalField(max_digits=5, decimal_places=4, default=1)
+    display_order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "tag"], name="uq_user_preferred_tag")
+        ]
+        indexes = [
+            models.Index(fields=["user", "is_active", "display_order"], name="idx_user_tag_order")
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} {self.tag_id}"
+
+
+class UserPreferredPurpose(TimeStampedModel):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="preferred_purposes",
+    )
+    purpose = models.ForeignKey(
+        "recommendations.Purpose",
+        on_delete=models.PROTECT,
+        related_name="preferred_by_users",
+        help_text="Purpose.is_profile_selectable=True 검증은 serializer/service에서 수행합니다.",
+    )
+    weight = models.DecimalField(max_digits=5, decimal_places=4, default=1)
+    display_order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "purpose"], name="uq_user_preferred_purpose"
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["user", "is_active", "display_order"],
+                name="idx_user_purpose_order",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} {self.purpose_id}"
