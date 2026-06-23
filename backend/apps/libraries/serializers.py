@@ -1,0 +1,203 @@
+from rest_framework import serializers
+
+from .models import (
+    Library,
+    LibraryClosureRule,
+    LibraryFacilityProfile,
+    LibraryImage,
+    LibraryOpeningHour,
+    LibraryStatisticSnapshot,
+)
+
+
+FACILITY_FIELDS = (
+    "has_reading_room",
+    "has_children_room",
+    "has_digital_room",
+    "has_parking",
+    "has_cafe",
+    "has_wifi",
+    "has_nursing_room",
+    "has_accessible_facility",
+    "has_elevator",
+    "has_lounge",
+    "has_outdoor_space",
+)
+
+
+def get_prefetched_first(instance, attr_name, fallback_queryset):
+    prefetched = getattr(instance, attr_name, None)
+    if prefetched is not None:
+        return prefetched[0] if prefetched else None
+    return fallback_queryset.first()
+
+
+def get_current_statistic(library):
+    return get_prefetched_first(
+        library,
+        "current_statistic_snapshots",
+        library.statistic_snapshots.filter(is_current=True).order_by("-reference_date", "-id"),
+    )
+
+
+def get_main_library_image(library):
+    return get_prefetched_first(
+        library,
+        "active_main_images",
+        library.images.filter(is_active=True, is_main=True).select_related("media_asset").order_by("display_order", "id"),
+    )
+
+
+def resolve_media_asset_payload(media_asset):
+    if not media_asset or not media_asset.is_active:
+        return None
+
+    image_url = media_asset.original_url
+    if not image_url and media_asset.file:
+        try:
+            image_url = media_asset.file.url
+        except ValueError:
+            image_url = ""
+
+    if not image_url:
+        return None
+
+    return {
+        "url": image_url,
+        "is_fallback": False,
+        "license_code": media_asset.license_code or None,
+        "attribution_text": media_asset.attribution_text or None,
+    }
+
+
+class LibraryStatisticSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LibraryStatisticSnapshot
+        fields = ("book_count", "reading_seat_count")
+
+
+class LibraryStatisticDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LibraryStatisticSnapshot
+        fields = (
+            "reference_date",
+            "reading_seat_count",
+            "book_count",
+            "serial_count",
+            "non_book_count",
+            "loan_limit_count",
+            "loan_period_days",
+            "site_area",
+            "building_area",
+        )
+
+
+class LibraryFacilityProfileSerializer(serializers.ModelSerializer):
+    confirmed_facilities = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LibraryFacilityProfile
+        fields = (*FACILITY_FIELDS, "confirmed_facilities")
+
+    def get_confirmed_facilities(self, obj):
+        return [field for field in FACILITY_FIELDS if getattr(obj, field) is True]
+
+
+class LibraryOpeningHourSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LibraryOpeningHour
+        fields = (
+            "day_type",
+            "day_of_week",
+            "specific_date",
+            "sequence",
+            "schedule_status",
+            "open_time",
+            "close_time",
+            "closes_next_day",
+            "raw_text",
+        )
+
+
+class LibraryClosureRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LibraryClosureRule
+        fields = ("rule_type", "normalized_rule", "raw_text", "priority")
+
+
+class LibraryListSerializer(serializers.ModelSerializer):
+    book_count = serializers.SerializerMethodField()
+    reading_seat_count = serializers.SerializerMethodField()
+    thumbnail = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Library
+        fields = (
+            "id",
+            "name",
+            "library_type",
+            "sido",
+            "sigungu",
+            "road_address",
+            "latitude",
+            "longitude",
+            "book_count",
+            "reading_seat_count",
+            "thumbnail",
+        )
+
+    def get_book_count(self, obj):
+        statistic = get_current_statistic(obj)
+        return statistic.book_count if statistic else None
+
+    def get_reading_seat_count(self, obj):
+        statistic = get_current_statistic(obj)
+        return statistic.reading_seat_count if statistic else None
+
+    def get_thumbnail(self, obj):
+        image = get_main_library_image(obj)
+        return resolve_media_asset_payload(image.media_asset) if image else None
+
+
+class LibraryDetailSerializer(LibraryListSerializer):
+    statistics = serializers.SerializerMethodField()
+    facility_profile = serializers.SerializerMethodField()
+    opening_hours = serializers.SerializerMethodField()
+    closure_rules = serializers.SerializerMethodField()
+
+    class Meta(LibraryListSerializer.Meta):
+        fields = LibraryListSerializer.Meta.fields + (
+            "phone",
+            "homepage_url",
+            "operating_agency",
+            "short_description",
+            "statistics",
+            "facility_profile",
+            "opening_hours",
+            "closure_rules",
+        )
+
+    def get_statistics(self, obj):
+        statistic = get_current_statistic(obj)
+        if not statistic:
+            return None
+        return LibraryStatisticDetailSerializer(statistic).data
+
+    def get_facility_profile(self, obj):
+        try:
+            facility_profile = obj.facility_profile
+        except LibraryFacilityProfile.DoesNotExist:
+            return None
+        return LibraryFacilityProfileSerializer(facility_profile).data
+
+    def get_opening_hours(self, obj):
+        opening_hours = getattr(obj, "current_opening_hours", None)
+        if opening_hours is None:
+            opening_hours = obj.opening_hours.filter(is_current=True).order_by("day_type", "day_of_week", "specific_date", "sequence", "id")
+        return LibraryOpeningHourSerializer(opening_hours, many=True).data
+
+    def get_closure_rules(self, obj):
+        closure_rules = getattr(obj, "current_closure_rules", None)
+        if closure_rules is None:
+            closure_rules = obj.closure_rules.filter(is_current=True).order_by("priority", "id")
+        return LibraryClosureRuleSerializer(closure_rules, many=True).data
