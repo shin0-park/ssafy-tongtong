@@ -1,0 +1,1188 @@
+[
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 1,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/30/3081430_image2_1.JPG",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3081430_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 2,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/25/3081425_image2_1.JPG",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3081425_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 3,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/44/3032044_image2_1.JPG",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3032044_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 4,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/52/3032052_image2_1.JPG",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3032052_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 5,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "https://tong.visitkorea.or.kr/cms/resource/32/4055732_image2_1.png",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "4055732_image2_1",
+      "license_code": "제1유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 6,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/28/3476728_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3476728_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 7,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/34/3476734_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3476734_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 8,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/05/3343405_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3343405_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 9,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/02/3343402_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3343402_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 10,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "https://tong.visitkorea.or.kr/cms/resource/57/1982357_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "1982357_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 11,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "https://tong.visitkorea.or.kr/cms/resource/58/1982358_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "1982358_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 12,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "https://tong.visitkorea.or.kr/cms/resource/52/1571952_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "1571952_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 13,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "https://tong.visitkorea.or.kr/cms/resource/48/1571948_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "1571948_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 14,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/09/3541509_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3541509_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 15,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/14/3541514_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3541514_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 16,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "https://tong.visitkorea.or.kr/cms/resource/67/1859067_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "1859067_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 17,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "https://tong.visitkorea.or.kr/cms/resource/71/1859071_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "1859071_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 18,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/29/3049829_image2_1.JPG",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3049829_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 19,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/27/3049827_image2_1.JPG",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3049827_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 20,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/31/3049831_image2_1.JPG",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3049831_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 21,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/41/3049841_image2_1.JPG",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3049841_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 22,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/01/3336501_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3336501_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 23,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/04/3336504_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3336504_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 24,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/29/3587429_image2_1.jpg",
+      "file": "",
+      "source_name": null,
+      "source_page_url": null,
+      "source_asset_id": "3587429_image2_1",
+      "license_code": "",
+      "attribution_text": "",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": false,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 25,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/35/3587435_image2_1.jpg",
+      "file": "",
+      "source_name": null,
+      "source_page_url": null,
+      "source_asset_id": "3587435_image2_1",
+      "license_code": "",
+      "attribution_text": "",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": false,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 26,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "https://tong.visitkorea.or.kr/cms/resource/12/3028512_image2_1.JPG",
+      "file": "",
+      "source_name": null,
+      "source_page_url": null,
+      "source_asset_id": "3028512_image2_1",
+      "license_code": "",
+      "attribution_text": "",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": false,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 27,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "https://tong.visitkorea.or.kr/cms/resource/65/1982365_image2_1.jpg",
+      "file": "",
+      "source_name": null,
+      "source_page_url": null,
+      "source_asset_id": "1982365_image2_1",
+      "license_code": "",
+      "attribution_text": "",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": false,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 28,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "https://tong.visitkorea.or.kr/cms/resource/28/3070528_image2_1.JPG",
+      "file": "",
+      "source_name": null,
+      "source_page_url": null,
+      "source_asset_id": "3070528_image2_1",
+      "license_code": "",
+      "attribution_text": "",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": false,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 29,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/87/3476687_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3476687_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 30,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/93/3476693_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3476693_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 31,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "https://tong.visitkorea.or.kr/cms/resource/03/3514903_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3514903_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 32,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "https://tong.visitkorea.or.kr/cms/resource/00/3514900_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3514900_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 33,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/48/3343348_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3343348_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "media_assets.mediaasset",
+    "pk": 34,
+    "fields": {
+      "asset_origin": "official_external",
+      "original_url": "http://tong.visitkorea.or.kr/cms/resource/44/3343344_image2_1.jpg",
+      "file": "",
+      "source_name": "한국관광콘텐츠랩",
+      "source_page_url": null,
+      "source_asset_id": "3343344_image2_1",
+      "license_code": "제3유형",
+      "attribution_text": "출처 : ⓒ한국관광콘텐츠랩",
+      "commercial_use_allowed": null,
+      "modification_allowed": null,
+      "is_active": true,
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 1,
+    "fields": {
+      "library": 5,
+      "media_asset": 1,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 2,
+    "fields": {
+      "library": 5,
+      "media_asset": 2,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 3,
+    "fields": {
+      "library": 49,
+      "media_asset": 3,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 4,
+    "fields": {
+      "library": 49,
+      "media_asset": 4,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 5,
+    "fields": {
+      "library": 52,
+      "media_asset": 5,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 6,
+    "fields": {
+      "library": 54,
+      "media_asset": 6,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 7,
+    "fields": {
+      "library": 54,
+      "media_asset": 7,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 8,
+    "fields": {
+      "library": 55,
+      "media_asset": 8,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 9,
+    "fields": {
+      "library": 55,
+      "media_asset": 9,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 10,
+    "fields": {
+      "library": 56,
+      "media_asset": 10,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 11,
+    "fields": {
+      "library": 56,
+      "media_asset": 11,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 12,
+    "fields": {
+      "library": 59,
+      "media_asset": 12,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 13,
+    "fields": {
+      "library": 59,
+      "media_asset": 13,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 14,
+    "fields": {
+      "library": 60,
+      "media_asset": 14,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 15,
+    "fields": {
+      "library": 60,
+      "media_asset": 15,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 16,
+    "fields": {
+      "library": 61,
+      "media_asset": 16,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 17,
+    "fields": {
+      "library": 61,
+      "media_asset": 17,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 18,
+    "fields": {
+      "library": 62,
+      "media_asset": 16,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 19,
+    "fields": {
+      "library": 62,
+      "media_asset": 17,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 20,
+    "fields": {
+      "library": 65,
+      "media_asset": 18,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 21,
+    "fields": {
+      "library": 65,
+      "media_asset": 19,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 22,
+    "fields": {
+      "library": 66,
+      "media_asset": 20,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 23,
+    "fields": {
+      "library": 66,
+      "media_asset": 21,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 24,
+    "fields": {
+      "library": 67,
+      "media_asset": 22,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 25,
+    "fields": {
+      "library": 67,
+      "media_asset": 23,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 26,
+    "fields": {
+      "library": 70,
+      "media_asset": 24,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": false,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 27,
+    "fields": {
+      "library": 70,
+      "media_asset": 25,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": false,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 28,
+    "fields": {
+      "library": 77,
+      "media_asset": 26,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": false,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 29,
+    "fields": {
+      "library": 85,
+      "media_asset": 27,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": false,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 30,
+    "fields": {
+      "library": 85,
+      "media_asset": 28,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": false,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 31,
+    "fields": {
+      "library": 119,
+      "media_asset": 29,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 32,
+    "fields": {
+      "library": 119,
+      "media_asset": 30,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 33,
+    "fields": {
+      "library": 178,
+      "media_asset": 31,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 34,
+    "fields": {
+      "library": 178,
+      "media_asset": 32,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 35,
+    "fields": {
+      "library": 204,
+      "media_asset": 33,
+      "image_type": "exterior",
+      "is_main": true,
+      "is_active": true,
+      "display_order": 1,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  },
+  {
+    "model": "libraries.libraryimage",
+    "pk": 36,
+    "fields": {
+      "library": 204,
+      "media_asset": 34,
+      "image_type": "exterior",
+      "is_main": false,
+      "is_active": true,
+      "display_order": 2,
+      "caption": "",
+      "created_at": "2026-06-23T00:00:00+09:00",
+      "updated_at": "2026-06-23T00:00:00+09:00"
+    }
+  }
+]
