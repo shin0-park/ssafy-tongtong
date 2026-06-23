@@ -3,19 +3,15 @@
 1. 전국 도서관 표준 데이터
 https://www.data.go.kr/tcs/dss/selectStdDataDetailView.do
 
-2. 공공도서관 열람실 현황 실시간 정보
-https://www.data.go.kr/data/15142580/openapi.do
-
-3. 도서관 정보나루
+2. 도서관 정보나루
 https://www.data4library.kr/apiUtilization
 
-4. 공공누리
-https://www.kogl.or.kr/index.do
+3. 한국관광콘텐츠랩
+https://api.visitkorea.or.kr/#/
 
-5. Big-데이터웨이브
-https://data.busan.go.kr/bdip/opendata/dataSet.do?searchKeyword=도서관&searchOption=AND&
+4. 각 도서관 홈페이지…..
 
-6. 각 도서관 홈페이지…..
+5. 공휴일 데이터
 
 [주요 페이지 정보]
 

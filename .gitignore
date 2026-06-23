@@ -1,1 +1,9 @@
+# backend
 venv/
+db.sqlite3
+
+# frontend
+node_modules/
+
+# 전역
+.env
