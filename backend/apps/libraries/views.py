@@ -1,6 +1,8 @@
 from django.db.models import Prefetch, Q
 from rest_framework import generics
 
+from apps.common.pagination import StandardPageNumberPagination
+
 from .models import Library, LibraryClosureRule, LibraryImage, LibraryOpeningHour, LibraryStatisticSnapshot
 from .serializers import LibraryDetailSerializer, LibraryListSerializer
 
@@ -71,6 +73,7 @@ class LibraryQueryMixin:
 
 class LibraryListAPIView(LibraryQueryMixin, generics.ListAPIView):
     serializer_class = LibraryListSerializer
+    pagination_class = StandardPageNumberPagination
 
 
 class LibraryDetailAPIView(LibraryQueryMixin, generics.RetrieveAPIView):
