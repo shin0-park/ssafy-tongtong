@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.books.serializers import BookListSerializer
+from apps.community.serializers import UserReviewSerializer
 from apps.libraries.serializers import LibraryListSerializer
 from apps.myoutings.models import UserBookSave, UserLibrarySave, UserProgramSave
 from apps.programs.serializers import ProgramListSerializer
@@ -58,3 +59,9 @@ class UserProgramSaveSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProgramSave
         fields = ("id", "memo", "created_at", "updated_at", "program")
+
+
+class LikedReviewSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    liked_at = serializers.DateTimeField(source="created_at")
+    review = UserReviewSerializer(read_only=True)

@@ -1,3 +1,4 @@
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.generics import ListAPIView
@@ -7,14 +8,50 @@ from rest_framework.views import APIView
 
 from apps.books.models import Book
 from apps.common.pagination import StandardPageNumberPagination
+from apps.community.models import (
+    ReviewBookReference,
+    ReviewModerationStatus,
+    ReviewProgramReference,
+    ReviewTag,
+    UserReview,
+    UserReviewImage,
+    UserReviewLike,
+)
+from apps.community.serializers import UserReviewSerializer
 from apps.libraries.models import Library
 from apps.myoutings.models import UserBookSave, UserLibrarySave, UserProgramSave
 from apps.myoutings.serializers import (
+    LikedReviewSerializer,
     UserBookSaveSerializer,
     UserLibrarySaveSerializer,
     UserProgramSaveSerializer,
 )
 from apps.programs.models import Program
+
+
+def review_prefetches(prefix=""):
+    return (
+        Prefetch(
+            f"{prefix}tag_links",
+            queryset=ReviewTag.objects.select_related("tag").order_by("created_at", "id"),
+            to_attr="prefetched_tag_links",
+        ),
+        Prefetch(
+            f"{prefix}book_references",
+            queryset=ReviewBookReference.objects.select_related("book").order_by("display_order", "id"),
+            to_attr="prefetched_book_references",
+        ),
+        Prefetch(
+            f"{prefix}program_references",
+            queryset=ReviewProgramReference.objects.select_related("program__library").order_by("display_order", "id"),
+            to_attr="prefetched_program_references",
+        ),
+        Prefetch(
+            f"{prefix}images",
+            queryset=UserReviewImage.objects.order_by("display_order", "id"),
+            to_attr="prefetched_images",
+        ),
+    )
 
 
 class BaseSaveAPIView(APIView):
@@ -140,5 +177,36 @@ class SavedProgramListAPIView(ListAPIView):
                 program__deleted_at__isnull=True,
             )
             .select_related("program", "program__library")
+            .order_by("-created_at", "-id")
+        )
+
+
+class MyReviewListAPIView(ListAPIView):
+    serializer_class = UserReviewSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = StandardPageNumberPagination
+
+    def get_queryset(self):
+        return (
+            UserReview.objects.filter(user=self.request.user)
+            .select_related("user", "library")
+            .prefetch_related(*review_prefetches())
+            .order_by("-created_at", "-id")
+        )
+
+
+class LikedReviewListAPIView(ListAPIView):
+    serializer_class = LikedReviewSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = StandardPageNumberPagination
+
+    def get_queryset(self):
+        return (
+            UserReviewLike.objects.filter(
+                user=self.request.user,
+                review__moderation_status=ReviewModerationStatus.VISIBLE,
+            )
+            .select_related("review", "review__user", "review__library")
+            .prefetch_related(*review_prefetches("review__"))
             .order_by("-created_at", "-id")
         )
