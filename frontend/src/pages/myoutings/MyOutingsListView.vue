@@ -77,6 +77,30 @@ const meta = computed(() => {
   return map[props.kind] ?? map.libraries
 })
 
+function targetItem(item) {
+  return item.library ?? item.book ?? item.program ?? item.review ?? item
+}
+
+function itemKey(item, index) {
+  const target = targetItem(item)
+  return item.id || target.id || target.isbn13 || index
+}
+
+function itemMetaText(item) {
+  const dateValue = item.liked_at || item.created_at
+  const parts = []
+
+  if (item.memo) {
+    parts.push(item.memo)
+  }
+
+  if (dateValue) {
+    parts.push(new Date(dateValue).toLocaleDateString('ko-KR'))
+  }
+
+  return parts.join(' · ')
+}
+
 async function loadItems() {
   isLoading.value = true
   errorMessage.value = ''
@@ -138,16 +162,28 @@ onMounted(loadItems)
     <template v-else>
       <ResultCount class="mb-3" :count="count" :label="meta.label" />
       <div v-if="kind === 'libraries'" class="responsive-card-grid">
-        <LibraryCard v-for="item in items" :key="item.id" :library="item.library ?? item" />
+        <div v-for="(item, index) in items" :key="itemKey(item, index)" class="saved-item-shell">
+          <p v-if="itemMetaText(item)" class="meta-text mb-2">{{ itemMetaText(item) }}</p>
+          <LibraryCard :library="targetItem(item)" />
+        </div>
       </div>
       <div v-else-if="kind === 'books'" class="responsive-card-grid">
-        <BookCard v-for="item in items" :key="item.isbn13 || item.book?.isbn13" :book="item.book ?? item" />
+        <div v-for="(item, index) in items" :key="itemKey(item, index)" class="saved-item-shell">
+          <p v-if="itemMetaText(item)" class="meta-text mb-2">{{ itemMetaText(item) }}</p>
+          <BookCard :book="targetItem(item)" />
+        </div>
       </div>
       <div v-else-if="kind === 'programs'" class="stack-list">
-        <ProgramCard v-for="item in items" :key="item.id || item.program?.id" :program="item.program ?? item" />
+        <div v-for="(item, index) in items" :key="itemKey(item, index)" class="saved-item-shell">
+          <p v-if="itemMetaText(item)" class="meta-text mb-2">{{ itemMetaText(item) }}</p>
+          <ProgramCard :program="targetItem(item)" />
+        </div>
       </div>
       <div v-else class="stack-list">
-        <ReviewCard v-for="item in items" :key="item.id || item.review?.id" :review="item.review ?? item" />
+        <div v-for="(item, index) in items" :key="itemKey(item, index)" class="saved-item-shell">
+          <p v-if="itemMetaText(item)" class="meta-text mb-2">{{ itemMetaText(item) }}</p>
+          <ReviewCard :review="targetItem(item)" />
+        </div>
       </div>
       <PaginationBar
         class="mt-4"

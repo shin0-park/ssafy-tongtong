@@ -73,6 +73,10 @@ export const useInteractionStore = defineStore('interaction', () => {
       await hydrate()
     }
 
+    if (!hasHydrated.value) {
+      throw hydrateError.value || new Error('저장 상태를 확인하지 못했습니다.')
+    }
+
     if (savedLibraryIds.has(libraryId)) {
       await libraryService.unsaveLibrary(libraryId)
       savedLibraryIds.delete(libraryId)
@@ -87,6 +91,10 @@ export const useInteractionStore = defineStore('interaction', () => {
   async function toggleBookSave(isbn13) {
     if (!hasHydrated.value) {
       await hydrate()
+    }
+
+    if (!hasHydrated.value) {
+      throw hydrateError.value || new Error('저장 상태를 확인하지 못했습니다.')
     }
 
     if (savedBookIsbns.has(isbn13)) {
@@ -105,6 +113,10 @@ export const useInteractionStore = defineStore('interaction', () => {
       await hydrate()
     }
 
+    if (!hasHydrated.value) {
+      throw hydrateError.value || new Error('저장 상태를 확인하지 못했습니다.')
+    }
+
     if (savedProgramIds.has(programId)) {
       await programService.unsaveProgram(programId)
       savedProgramIds.delete(programId)
@@ -119,6 +131,10 @@ export const useInteractionStore = defineStore('interaction', () => {
   async function toggleReviewLike(reviewId) {
     if (!hasHydrated.value) {
       await hydrate()
+    }
+
+    if (!hasHydrated.value) {
+      throw hydrateError.value || new Error('좋아요 상태를 확인하지 못했습니다.')
     }
 
     if (likedReviewIds.has(reviewId)) {

@@ -289,6 +289,10 @@
   background: var(--color-bg-card);
 }
 
+.saved-item-shell {
+  min-width: 0;
+}
+
 .responsive-image {
   display: grid;
   width: 100%;
