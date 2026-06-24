@@ -159,6 +159,8 @@ class LibraryListSerializer(serializers.ModelSerializer):
     book_count = serializers.SerializerMethodField()
     reading_seat_count = serializers.SerializerMethodField()
     thumbnail = serializers.SerializerMethodField()
+    purpose_score = serializers.SerializerMethodField()
+    distance_km = serializers.SerializerMethodField()
 
     class Meta:
         model = Library
@@ -174,6 +176,8 @@ class LibraryListSerializer(serializers.ModelSerializer):
             "book_count",
             "reading_seat_count",
             "thumbnail",
+            "purpose_score",
+            "distance_km",
         )
 
     def get_book_count(self, obj):
@@ -186,6 +190,13 @@ class LibraryListSerializer(serializers.ModelSerializer):
 
     def get_thumbnail(self, obj):
         return resolve_library_thumbnail_payload(obj)
+
+    def get_purpose_score(self, obj):
+        purpose_score = getattr(obj, "purpose_score", None)
+        return str(purpose_score) if purpose_score is not None else None
+
+    def get_distance_km(self, obj):
+        return getattr(obj, "distance_km", None)
 
 
 class LibraryDetailSerializer(LibraryListSerializer):
@@ -230,3 +241,21 @@ class LibraryDetailSerializer(LibraryListSerializer):
         if closure_rules is None:
             closure_rules = obj.closure_rules.filter(is_current=True).order_by("priority", "id")
         return LibraryClosureRuleSerializer(closure_rules, many=True).data
+
+
+class SimilarLibrarySerializer(LibraryListSerializer):
+    similarity_score = serializers.SerializerMethodField()
+    similarity_reasons = serializers.SerializerMethodField()
+
+    class Meta(LibraryListSerializer.Meta):
+        fields = LibraryListSerializer.Meta.fields + (
+            "similarity_score",
+            "similarity_reasons",
+        )
+
+    def get_similarity_score(self, obj):
+        similarity_score = getattr(obj, "similarity_score", None)
+        return str(similarity_score) if similarity_score is not None else None
+
+    def get_similarity_reasons(self, obj):
+        return getattr(obj, "similarity_reasons", [])

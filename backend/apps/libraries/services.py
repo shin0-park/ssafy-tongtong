@@ -1,0 +1,427 @@
+import math
+from decimal import Decimal
+
+from django.db.models import Prefetch
+from rest_framework.exceptions import ValidationError
+
+from apps.recommendations.models import Purpose, PurposeTagRule
+
+from .models import LibraryTag, LibraryTagSourceMethod
+
+
+FACILITY_FIELDS = (
+    "has_reading_room",
+    "has_children_room",
+    "has_digital_room",
+    "has_parking",
+    "has_cafe",
+    "has_wifi",
+    "has_nursing_room",
+    "has_accessible_facility",
+    "has_elevator",
+    "has_lounge",
+    "has_outdoor_space",
+)
+
+FACILITY_FILTER_PARAMS = set(FACILITY_FIELDS)
+FACILITY_TAG_CODES = {
+    "has_reading_room": "facility_reading_room",
+    "has_children_room": "facility_children_room",
+    "has_digital_room": "facility_digital_room",
+    "has_parking": "facility_parking",
+    "has_cafe": "facility_cafe",
+    "has_wifi": "facility_wifi",
+    "has_nursing_room": "facility_nursing_room",
+    "has_accessible_facility": "facility_accessible",
+    "has_elevator": "facility_elevator",
+    "has_lounge": "facility_lounge",
+    "has_outdoor_space": "facility_outdoor_space",
+}
+
+SUPPORTED_PURPOSES = {"study", "book", "kids", "mood", "nearby"}
+UNSUPPORTED_LIBRARY_FILTERS = {
+    "radius_km",
+    "open_today",
+    "open_now",
+    "weekend_open",
+    "holiday_status",
+    "late_open_after",
+}
+ALLOWED_ORDERING = {"name", "-book_count", "-reading_seat_count", "purpose_score"}
+
+TAG_DIRECT_SOURCES = {
+    LibraryTagSourceMethod.FIELD_RULE,
+    LibraryTagSourceMethod.FACILITY_RULE,
+    LibraryTagSourceMethod.MANUAL,
+}
+
+
+library_tag_prefetch = Prefetch(
+    "tag_links",
+    queryset=LibraryTag.objects.filter(is_active=True).select_related("tag").order_by("tag_id", "id"),
+    to_attr="active_tag_links",
+)
+
+
+def validate_library_filter_params(params):
+    unsupported = [param for param in UNSUPPORTED_LIBRARY_FILTERS if param in params]
+    if unsupported:
+        raise ValidationError({unsupported[0]: "This query parameter is not supported yet."})
+
+    for field in FACILITY_FILTER_PARAMS:
+        if field in params and params.get(field) != "true":
+            raise ValidationError({field: "Only true facility filters are supported."})
+
+    parse_non_negative_int(params.get("min_book_count"), "min_book_count")
+    parse_non_negative_int(params.get("min_reading_seat_count"), "min_reading_seat_count")
+
+    purpose_code = params.get("purpose", "").strip()
+    if purpose_code:
+        validate_purpose_code(purpose_code)
+
+    ordering = params.get("ordering", "").strip()
+    if ordering:
+        if ordering not in ALLOWED_ORDERING:
+            raise ValidationError({"ordering": "Unsupported ordering value."})
+        if ordering == "purpose_score" and not purpose_code:
+            raise ValidationError({"ordering": "purpose_score ordering requires purpose."})
+
+    lat = params.get("lat")
+    lng = params.get("lng")
+    if lat is not None or lng is not None:
+        parse_coordinates(lat, lng)
+    if purpose_code == "nearby" and (lat is None or lng is None):
+        raise ValidationError({"purpose": "purpose=nearby requires lat and lng."})
+
+
+def validate_purpose_code(purpose_code):
+    if purpose_code not in SUPPORTED_PURPOSES:
+        raise ValidationError({"purpose": "Unsupported purpose value."})
+    if not Purpose.objects.filter(code=purpose_code, is_home_theme=True, is_active=True).exists():
+        raise ValidationError({"purpose": "Unsupported purpose value."})
+
+
+def parse_non_negative_int(value, field_name):
+    if value in (None, ""):
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        raise ValidationError({field_name: "Enter a non-negative integer."})
+    if parsed < 0:
+        raise ValidationError({field_name: "Enter a non-negative integer."})
+    return parsed
+
+
+def parse_limit(value, default=3, maximum=10):
+    if value in (None, ""):
+        return default
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        raise ValidationError({"limit": "Enter a positive integer."})
+    if parsed < 1:
+        raise ValidationError({"limit": "Enter a positive integer."})
+    return min(parsed, maximum)
+
+
+def parse_coordinates(lat, lng):
+    if lat in (None, "") or lng in (None, ""):
+        raise ValidationError({"lat": "lat and lng must be provided together."})
+    try:
+        parsed_lat = float(lat)
+        parsed_lng = float(lng)
+    except (TypeError, ValueError):
+        raise ValidationError({"lat": "lat and lng must be numeric."})
+    if not -90 <= parsed_lat <= 90:
+        raise ValidationError({"lat": "Latitude must be between -90 and 90."})
+    if not -180 <= parsed_lng <= 180:
+        raise ValidationError({"lng": "Longitude must be between -180 and 180."})
+    return parsed_lat, parsed_lng
+
+
+def apply_advanced_library_filters(queryset, params):
+    validate_library_filter_params(params)
+
+    for field in FACILITY_FIELDS:
+        if params.get(field) == "true":
+            queryset = queryset.filter(**{f"facility_profile__{field}": True})
+
+    libraries = list(queryset)
+    libraries = filter_by_minimum_statistics(libraries, params)
+
+    lat_lng = None
+    if params.get("lat") is not None or params.get("lng") is not None:
+        lat_lng = parse_coordinates(params.get("lat"), params.get("lng"))
+        annotate_distance(libraries, lat_lng)
+
+    purpose_code = params.get("purpose", "").strip()
+    if purpose_code:
+        annotate_purpose_scores(libraries, purpose_code, lat_lng=lat_lng)
+        if purpose_code == "nearby":
+            libraries = [library for library in libraries if getattr(library, "distance_km", None) is not None]
+
+    return order_libraries(libraries, params, purpose_code)
+
+
+def filter_by_minimum_statistics(libraries, params):
+    min_book_count = parse_non_negative_int(params.get("min_book_count"), "min_book_count")
+    min_reading_seat_count = parse_non_negative_int(
+        params.get("min_reading_seat_count"),
+        "min_reading_seat_count",
+    )
+    if min_book_count is None and min_reading_seat_count is None:
+        return libraries
+
+    filtered = []
+    for library in libraries:
+        statistic = get_current_statistic(library)
+        if min_book_count is not None and (not statistic or statistic.book_count is None or statistic.book_count < min_book_count):
+            continue
+        if (
+            min_reading_seat_count is not None
+            and (not statistic or statistic.reading_seat_count is None or statistic.reading_seat_count < min_reading_seat_count)
+        ):
+            continue
+        filtered.append(library)
+    return filtered
+
+
+def order_libraries(libraries, params, purpose_code):
+    ordering = params.get("ordering", "").strip()
+    if ordering == "-book_count":
+        return sorted(libraries, key=lambda library: (get_stat_value(library, "book_count"), library.name, library.id), reverse=True)
+    if ordering == "-reading_seat_count":
+        return sorted(
+            libraries,
+            key=lambda library: (get_stat_value(library, "reading_seat_count"), library.name, library.id),
+            reverse=True,
+        )
+    if ordering == "purpose_score":
+        return sorted(libraries, key=lambda library: (getattr(library, "purpose_score", 0), library.name, library.id), reverse=True)
+    if purpose_code:
+        return sorted(libraries, key=lambda library: (getattr(library, "purpose_score", 0), library.name, library.id), reverse=True)
+    return sorted(libraries, key=lambda library: (library.name, library.id))
+
+
+def annotate_distance(libraries, lat_lng):
+    for library in libraries:
+        library.distance_km = calculate_distance_km(lat_lng[0], lat_lng[1], library.latitude, library.longitude)
+
+
+def annotate_purpose_scores(libraries, purpose_code, lat_lng=None):
+    tag_rule_weights = load_purpose_tag_weights(purpose_code)
+    for library in libraries:
+        score = calculate_purpose_score(library, purpose_code, tag_rule_weights)
+        if lat_lng and purpose_code in {"study", "book", "kids", "mood"}:
+            score += calculate_distance_bonus(getattr(library, "distance_km", None)) * Decimal("0.15")
+        if purpose_code == "nearby":
+            score = calculate_distance_bonus(getattr(library, "distance_km", None))
+        library.purpose_score = round_decimal(score)
+
+
+def load_purpose_tag_weights(purpose_code):
+    rules = PurposeTagRule.objects.filter(
+        purpose__code=purpose_code,
+        purpose__is_home_theme=True,
+        purpose__is_active=True,
+    ).select_related("tag")
+    return {rule.tag_id: Decimal(rule.weight) for rule in rules}
+
+
+def calculate_purpose_score(library, purpose_code, tag_rule_weights):
+    statistic = get_current_statistic(library)
+    facilities = get_true_facility_set(library)
+    tag_score = calculate_tag_rule_bonus(library, tag_rule_weights)
+
+    if purpose_code == "study":
+        score = Decimal("0.45") * normalize_stat(statistic, "reading_seat_count", 500)
+        score += Decimal("0.25") * facility_ratio(facilities, {"has_reading_room", "has_digital_room", "has_wifi"})
+    elif purpose_code == "book":
+        score = Decimal("0.55") * normalize_stat(statistic, "book_count", 100000)
+        score += Decimal("0.10") * library_type_bonus(library, {"public"})
+    elif purpose_code == "kids":
+        score = Decimal("0.35") * facility_ratio(facilities, {"has_children_room", "has_nursing_room", "has_outdoor_space"})
+        score += Decimal("0.25") * library_type_bonus(library, {"children"})
+    elif purpose_code == "mood":
+        score = Decimal("0.35") * facility_ratio(facilities, {"has_lounge", "has_outdoor_space", "has_cafe"})
+        score += Decimal("0.15") * normalize_stat(statistic, "building_area", 10000)
+    else:
+        score = Decimal("0")
+
+    return min(Decimal("1"), score + Decimal("0.20") * tag_score)
+
+
+def calculate_tag_rule_bonus(library, tag_rule_weights):
+    if not tag_rule_weights:
+        return Decimal("0")
+    matched = Decimal("0")
+    total = sum(tag_rule_weights.values(), Decimal("0"))
+    for tag_id in get_library_tag_ids(library):
+        matched += tag_rule_weights.get(tag_id, Decimal("0"))
+    if total <= 0:
+        return Decimal("0")
+    return min(Decimal("1"), matched / total)
+
+
+def library_type_bonus(library, matching_types):
+    return Decimal("1") if library.library_type in matching_types else Decimal("0")
+
+
+def normalize_stat(statistic, field_name, cap):
+    if not statistic:
+        return Decimal("0")
+    value = getattr(statistic, field_name, None)
+    if value is None:
+        return Decimal("0")
+    return min(Decimal("1"), Decimal(value) / Decimal(cap))
+
+
+def facility_ratio(facilities, target_facilities):
+    if not target_facilities:
+        return Decimal("0")
+    return Decimal(len(facilities & target_facilities)) / Decimal(len(target_facilities))
+
+
+def calculate_distance_bonus(distance_km):
+    if distance_km is None:
+        return Decimal("0")
+    return Decimal("1") / (Decimal("1") + Decimal(str(distance_km)))
+
+
+def calculate_similar_libraries(base_library, candidates, limit):
+    base_facilities = get_true_facility_set(base_library)
+    base_tags = get_library_tag_ids(base_library)
+    base_purpose_scores = calculate_purpose_vector(base_library)
+
+    scored = []
+    for candidate in candidates:
+        if candidate.id == base_library.id:
+            continue
+        score, reasons = calculate_similarity(
+            base_library,
+            candidate,
+            base_facilities,
+            base_tags,
+            base_purpose_scores,
+        )
+        if score <= 0:
+            continue
+        candidate.similarity_score = round_decimal(score)
+        candidate.similarity_reasons = reasons
+        scored.append(candidate)
+
+    return sorted(scored, key=lambda library: (library.similarity_score, library.name, library.id), reverse=True)[:limit]
+
+
+def calculate_similarity(base_library, candidate, base_facilities, base_tags, base_purpose_scores):
+    candidate_facilities = get_true_facility_set(candidate)
+    candidate_tags = get_library_tag_ids(candidate)
+    candidate_purpose_scores = calculate_purpose_vector(candidate)
+
+    facility_score = jaccard_score(base_facilities, candidate_facilities)
+    tag_score = jaccard_score(base_tags, candidate_tags)
+    purpose_score = vector_similarity(base_purpose_scores, candidate_purpose_scores)
+    region_type_score = Decimal("0")
+    reasons = []
+
+    if base_library.sigungu == candidate.sigungu:
+        region_type_score += Decimal("0.60")
+        reasons.append("same_sigungu")
+    if base_library.library_type == candidate.library_type:
+        region_type_score += Decimal("0.40")
+        reasons.append("same_library_type")
+    if facility_score > 0:
+        reasons.append("shared_facilities")
+    if tag_score > 0:
+        reasons.append("shared_tags")
+    if similar_stat(base_library, candidate, "book_count", tolerance=0.25):
+        reasons.append("similar_collection")
+    if similar_stat(base_library, candidate, "reading_seat_count", tolerance=0.25):
+        reasons.append("similar_seats")
+
+    score = (
+        Decimal("0.30") * facility_score
+        + Decimal("0.30") * tag_score
+        + Decimal("0.25") * purpose_score
+        + Decimal("0.15") * min(Decimal("1"), region_type_score)
+    )
+    return score, reasons
+
+
+def calculate_purpose_vector(library):
+    return {
+        purpose_code: calculate_purpose_score(library, purpose_code, {})
+        for purpose_code in ("study", "book", "kids", "mood")
+    }
+
+
+def jaccard_score(left, right):
+    if not left and not right:
+        return Decimal("0")
+    union = left | right
+    if not union:
+        return Decimal("0")
+    return Decimal(len(left & right)) / Decimal(len(union))
+
+
+def vector_similarity(left, right):
+    distance = sum(abs(left[key] - right[key]) for key in left)
+    max_distance = Decimal(len(left))
+    if max_distance <= 0:
+        return Decimal("0")
+    return max(Decimal("0"), Decimal("1") - (distance / max_distance))
+
+
+def similar_stat(left_library, right_library, field_name, tolerance):
+    left = get_stat_value(left_library, field_name)
+    right = get_stat_value(right_library, field_name)
+    if left <= 0 or right <= 0:
+        return False
+    return abs(left - right) / max(left, right) <= tolerance
+
+
+def get_current_statistic(library):
+    snapshots = getattr(library, "current_statistic_snapshots", None)
+    if snapshots is not None:
+        return snapshots[0] if snapshots else None
+    return library.statistic_snapshots.filter(is_current=True).order_by("-reference_date", "-id").first()
+
+
+def get_stat_value(library, field_name):
+    statistic = get_current_statistic(library)
+    value = getattr(statistic, field_name, None) if statistic else None
+    return value or 0
+
+
+def get_true_facility_set(library):
+    try:
+        facility_profile = library.facility_profile
+    except Exception:
+        return set()
+    return {field for field in FACILITY_FIELDS if getattr(facility_profile, field) is True}
+
+
+def get_library_tag_ids(library):
+    tag_links = getattr(library, "active_tag_links", None)
+    if tag_links is None:
+        tag_links = library.tag_links.filter(is_active=True)
+    return {tag_link.tag_id for tag_link in tag_links}
+
+
+def calculate_distance_km(origin_lat, origin_lng, library_lat, library_lng):
+    if library_lat is None or library_lng is None:
+        return None
+    lat1 = math.radians(float(origin_lat))
+    lng1 = math.radians(float(origin_lng))
+    lat2 = math.radians(float(library_lat))
+    lng2 = math.radians(float(library_lng))
+    delta_lat = lat2 - lat1
+    delta_lng = lng2 - lng1
+    haversine = math.sin(delta_lat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(delta_lng / 2) ** 2
+    distance = 2 * 6371.0088 * math.asin(math.sqrt(haversine))
+    return round(distance, 3)
+
+
+def round_decimal(value):
+    return Decimal(value).quantize(Decimal("0.0001"))
