@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import SaveButton from '@/components/actions/SaveButton.vue'
+import ExternalLibraryCard from '@/components/cards/ExternalLibraryCard.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
@@ -26,12 +27,16 @@ const holdingsError = ref(null)
 
 const isbn13 = computed(() => route.params.isbn13)
 const publicationText = computed(() =>
-  [book.value?.publisher, book.value?.publication_year].filter(Boolean).join(' · '),
+  [book.value?.publisher, book.value?.publication_year || book.value?.publication_date]
+    .filter(Boolean)
+    .join(' · '),
 )
 const kdcText = computed(() =>
   [book.value?.kdc_class_name, book.value?.kdc_class_no].filter(Boolean).join(' '),
 )
 const hasHoldings = computed(() => holdings.value.length > 0)
+const matchedHoldings = computed(() => holdings.value.filter((holding) => holding.matched))
+const unmatchedHoldings = computed(() => holdings.value.filter((holding) => !holding.matched))
 const holdingsPage = computed(() => holdingsMeta.value.page || 1)
 const holdingsPageSize = computed(() => holdingsMeta.value.page_size || DEFAULT_PAGE_SIZE)
 const hasPreviousHoldingsPage = computed(() => holdingsPage.value > 1)
@@ -218,7 +223,11 @@ onMounted(loadPage)
           </div>
 
           <p v-if="book.source_name || book.source_updated_at" class="meta-text mt-3 mb-0">
-            {{ [book.source_name, book.source_updated_at].filter(Boolean).join(' · ') }}
+            {{
+              [book.source_name || book.provider_code, book.source_updated_at || book.metadata_fetched_at]
+                .filter(Boolean)
+                .join(' · ')
+            }}
           </p>
         </div>
       </div>
@@ -249,7 +258,11 @@ onMounted(loadPage)
 
         <template v-else>
           <div class="d-grid gap-3">
-            <article v-for="item in holdings" :key="item.external_library?.external_library_key" class="holding-card">
+            <article
+              v-for="(item, index) in matchedHoldings"
+              :key="item.library?.id || item.external_library?.external_library_key || index"
+              class="holding-card"
+            >
               <div>
                 <p class="meta-text mb-1">
                   {{ item.matched ? '서비스 도서관과 연결됨' : '외부 도서관 정보' }}
@@ -300,6 +313,12 @@ onMounted(loadPage)
                 </span>
               </div>
             </article>
+            <ExternalLibraryCard
+              v-for="(item, index) in unmatchedHoldings"
+              :key="item.external_library?.external_library_key || `external-${index}`"
+              :library="item.external_library ?? {}"
+              :holding="item.holding"
+            />
           </div>
 
           <PaginationBar

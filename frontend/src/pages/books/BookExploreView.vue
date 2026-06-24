@@ -26,6 +26,7 @@ const DEFAULT_PAGE_SIZE = 20
 
 const books = ref([])
 const popularBooks = ref([])
+const popularSnapshot = ref(null)
 const responseMeta = ref({ num_found: 0, page: 1, page_size: DEFAULT_PAGE_SIZE })
 const isLoading = ref(false)
 const isPopularLoading = ref(false)
@@ -126,10 +127,14 @@ async function loadPopularBooks() {
   popularError.value = null
 
   try {
-    const data = await fetchPopularBooks({ limit: 6 })
-    popularBooks.value = data.results ?? data.books ?? []
+    const data = await fetchPopularBooks({ limit: 10, region: '21' })
+    popularSnapshot.value = data.snapshot ?? null
+    popularBooks.value = (data.items ?? data.results ?? data.books ?? [])
+      .map((item) => item.book ?? item)
+      .filter(Boolean)
   } catch (requestError) {
     popularBooks.value = []
+    popularSnapshot.value = null
     popularError.value = requestError
   } finally {
     isPopularLoading.value = false
@@ -192,7 +197,12 @@ onMounted(() => {
 
     <section class="mb-5">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-        <h2 class="section-title mb-0">주간 인기 도서</h2>
+        <div>
+          <h2 class="section-title mb-1">주간 인기 도서</h2>
+          <p v-if="popularSnapshot" class="meta-text mb-0">
+            {{ popularSnapshot.period_start }} ~ {{ popularSnapshot.period_end }}
+          </p>
+        </div>
       </div>
       <LoadingState v-if="isPopularLoading" title="인기 도서를 불러오는 중입니다." />
       <p v-else-if="popularError" class="meta-text">인기 도서를 불러오지 못했어요.</p>
@@ -227,7 +237,15 @@ onMounted(() => {
         </label>
         <label class="form-field">
           <span>정렬 기준</span>
-          <input v-model.trim="filters.sort" class="form-control" type="text" placeholder="loan_count" />
+          <select v-model="filters.sort" class="form-select">
+            <option value="">기본</option>
+            <option value="loan">대출</option>
+            <option value="title">도서명</option>
+            <option value="author">저자</option>
+            <option value="pub">출판사</option>
+            <option value="pubYear">출판연도</option>
+            <option value="isbn">ISBN</option>
+          </select>
         </label>
         <label class="form-field">
           <span>정렬 방향</span>
