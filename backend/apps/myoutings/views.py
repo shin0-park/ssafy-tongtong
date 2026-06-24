@@ -26,6 +26,7 @@ from apps.myoutings.serializers import (
     UserLibrarySaveSerializer,
     UserProgramSaveSerializer,
 )
+from apps.myoutings.services import build_my_outings_dashboard
 from apps.programs.models import Program
 
 
@@ -132,6 +133,13 @@ class ProgramSaveAPIView(BaseSaveAPIView):
             Program.objects.filter(is_visible=True, deleted_at__isnull=True),
             pk=self.kwargs[self.lookup_url_kwarg],
         )
+
+
+class MyOutingsDashboardAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        return Response(build_my_outings_dashboard(request.user), status=status.HTTP_200_OK)
 
 
 class SavedLibraryListAPIView(ListAPIView):
