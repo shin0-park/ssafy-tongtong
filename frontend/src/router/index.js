@@ -38,10 +38,13 @@ const router = createRouter({
     {
       path: '/programs',
       name: 'program-list',
-      component: PlaceholderView,
-      props: {
-        title: '문화 프로그램',
-      },
+      component: () => import('@/pages/programs/ProgramListView.vue'),
+    },
+    {
+      path: '/programs/:id',
+      name: 'program-detail',
+      component: () => import('@/pages/programs/ProgramDetailView.vue'),
+      props: true,
     },
     {
       path: '/reviews',

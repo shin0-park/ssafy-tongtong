@@ -185,6 +185,94 @@ a {
   gap: 8px;
 }
 
+.program-card {
+  display: flex;
+  height: 100%;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--lo-border);
+  border-radius: 8px;
+  padding: 18px;
+  background: #fff;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.program-card:hover {
+  border-color: #93c5bd;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+.program-card-main {
+  min-width: 0;
+}
+
+.program-card-title {
+  display: -webkit-box;
+  margin: 0 0 8px;
+  overflow: hidden;
+  font-size: 1.08rem;
+  font-weight: 720;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.program-card-meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 12px;
+  color: var(--lo-muted);
+  font-size: 0.9rem;
+}
+
+.program-card-meta dt {
+  color: var(--lo-text);
+  font-weight: 650;
+}
+
+.program-card-meta dd {
+  margin: 0;
+}
+
+.program-card-actions {
+  display: flex;
+  min-width: 104px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.status-badge {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.84rem;
+  line-height: 1.2;
+}
+
+.status-badge-positive {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.status-badge-info {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.status-badge-muted {
+  border: 1px solid var(--lo-border);
+  background: #f8fafc;
+  color: var(--lo-muted);
+}
+
 .library-thumb {
   aspect-ratio: 16 / 9;
   width: 100%;
@@ -234,7 +322,8 @@ a {
 @media (max-width: 575.98px) {
   .book-card,
   .book-detail-layout,
-  .holding-card {
+  .holding-card,
+  .program-card {
     grid-template-columns: 1fr;
   }
 
@@ -259,7 +348,12 @@ a {
     display: grid;
   }
 
-  .holding-card-actions {
+  .holding-card-actions,
+  .program-card-actions {
     align-items: flex-start;
+  }
+
+  .program-card {
+    display: grid;
   }
 }
