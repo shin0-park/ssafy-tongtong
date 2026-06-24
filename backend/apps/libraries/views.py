@@ -6,11 +6,12 @@ from rest_framework.views import APIView
 
 from apps.common.pagination import StandardPageNumberPagination
 
-from .models import Library, LibraryClosureRule, LibraryImage, LibraryOpeningHour, LibraryStatisticSnapshot
+from .models import Library, LibraryClosureRule, LibraryDailySchedule, LibraryImage, LibraryOpeningHour, LibraryStatisticSnapshot
 from .serializers import LibraryDetailSerializer, LibraryListSerializer, SimilarLibrarySerializer
 from .services import (
     apply_advanced_library_filters,
     calculate_similar_libraries,
+    collect_operation_prefetch_dates,
     library_tag_prefetch,
     parse_limit,
 )
@@ -20,6 +21,7 @@ class LibraryQueryMixin:
     serializer_class = LibraryListSerializer
 
     def get_base_queryset(self):
+        operation_dates = collect_operation_prefetch_dates(getattr(self.request, "query_params", None))
         return (
             Library.objects.filter(is_active=True)
             .select_related("facility_profile")
@@ -43,6 +45,11 @@ class LibraryQueryMixin:
                     "closure_rules",
                     queryset=LibraryClosureRule.objects.filter(is_current=True).order_by("priority", "id"),
                     to_attr="current_closure_rules",
+                ),
+                Prefetch(
+                    "daily_schedules",
+                    queryset=LibraryDailySchedule.objects.filter(date__in=operation_dates).order_by("date", "id"),
+                    to_attr="prefetched_daily_schedules",
                 ),
                 library_tag_prefetch,
             )

@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from django.db.models import Prefetch
@@ -10,8 +10,10 @@ from apps.recommendations.models import Purpose, PurposeTagRule
 
 from .models import (
     ClosureRuleType,
+    LibraryDailySchedule,
     LibraryTag,
     LibraryTagSourceMethod,
+    PublicHoliday,
     ScheduleDayType,
     ScheduleStatus,
 )
@@ -49,10 +51,10 @@ FACILITY_TAG_CODES = {
 SUPPORTED_PURPOSES = {"study", "book", "kids", "mood", "nearby"}
 UNSUPPORTED_LIBRARY_FILTERS = {
     "radius_km",
-    "holiday_status",
     "late_open_after",
 }
 OPERATION_FILTER_PARAMS = {"open_today", "open_now", "weekend_open"}
+HOLIDAY_STATUS_VALUES = {ScheduleStatus.OPEN, ScheduleStatus.CLOSED, ScheduleStatus.UNKNOWN}
 ALLOWED_ORDERING = {"name", "-book_count", "-reading_seat_count", "purpose_score"}
 
 TAG_DIRECT_SOURCES = {
@@ -81,6 +83,11 @@ def validate_library_filter_params(params):
     for field in OPERATION_FILTER_PARAMS:
         if field in params and params.get(field) != "true":
             raise ValidationError({field: "Only true operation filters are supported."})
+
+    if "holiday_date" in params and "holiday_status" not in params:
+        raise ValidationError({"holiday_date": "holiday_date requires holiday_status."})
+    if "holiday_status" in params:
+        validate_holiday_status_params(params)
 
     parse_non_negative_int(params.get("min_book_count"), "min_book_count")
     parse_non_negative_int(params.get("min_reading_seat_count"), "min_reading_seat_count")
@@ -230,12 +237,22 @@ def filter_by_operation_status(libraries, params):
         ]
     if params.get("weekend_open") == "true":
         libraries = [library for library in libraries if is_weekend_open(library)]
+    if params.get("holiday_status"):
+        libraries = filter_by_holiday_status(libraries, params)
     return libraries
 
 
 def resolve_library_operation_status(library, at=None, target_date=None):
     current_at = timezone.localtime(at) if at else timezone.localtime()
     operation_date = target_date or current_at.date()
+
+    daily_schedule = get_daily_schedule_for_date(library, operation_date)
+    if daily_schedule:
+        return build_operation_payload_from_daily_schedule(
+            daily_schedule,
+            current_at=current_at,
+            operation_date=operation_date,
+        )
 
     closed_reason, reason = resolve_closure_reason(library, operation_date)
     if closed_reason:
@@ -302,6 +319,45 @@ def build_operation_payload(open_today, open_now, today_hours, closed_reason, op
         "closed_reason": closed_reason,
         "operation_status_reason": operation_status_reason,
     }
+
+
+def build_operation_payload_from_daily_schedule(daily_schedule, *, current_at, operation_date):
+    reason_code = daily_schedule.reason_code or "daily_schedule"
+    operation_status_reason = f"daily_schedule:{reason_code}"
+    if daily_schedule.status == ScheduleStatus.OPEN:
+        today_hours = build_today_hours(daily_schedule)
+        open_now = is_open_at(daily_schedule, current_at, operation_date) if today_hours and operation_date == current_at.date() else None
+        return build_operation_payload(
+            open_today=True,
+            open_now=open_now,
+            today_hours=today_hours,
+            closed_reason=None,
+            operation_status_reason=operation_status_reason,
+        )
+    if daily_schedule.status == ScheduleStatus.CLOSED:
+        return build_operation_payload(
+            open_today=False,
+            open_now=False,
+            today_hours=None,
+            closed_reason=reason_code,
+            operation_status_reason=operation_status_reason,
+        )
+    return build_operation_payload(
+        open_today=None,
+        open_now=None,
+        today_hours=None,
+        closed_reason=reason_code,
+        operation_status_reason=operation_status_reason,
+    )
+
+
+def get_daily_schedule_for_date(library, operation_date):
+    daily_schedules = getattr(library, "prefetched_daily_schedules", None)
+    if daily_schedules is not None:
+        for daily_schedule in daily_schedules:
+            if daily_schedule.date == operation_date:
+                return daily_schedule
+    return library.daily_schedules.filter(date=operation_date).first()
 
 
 def resolve_closure_reason(library, operation_date):
@@ -371,6 +427,76 @@ def is_weekend_open(library, at=None):
         resolve_library_operation_status(library, at=current_at, target_date=date)["open_today"] is True
         for date in (saturday, sunday)
     )
+
+
+def validate_holiday_status_params(params, at=None):
+    holiday_status = params.get("holiday_status")
+    if holiday_status not in HOLIDAY_STATUS_VALUES:
+        raise ValidationError({"holiday_status": "Unsupported holiday_status value."})
+    get_holiday_status_target_date(params, at=at)
+
+
+def filter_by_holiday_status(libraries, params, at=None):
+    holiday_status = params.get("holiday_status")
+    target_date = get_holiday_status_target_date(params, at=at)
+    filtered = []
+    for library in libraries:
+        daily_schedule = get_daily_schedule_for_date(library, target_date)
+        if daily_schedule and daily_schedule.status == holiday_status:
+            filtered.append(library)
+    return filtered
+
+
+def get_holiday_status_target_date(params, at=None):
+    holiday_date = params.get("holiday_date")
+    if holiday_date:
+        target_date = parse_iso_date(holiday_date, "holiday_date")
+        if not is_complete_public_holiday(target_date):
+            raise ValidationError({"holiday_date": "holiday_date must be a public holiday in a complete calendar."})
+        return target_date
+
+    current_at = timezone.localtime(at) if at else timezone.localtime()
+    next_holiday = (
+        PublicHoliday.objects.filter(
+            calendar__is_complete=True,
+            is_public_holiday=True,
+            date__gte=current_at.date(),
+        )
+        .order_by("date", "source_seq", "id")
+        .first()
+    )
+    if not next_holiday:
+        raise ValidationError({"holiday_status": "No upcoming public holiday is available in a complete calendar."})
+    return next_holiday.date
+
+
+def parse_iso_date(value, field_name):
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError):
+        raise ValidationError({field_name: "Enter a valid date in YYYY-MM-DD format."})
+
+
+def is_complete_public_holiday(target_date):
+    return PublicHoliday.objects.filter(
+        calendar__year=target_date.year,
+        calendar__is_complete=True,
+        is_public_holiday=True,
+        date=target_date,
+    ).exists()
+
+
+def collect_operation_prefetch_dates(params=None, at=None):
+    current_at = timezone.localtime(at) if at else timezone.localtime()
+    dates = {current_at.date()}
+    today = current_at.date()
+    days_until_saturday = (5 - today.weekday()) % 7
+    saturday = today + timedelta(days=days_until_saturday)
+    dates.add(saturday)
+    dates.add(saturday + timedelta(days=1))
+    if params and params.get("holiday_status"):
+        dates.add(get_holiday_status_target_date(params, at=current_at))
+    return dates
 
 
 def get_current_opening_hours(library):
