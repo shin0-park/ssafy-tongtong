@@ -1,0 +1,124 @@
+:root {
+  color-scheme: light;
+  --lo-page-bg: #f7f8fb;
+  --lo-text: #1d2433;
+  --lo-muted: #64748b;
+  --lo-border: #d8dee8;
+  --lo-surface: #ffffff;
+  --lo-accent: #0f766e;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  background: var(--lo-page-bg);
+  color: var(--lo-text);
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.page-shell {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 56px;
+}
+
+.page-title {
+  margin-bottom: 8px;
+  font-size: clamp(1.7rem, 2vw, 2.3rem);
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.page-subtitle {
+  max-width: 720px;
+  margin: 0;
+  color: var(--lo-muted);
+}
+
+.section-title {
+  margin: 0 0 16px;
+  font-size: 1.2rem;
+  font-weight: 720;
+}
+
+.content-panel {
+  border: 1px solid var(--lo-border);
+  border-radius: 8px;
+  background: var(--lo-surface);
+}
+
+.library-card {
+  height: 100%;
+  border: 1px solid var(--lo-border);
+  border-radius: 8px;
+  background: #fff;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.library-card:hover {
+  border-color: #93c5bd;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+.library-thumb {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px 8px 0 0;
+  background: #e6edf3;
+}
+
+.library-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.meta-text {
+  color: var(--lo-muted);
+  font-size: 0.92rem;
+}
+
+.nav-link.router-link-active {
+  color: var(--lo-accent);
+  font-weight: 700;
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--lo-accent);
+  --bs-btn-border-color: var(--lo-accent);
+  --bs-btn-hover-bg: #115e59;
+  --bs-btn-hover-border-color: #115e59;
+}
+
+.auth-page {
+  display: flex;
+  justify-content: center;
+}
+
+.auth-card {
+  width: min(100%, 480px);
+}
+
+.field-error {
+  margin: 6px 0 0;
+  color: #b42318;
+  font-size: 0.9rem;
+}
