@@ -181,3 +181,14 @@ MEDIA_MAX_UPLOAD_MB = int(os.environ.get("MEDIA_MAX_UPLOAD_MB", "10"))
 
 DATA4LIBRARY_API_KEY = os.environ.get("DATA4LIBRARY_API_KEY", "")
 DATA4LIBRARY_BASE_URL = os.environ.get("DATA4LIBRARY_BASE_URL", "http://data4library.kr/api")
+
+DATA_GO_KR_API_KEY = os.environ.get("DATA_GO_KR_API_KEY", "")
+PUBLIC_HOLIDAY_API_BASE_URL = os.environ.get(
+    "PUBLIC_HOLIDAY_API_BASE_URL",
+    "http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService",
+)
+PUBLIC_HOLIDAY_API_OPERATION = os.environ.get(
+    "PUBLIC_HOLIDAY_API_OPERATION",
+    "getRestDeInfo",
+)
+PUBLIC_HOLIDAY_API_NUM_OF_ROWS = int(os.environ.get("PUBLIC_HOLIDAY_API_NUM_OF_ROWS", "20"))
