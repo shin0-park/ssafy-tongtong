@@ -1,0 +1,2359 @@
+[
+{
+  "model": "accounts.user",
+  "pk": 1,
+  "fields": {
+    "created_at": "2026-06-24T10:39:10.978Z",
+    "updated_at": "2026-06-24T10:39:10.978Z",
+    "password": "pbkdf2_sha256$1000000$8Seqdcibx6QsF7CrImpz97$wOdOZnDq2g++0vfiNO6/3jHWaznbfxSo5LzGXTHeu0I=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T10:39:10.853Z",
+    "email": "smoke_strong_1782297550@example.com",
+    "nickname": "SmokeUser",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 2,
+  "fields": {
+    "created_at": "2026-06-24T11:54:53.512Z",
+    "updated_at": "2026-06-24T11:54:53.644Z",
+    "password": "pbkdf2_sha256$1000000$CpVLHUmmkgrJkBUJLIykvL$mv1AXdEMsRxFn44GxgdojQxrZAfcegUPE8VAzbLz64Q=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T11:54:53.394Z",
+    "email": "smoke_login_1782302093@example.com",
+    "nickname": "SmokeRenamed",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 3,
+  "fields": {
+    "created_at": "2026-06-24T12:35:46.003Z",
+    "updated_at": "2026-06-24T12:35:46.124Z",
+    "password": "pbkdf2_sha256$1000000$NPrILQaMbjwIdbT5QXTtNp$C0yQP9xt5DbIvS4v5qvJXneQ8PLUYbq/scxlaYBK8r8=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T12:35:46.002Z",
+    "email": "codex-dashboard-empty@example.invalid",
+    "nickname": "Smoke Empty",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 4,
+  "fields": {
+    "created_at": "2026-06-24T12:35:46.130Z",
+    "updated_at": "2026-06-24T12:35:46.251Z",
+    "password": "pbkdf2_sha256$1000000$885F6i4JKjtQW5Lm2FUESO$eFbPYEmFnq3WLVXaqb37bUBLHMc2afyZHy8cGl9feDc=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T12:35:46.130Z",
+    "email": "codex-dashboard-full@example.invalid",
+    "nickname": "Smoke Full",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 5,
+  "fields": {
+    "created_at": "2026-06-24T12:36:24.556Z",
+    "updated_at": "2026-06-24T12:36:24.556Z",
+    "password": "pbkdf2_sha256$1000000$fAKXdv7WPrPmy8By2qrl8K$2gLKQyRt+rEjQ8s5euo4HlV42VWI9nD/d5o43KaW5/w=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T12:36:24.408Z",
+    "email": "codex-dashboard-empty-1e2e5694@example.invalid",
+    "nickname": "Smoke Empty",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 6,
+  "fields": {
+    "created_at": "2026-06-24T12:36:24.681Z",
+    "updated_at": "2026-06-24T12:36:24.681Z",
+    "password": "pbkdf2_sha256$1000000$ukNEWv2oNNqottjeQz6Mug$XHbvJKl2kuGLsPJqIeFLmR32zX7pAFQlNHlREOH2FrM=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T12:36:24.562Z",
+    "email": "codex-dashboard-full-1e2e5694@example.invalid",
+    "nickname": "Smoke Full",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 7,
+  "fields": {
+    "created_at": "2026-06-24T12:37:37.887Z",
+    "updated_at": "2026-06-24T12:37:37.887Z",
+    "password": "pbkdf2_sha256$1000000$qPgV71Ktmv19JfmkIy8Ur7$+BMl1K4j1QNXajABFwt+ZXpp8y7PLjUGTjw4ffyMzOM=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T12:37:37.739Z",
+    "email": "codex-dashboard-empty-099c5392@example.invalid",
+    "nickname": "Smoke Empty",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 8,
+  "fields": {
+    "created_at": "2026-06-24T12:37:38.012Z",
+    "updated_at": "2026-06-24T12:37:38.012Z",
+    "password": "pbkdf2_sha256$1000000$4er2cEMAybgQMk05xjigVa$NnVpNPNjC3OVwM5DM2Ckx6mf6IsfCNWXekJiqF1YBfs=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T12:37:37.893Z",
+    "email": "codex-dashboard-full-099c5392@example.invalid",
+    "nickname": "Smoke Full",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 9,
+  "fields": {
+    "created_at": "2026-06-24T12:50:40.228Z",
+    "updated_at": "2026-06-24T12:50:40.228Z",
+    "password": "pbkdf2_sha256$1000000$CC5827besi6v7O67HCPriU$NYwmPunEM/WAIhZApSFLL/C0C4mdFOLkZUZyuSl1Rok=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T12:50:40.071Z",
+    "email": "codex-b2-22044e60@example.invalid",
+    "nickname": "B2 Smoke",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 10,
+  "fields": {
+    "created_at": "2026-06-24T12:50:40.360Z",
+    "updated_at": "2026-06-24T12:50:40.360Z",
+    "password": "pbkdf2_sha256$1000000$xUUxj8uNtJDEKrlBtn4nyx$FlXi9u3i0axjOSgGqGNFmCvnErdq0wNbeqt8NVMV2Ac=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T12:50:40.236Z",
+    "email": "codex-b2-like-22044e60@example.invalid",
+    "nickname": "B2 Liker",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 11,
+  "fields": {
+    "created_at": "2026-06-24T12:51:47.499Z",
+    "updated_at": "2026-06-24T12:51:47.499Z",
+    "password": "pbkdf2_sha256$1000000$AkOnbG08Gu4YW3M6lojyLe$18YOooSYb/JVOE2VhBw0U6rzzlWo4Kr/DvsZY+ynpSM=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T12:51:47.377Z",
+    "email": "codex-b2-bf8e367f@example.invalid",
+    "nickname": "B2 Smoke",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 12,
+  "fields": {
+    "created_at": "2026-06-24T12:51:47.624Z",
+    "updated_at": "2026-06-24T12:51:47.624Z",
+    "password": "pbkdf2_sha256$1000000$qRnmtDWwwjtQuVj2DvU0fH$C+UiejWTIslkdvkHPT4AFbffzJDnPcEO4a6bfJKcd2k=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T12:51:47.505Z",
+    "email": "codex-b2-like-bf8e367f@example.invalid",
+    "nickname": "B2 Liker",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 13,
+  "fields": {
+    "created_at": "2026-06-24T12:53:33.414Z",
+    "updated_at": "2026-06-24T12:53:33.414Z",
+    "password": "pbkdf2_sha256$1000000$AmQasVlvNmEQ4XC5OZ8X3I$zobm4dMrK88l1sXzWchXb2xlXSCdiL6em7IjHVW+KRg=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T12:53:33.290Z",
+    "email": "codex-b2-d4814c8a@example.invalid",
+    "nickname": "B2 Smoke",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 14,
+  "fields": {
+    "created_at": "2026-06-24T12:53:33.542Z",
+    "updated_at": "2026-06-24T12:53:33.542Z",
+    "password": "pbkdf2_sha256$1000000$EVq9VIOhlG5pfagTI4vsLu$sJeblFCCMXRR/pM6RzRaBFKxUGakscwnlVQ8c/tULXg=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T12:53:33.422Z",
+    "email": "codex-b2-like-d4814c8a@example.invalid",
+    "nickname": "B2 Liker",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 15,
+  "fields": {
+    "created_at": "2026-06-24T14:55:49.031Z",
+    "updated_at": "2026-06-24T14:55:49.031Z",
+    "password": "pbkdf2_sha256$1000000$P2MCq6r1imHyhsuHtZ86XU$uvjLTGO3SVz3PyZRqttOSy8xgjBH8Dr87fv623sPj+o=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T14:55:48.902Z",
+    "email": "d1-smoke@example.com",
+    "nickname": "D1스모크",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 16,
+  "fields": {
+    "created_at": "2026-06-24T14:55:49.250Z",
+    "updated_at": "2026-06-24T14:55:49.250Z",
+    "password": "pbkdf2_sha256$1000000$H8p0QCWeRrWBLTiGLfHIS8$WfCFkNNJn0gB0L2taouIeUWl4ODzIBSH6jMlQZvW1cU=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T14:55:49.123Z",
+    "email": "d1-review@example.com",
+    "nickname": "조회테스트",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 17,
+  "fields": {
+    "created_at": "2026-06-24T14:56:18.900Z",
+    "updated_at": "2026-06-24T14:56:18.909Z",
+    "password": "pbkdf2_sha256$1000000$lTphm66jY0QF4ZWUrgMFSb$mAuYed0+aOsX9za2+mMGkxMek1X7Lqy4tFrTqc0IqvM=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T14:56:18.778Z",
+    "email": "d1-smoke-1782312978778@example.com",
+    "nickname": "D1스모크수정",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 18,
+  "fields": {
+    "created_at": "2026-06-24T14:56:19.215Z",
+    "updated_at": "2026-06-24T14:56:19.215Z",
+    "password": "pbkdf2_sha256$1000000$DBy6Q2naM0J0Is4DxnDDka$+fAyUh5RNSwB7AW1m/9nHAUDqj1R6ewiz/AZNHljRUU=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T14:56:19.046Z",
+    "email": "d1-review-1782312978778@example.com",
+    "nickname": "조회테스트",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 19,
+  "fields": {
+    "created_at": "2026-06-24T14:56:32.562Z",
+    "updated_at": "2026-06-24T14:56:32.562Z",
+    "password": "pbkdf2_sha256$1000000$mzveNbRC2JgDcXNOmCaHxB$b+EcqTisY5Y9dewlrHgysvMUKhAb1/e+fXJbD4Mf2YY=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T14:56:32.437Z",
+    "email": "d1-image-1782312992437@example.com",
+    "nickname": "이미지테스트",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 20,
+  "fields": {
+    "created_at": "2026-06-24T14:57:19.062Z",
+    "updated_at": "2026-06-24T14:57:19.062Z",
+    "password": "pbkdf2_sha256$1000000$Hf1fd5XZ9N0WwNU5pS2xRg$NchNMuAbvY9V/Zk/IQplxsdH+J/8tVznhIhnoB1uoPc=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T14:57:18.908Z",
+    "email": "d1-profile-final-1782313038908@example.com",
+    "nickname": "최종프로필",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 21,
+  "fields": {
+    "created_at": "2026-06-24T15:15:07.032Z",
+    "updated_at": "2026-06-24T15:15:07.032Z",
+    "password": "pbkdf2_sha256$1000000$llQNbLj7OiZ4eKZ1s2ReVE$xWW51nZqHacuYyAFZD+I0iLebgydkkhjCm6HQ1RQbok=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T15:15:06.906Z",
+    "email": "d2-smoke-1782314106906@example.com",
+    "nickname": "D2스모크",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 22,
+  "fields": {
+    "created_at": "2026-06-24T15:15:07.289Z",
+    "updated_at": "2026-06-24T15:15:07.289Z",
+    "password": "pbkdf2_sha256$1000000$UxBTCbznuVwfvcJeU27d3D$pnvQQORKfLLBTTbmnNQJQvZUrkyPVPXhXkmjV3/qx3w=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T15:15:07.168Z",
+    "email": "d2-other-1782314106906@example.com",
+    "nickname": "D2타인",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 23,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.212Z",
+    "updated_at": "2026-06-24T15:30:12.212Z",
+    "password": "pbkdf2_sha256$1000000$YgKblgJItq4IZFShmrO4kZ$VgJ+339lbiK284i+CS+GTeo4vR6j6UGOPps4MxQLb6A=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T15:30:12.072Z",
+    "email": "d3-none-20260624153012064832@example.com",
+    "nickname": "d3-none",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 24,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.348Z",
+    "updated_at": "2026-06-24T15:30:12.348Z",
+    "password": "pbkdf2_sha256$1000000$wJtL2kRL2cU4bSAcdjscCE$Bbt7jJ4+N9ez9iHJA2OqByKOcj1SxcrJZTRuGKLn1h4=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T15:30:12.228Z",
+    "email": "d3-manual-20260624153012064832@example.com",
+    "nickname": "d3-manual",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 25,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.469Z",
+    "updated_at": "2026-06-24T15:30:12.469Z",
+    "password": "pbkdf2_sha256$1000000$CfZY6mFmxkLBUGaYNBKaoT$SSPQxDj7Kak7RptVuBOFX41FDHqKOqLUTT+ftvknuic=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T15:30:12.349Z",
+    "email": "d3-behavior-20260624153012064832@example.com",
+    "nickname": "d3-behavior",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 26,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.590Z",
+    "updated_at": "2026-06-24T15:30:12.590Z",
+    "password": "pbkdf2_sha256$1000000$Gn1NqR6LNLEQPnD706lqZe$446Qjcy6yIj22HSrNUIV8QwFpVkc8FEJSzN1J/D4Vvk=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T15:30:12.470Z",
+    "email": "d3-both-20260624153012064832@example.com",
+    "nickname": "d3-both",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 27,
+  "fields": {
+    "created_at": "2026-06-24T15:31:09.763Z",
+    "updated_at": "2026-06-24T15:31:09.763Z",
+    "password": "pbkdf2_sha256$1000000$oNY3eC46V6Lm1aMqEml3R0$o4abz5Pd4E++AamM4cayLCnMxlEBp8mBnrKdwZJthWE=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T15:31:09.643Z",
+    "email": "d3-rerun-none-20260624153109633065@example.com",
+    "nickname": "d3-rerun-none",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 28,
+  "fields": {
+    "created_at": "2026-06-24T15:31:09.903Z",
+    "updated_at": "2026-06-24T15:31:09.903Z",
+    "password": "pbkdf2_sha256$1000000$EtQlpg8P8pSe2VUP7U8o4F$YURRMf0tIchFn8hLLQrOk7Exsxr1SGZCncksqv6HIo4=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T15:31:09.782Z",
+    "email": "d3-rerun-manual-20260624153109633065@example.com",
+    "nickname": "d3-rerun-manual",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 29,
+  "fields": {
+    "created_at": "2026-06-24T15:31:10.023Z",
+    "updated_at": "2026-06-24T15:31:10.023Z",
+    "password": "pbkdf2_sha256$1000000$DgonRN9sPUs62rUue4S7Yb$huuYUMfxKBs3hxzqFsLT68f5RKpu6J1R7J/52copPpc=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T15:31:09.904Z",
+    "email": "d3-rerun-behavior-20260624153109633065@example.com",
+    "nickname": "d3-rerun-behavior",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 30,
+  "fields": {
+    "created_at": "2026-06-24T15:31:10.147Z",
+    "updated_at": "2026-06-24T15:31:10.147Z",
+    "password": "pbkdf2_sha256$1000000$dLSAAlUVO7wojgEBjNValS$8TBFVd2i8W4zUQ0AhhBXgiMN5xKvgapMx7NmqIyGaAU=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-24T15:31:10.024Z",
+    "email": "d3-rerun-both-20260624153109633065@example.com",
+    "nickname": "d3-rerun-both",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.userprofile",
+  "pk": 1,
+  "fields": {
+    "created_at": "2026-06-24T10:39:10.979Z",
+    "updated_at": "2026-06-24T10:39:10.979Z",
+    "user": 1,
+    "profile_image": "",
+    "profile_image_alt": "",
+    "bio": ""
+  }
+},
+{
+  "model": "accounts.userprofile",
+  "pk": 2,
+  "fields": {
+    "created_at": "2026-06-24T11:54:53.513Z",
+    "updated_at": "2026-06-24T11:54:53.513Z",
+    "user": 2,
+    "profile_image": "",
+    "profile_image_alt": "",
+    "bio": ""
+  }
+},
+{
+  "model": "accounts.userprofile",
+  "pk": 3,
+  "fields": {
+    "created_at": "2026-06-24T14:56:18.908Z",
+    "updated_at": "2026-06-24T14:56:19.041Z",
+    "user": 17,
+    "profile_image": "",
+    "profile_image_alt": "프로필 이미지",
+    "bio": "도서관 산책을 좋아해요."
+  }
+},
+{
+  "model": "accounts.userprofile",
+  "pk": 4,
+  "fields": {
+    "created_at": "2026-06-24T14:56:32.640Z",
+    "updated_at": "2026-06-24T14:56:32.644Z",
+    "user": 19,
+    "profile_image": "",
+    "profile_image_alt": "",
+    "bio": ""
+  }
+},
+{
+  "model": "accounts.userprofile",
+  "pk": 5,
+  "fields": {
+    "created_at": "2026-06-24T14:57:19.151Z",
+    "updated_at": "2026-06-24T14:57:19.174Z",
+    "user": 20,
+    "profile_image": "",
+    "profile_image_alt": "",
+    "bio": ""
+  }
+},
+{
+  "model": "accounts.userpreferredregion",
+  "pk": 1,
+  "fields": {
+    "created_at": "2026-06-24T11:54:53.725Z",
+    "updated_at": "2026-06-24T11:54:53.725Z",
+    "user": 2,
+    "region_key": "21:해운대구",
+    "sido": "부산광역시",
+    "sigungu": "해운대구",
+    "weight": "1.0000",
+    "display_order": 0,
+    "is_active": true
+  }
+},
+{
+  "model": "accounts.userpreferredregion",
+  "pk": 2,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.592Z",
+    "updated_at": "2026-06-24T15:30:12.592Z",
+    "user": 24,
+    "region_key": "21:해운대구",
+    "sido": "부산광역시",
+    "sigungu": "해운대구",
+    "weight": "1.0000",
+    "display_order": 0,
+    "is_active": true
+  }
+},
+{
+  "model": "accounts.userpreferredregion",
+  "pk": 3,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.593Z",
+    "updated_at": "2026-06-24T15:30:12.593Z",
+    "user": 26,
+    "region_key": "21:해운대구",
+    "sido": "부산광역시",
+    "sigungu": "해운대구",
+    "weight": "1.0000",
+    "display_order": 0,
+    "is_active": true
+  }
+},
+{
+  "model": "accounts.userpreferredregion",
+  "pk": 4,
+  "fields": {
+    "created_at": "2026-06-24T15:31:10.148Z",
+    "updated_at": "2026-06-24T15:31:10.148Z",
+    "user": 28,
+    "region_key": "21:해운대구",
+    "sido": "부산광역시",
+    "sigungu": "해운대구",
+    "weight": "1.0000",
+    "display_order": 0,
+    "is_active": true
+  }
+},
+{
+  "model": "accounts.userpreferredregion",
+  "pk": 5,
+  "fields": {
+    "created_at": "2026-06-24T15:31:10.149Z",
+    "updated_at": "2026-06-24T15:31:10.149Z",
+    "user": 30,
+    "region_key": "21:해운대구",
+    "sido": "부산광역시",
+    "sigungu": "해운대구",
+    "weight": "1.0000",
+    "display_order": 0,
+    "is_active": true
+  }
+},
+{
+  "model": "accounts.userpreferredtag",
+  "pk": 1,
+  "fields": {
+    "created_at": "2026-06-24T11:54:53.726Z",
+    "updated_at": "2026-06-24T11:54:53.726Z",
+    "user": 2,
+    "tag": 1,
+    "weight": "1.0000",
+    "display_order": 0,
+    "is_active": true
+  }
+},
+{
+  "model": "accounts.userpreferredtag",
+  "pk": 2,
+  "fields": {
+    "created_at": "2026-06-24T11:54:53.727Z",
+    "updated_at": "2026-06-24T11:54:53.727Z",
+    "user": 2,
+    "tag": 2,
+    "weight": "1.0000",
+    "display_order": 1,
+    "is_active": true
+  }
+},
+{
+  "model": "accounts.userpreferredpurpose",
+  "pk": 1,
+  "fields": {
+    "created_at": "2026-06-24T11:54:53.723Z",
+    "updated_at": "2026-06-24T11:54:53.723Z",
+    "user": 2,
+    "purpose": 1,
+    "weight": "1.0000",
+    "display_order": 0,
+    "is_active": true
+  }
+},
+{
+  "model": "accounts.userpreferredpurpose",
+  "pk": 2,
+  "fields": {
+    "created_at": "2026-06-24T11:54:53.724Z",
+    "updated_at": "2026-06-24T11:54:53.724Z",
+    "user": 2,
+    "purpose": 2,
+    "weight": "1.0000",
+    "display_order": 1,
+    "is_active": true
+  }
+},
+{
+  "model": "community.userreview",
+  "pk": 2,
+  "fields": {
+    "created_at": "2026-06-24T12:36:24.743Z",
+    "updated_at": "2026-06-24T12:36:24.743Z",
+    "user": 6,
+    "library": 221,
+    "content": "조용하고 책 읽기 좋은 공간이었어요.",
+    "view_count": 0,
+    "like_count": 1,
+    "moderation_status": "visible"
+  }
+},
+{
+  "model": "community.userreview",
+  "pk": 3,
+  "fields": {
+    "created_at": "2026-06-24T12:37:38.067Z",
+    "updated_at": "2026-06-24T12:37:38.067Z",
+    "user": 8,
+    "library": 221,
+    "content": "조용하고 책 읽기 좋은 공간이었어요.",
+    "view_count": 0,
+    "like_count": 1,
+    "moderation_status": "visible"
+  }
+},
+{
+  "model": "community.userreview",
+  "pk": 4,
+  "fields": {
+    "created_at": "2026-06-24T12:50:40.413Z",
+    "updated_at": "2026-06-24T12:50:40.424Z",
+    "user": 9,
+    "library": 222,
+    "content": "기존 JSON 수정 smoke입니다.",
+    "view_count": 0,
+    "like_count": 0,
+    "moderation_status": "visible"
+  }
+},
+{
+  "model": "community.userreview",
+  "pk": 5,
+  "fields": {
+    "created_at": "2026-06-24T12:50:42.272Z",
+    "updated_at": "2026-06-24T12:50:42.272Z",
+    "user": 9,
+    "library": 222,
+    "content": "이미지 포함 multipart 작성 smoke입니다.",
+    "view_count": 0,
+    "like_count": 0,
+    "moderation_status": "visible"
+  }
+},
+{
+  "model": "community.userreview",
+  "pk": 6,
+  "fields": {
+    "created_at": "2026-06-24T12:51:47.667Z",
+    "updated_at": "2026-06-24T12:51:47.679Z",
+    "user": 11,
+    "library": 222,
+    "content": "기존 JSON 수정 smoke입니다.",
+    "view_count": 0,
+    "like_count": 0,
+    "moderation_status": "visible"
+  }
+},
+{
+  "model": "community.userreview",
+  "pk": 7,
+  "fields": {
+    "created_at": "2026-06-24T12:51:47.718Z",
+    "updated_at": "2026-06-24T12:51:47.757Z",
+    "user": 11,
+    "library": 222,
+    "content": "이미지 교체 수정입니다.",
+    "view_count": 0,
+    "like_count": 1,
+    "moderation_status": "visible"
+  }
+},
+{
+  "model": "community.userreview",
+  "pk": 8,
+  "fields": {
+    "created_at": "2026-06-24T12:53:33.586Z",
+    "updated_at": "2026-06-24T12:53:33.598Z",
+    "user": 13,
+    "library": 222,
+    "content": "기존 JSON 수정 smoke입니다.",
+    "view_count": 0,
+    "like_count": 0,
+    "moderation_status": "visible"
+  }
+},
+{
+  "model": "community.userreview",
+  "pk": 9,
+  "fields": {
+    "created_at": "2026-06-24T12:53:33.644Z",
+    "updated_at": "2026-06-24T12:53:33.699Z",
+    "user": 13,
+    "library": 222,
+    "content": "이미지 교체 수정입니다.",
+    "view_count": 0,
+    "like_count": 1,
+    "moderation_status": "visible"
+  }
+},
+{
+  "model": "community.userreview",
+  "pk": 10,
+  "fields": {
+    "created_at": "2026-06-24T14:55:49.253Z",
+    "updated_at": "2026-06-24T14:55:49.253Z",
+    "user": 16,
+    "library": 1,
+    "content": "조회수 테스트 후기",
+    "view_count": 0,
+    "like_count": 0,
+    "moderation_status": "visible"
+  }
+},
+{
+  "model": "community.userreview",
+  "pk": 11,
+  "fields": {
+    "created_at": "2026-06-24T14:56:19.216Z",
+    "updated_at": "2026-06-24T14:56:19.216Z",
+    "user": 18,
+    "library": 1,
+    "content": "조회수 테스트 후기",
+    "view_count": 1,
+    "like_count": 0,
+    "moderation_status": "visible"
+  }
+},
+{
+  "model": "community.userreview",
+  "pk": 13,
+  "fields": {
+    "created_at": "2026-06-24T15:15:07.290Z",
+    "updated_at": "2026-06-24T15:15:07.290Z",
+    "user": 22,
+    "library": 1,
+    "content": "좋아요 대상 후기",
+    "view_count": 0,
+    "like_count": 0,
+    "moderation_status": "visible"
+  }
+},
+{
+  "model": "community.userreview",
+  "pk": 14,
+  "fields": {
+    "created_at": "2026-06-24T15:15:07.313Z",
+    "updated_at": "2026-06-24T15:15:07.313Z",
+    "user": 21,
+    "library": 1,
+    "content": "내가 쓴 후기 좋아요",
+    "view_count": 0,
+    "like_count": 1,
+    "moderation_status": "visible"
+  }
+},
+{
+  "model": "community.userreviewlike",
+  "pk": 2,
+  "fields": {
+    "user": 6,
+    "review": 2,
+    "created_at": "2026-06-24T12:36:24.754Z"
+  }
+},
+{
+  "model": "community.userreviewlike",
+  "pk": 3,
+  "fields": {
+    "user": 8,
+    "review": 3,
+    "created_at": "2026-06-24T12:37:38.079Z"
+  }
+},
+{
+  "model": "community.userreviewlike",
+  "pk": 4,
+  "fields": {
+    "user": 12,
+    "review": 7,
+    "created_at": "2026-06-24T12:51:47.770Z"
+  }
+},
+{
+  "model": "community.userreviewlike",
+  "pk": 5,
+  "fields": {
+    "user": 14,
+    "review": 9,
+    "created_at": "2026-06-24T12:53:33.722Z"
+  }
+},
+{
+  "model": "community.userreviewlike",
+  "pk": 7,
+  "fields": {
+    "user": 21,
+    "review": 14,
+    "created_at": "2026-06-24T15:15:07.315Z"
+  }
+},
+{
+  "model": "community.userreviewimage",
+  "pk": 1,
+  "fields": {
+    "review": 5,
+    "image": "reviews/one.png",
+    "alt_text": "",
+    "display_order": 0,
+    "created_at": "2026-06-24T12:50:42.275Z"
+  }
+},
+{
+  "model": "community.userreviewimage",
+  "pk": 2,
+  "fields": {
+    "review": 5,
+    "image": "reviews/two.jpg",
+    "alt_text": "",
+    "display_order": 1,
+    "created_at": "2026-06-24T12:50:42.275Z"
+  }
+},
+{
+  "model": "community.userreviewimage",
+  "pk": 6,
+  "fields": {
+    "review": 7,
+    "image": "reviews/again.png",
+    "alt_text": "",
+    "display_order": 0,
+    "created_at": "2026-06-24T12:51:47.768Z"
+  }
+},
+{
+  "model": "community.userreviewimage",
+  "pk": 10,
+  "fields": {
+    "review": 9,
+    "image": "reviews/again_vbON9pV.png",
+    "alt_text": "",
+    "display_order": 0,
+    "created_at": "2026-06-24T12:53:33.716Z"
+  }
+},
+{
+  "model": "community.userreviewimage",
+  "pk": 11,
+  "fields": {
+    "review": 9,
+    "image": "reviews/direct-check.png",
+    "alt_text": "",
+    "display_order": 99,
+    "created_at": "2026-06-24T12:55:11.786Z"
+  }
+},
+{
+  "model": "community.reviewbookreference",
+  "pk": 2,
+  "fields": {
+    "review": 2,
+    "book": 421,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:36:24.746Z"
+  }
+},
+{
+  "model": "community.reviewbookreference",
+  "pk": 3,
+  "fields": {
+    "review": 3,
+    "book": 421,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:37:38.070Z"
+  }
+},
+{
+  "model": "community.reviewbookreference",
+  "pk": 4,
+  "fields": {
+    "review": 4,
+    "book": 422,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:50:40.415Z"
+  }
+},
+{
+  "model": "community.reviewbookreference",
+  "pk": 5,
+  "fields": {
+    "review": 5,
+    "book": 422,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:50:42.273Z"
+  }
+},
+{
+  "model": "community.reviewbookreference",
+  "pk": 6,
+  "fields": {
+    "review": 6,
+    "book": 422,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:51:47.669Z"
+  }
+},
+{
+  "model": "community.reviewbookreference",
+  "pk": 7,
+  "fields": {
+    "review": 7,
+    "book": 422,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:51:47.719Z"
+  }
+},
+{
+  "model": "community.reviewbookreference",
+  "pk": 8,
+  "fields": {
+    "review": 8,
+    "book": 422,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:53:33.588Z"
+  }
+},
+{
+  "model": "community.reviewbookreference",
+  "pk": 9,
+  "fields": {
+    "review": 9,
+    "book": 422,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:53:33.645Z"
+  }
+},
+{
+  "model": "community.reviewprogramreference",
+  "pk": 2,
+  "fields": {
+    "review": 2,
+    "program": 213,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:36:24.746Z"
+  }
+},
+{
+  "model": "community.reviewprogramreference",
+  "pk": 3,
+  "fields": {
+    "review": 3,
+    "program": 213,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:37:38.073Z"
+  }
+},
+{
+  "model": "community.reviewprogramreference",
+  "pk": 4,
+  "fields": {
+    "review": 4,
+    "program": 214,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:50:40.416Z"
+  }
+},
+{
+  "model": "community.reviewprogramreference",
+  "pk": 5,
+  "fields": {
+    "review": 5,
+    "program": 214,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:50:42.274Z"
+  }
+},
+{
+  "model": "community.reviewprogramreference",
+  "pk": 6,
+  "fields": {
+    "review": 6,
+    "program": 214,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:51:47.669Z"
+  }
+},
+{
+  "model": "community.reviewprogramreference",
+  "pk": 7,
+  "fields": {
+    "review": 7,
+    "program": 214,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:51:47.719Z"
+  }
+},
+{
+  "model": "community.reviewprogramreference",
+  "pk": 8,
+  "fields": {
+    "review": 8,
+    "program": 214,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:53:33.589Z"
+  }
+},
+{
+  "model": "community.reviewprogramreference",
+  "pk": 9,
+  "fields": {
+    "review": 9,
+    "program": 214,
+    "display_order": 0,
+    "created_at": "2026-06-24T12:53:33.646Z"
+  }
+},
+{
+  "model": "community.reviewtag",
+  "pk": 3,
+  "fields": {
+    "review": 2,
+    "tag": 64,
+    "created_at": "2026-06-24T12:36:24.745Z"
+  }
+},
+{
+  "model": "community.reviewtag",
+  "pk": 4,
+  "fields": {
+    "review": 3,
+    "tag": 64,
+    "created_at": "2026-06-24T12:37:38.068Z"
+  }
+},
+{
+  "model": "community.reviewtag",
+  "pk": 6,
+  "fields": {
+    "review": 4,
+    "tag": 65,
+    "created_at": "2026-06-24T12:50:40.425Z"
+  }
+},
+{
+  "model": "community.reviewtag",
+  "pk": 7,
+  "fields": {
+    "review": 5,
+    "tag": 65,
+    "created_at": "2026-06-24T12:50:42.273Z"
+  }
+},
+{
+  "model": "community.reviewtag",
+  "pk": 9,
+  "fields": {
+    "review": 6,
+    "tag": 65,
+    "created_at": "2026-06-24T12:51:47.679Z"
+  }
+},
+{
+  "model": "community.reviewtag",
+  "pk": 10,
+  "fields": {
+    "review": 7,
+    "tag": 65,
+    "created_at": "2026-06-24T12:51:47.719Z"
+  }
+},
+{
+  "model": "community.reviewtag",
+  "pk": 12,
+  "fields": {
+    "review": 8,
+    "tag": 65,
+    "created_at": "2026-06-24T12:53:33.599Z"
+  }
+},
+{
+  "model": "community.reviewtag",
+  "pk": 13,
+  "fields": {
+    "review": 9,
+    "tag": 65,
+    "created_at": "2026-06-24T12:53:33.645Z"
+  }
+},
+{
+  "model": "community.reviewtag",
+  "pk": 15,
+  "fields": {
+    "review": 13,
+    "tag": 35,
+    "created_at": "2026-06-24T15:15:07.291Z"
+  }
+},
+{
+  "model": "community.reviewtag",
+  "pk": 16,
+  "fields": {
+    "review": 14,
+    "tag": 35,
+    "created_at": "2026-06-24T15:15:07.314Z"
+  }
+},
+{
+  "model": "myoutings.userlibrarysave",
+  "pk": 2,
+  "fields": {
+    "created_at": "2026-06-24T12:36:24.731Z",
+    "updated_at": "2026-06-24T12:36:24.731Z",
+    "user": 6,
+    "library": 221,
+    "memo": ""
+  }
+},
+{
+  "model": "myoutings.userlibrarysave",
+  "pk": 3,
+  "fields": {
+    "created_at": "2026-06-24T12:37:38.060Z",
+    "updated_at": "2026-06-24T12:37:38.060Z",
+    "user": 8,
+    "library": 221,
+    "memo": ""
+  }
+},
+{
+  "model": "myoutings.userlibrarysave",
+  "pk": 5,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.594Z",
+    "updated_at": "2026-06-24T15:30:12.594Z",
+    "user": 25,
+    "library": 1,
+    "memo": ""
+  }
+},
+{
+  "model": "myoutings.userlibrarysave",
+  "pk": 6,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.595Z",
+    "updated_at": "2026-06-24T15:30:12.595Z",
+    "user": 26,
+    "library": 1,
+    "memo": ""
+  }
+},
+{
+  "model": "myoutings.userlibrarysave",
+  "pk": 7,
+  "fields": {
+    "created_at": "2026-06-24T15:31:10.150Z",
+    "updated_at": "2026-06-24T15:31:10.150Z",
+    "user": 29,
+    "library": 1,
+    "memo": ""
+  }
+},
+{
+  "model": "myoutings.userlibrarysave",
+  "pk": 8,
+  "fields": {
+    "created_at": "2026-06-24T15:31:10.153Z",
+    "updated_at": "2026-06-24T15:31:10.153Z",
+    "user": 30,
+    "library": 1,
+    "memo": ""
+  }
+},
+{
+  "model": "myoutings.userbooksave",
+  "pk": 2,
+  "fields": {
+    "created_at": "2026-06-24T12:36:24.736Z",
+    "updated_at": "2026-06-24T12:36:24.736Z",
+    "user": 6,
+    "book": 421,
+    "memo": ""
+  }
+},
+{
+  "model": "myoutings.userbooksave",
+  "pk": 3,
+  "fields": {
+    "created_at": "2026-06-24T12:37:38.062Z",
+    "updated_at": "2026-06-24T12:37:38.062Z",
+    "user": 8,
+    "book": 421,
+    "memo": ""
+  }
+},
+{
+  "model": "myoutings.userprogramsave",
+  "pk": 2,
+  "fields": {
+    "created_at": "2026-06-24T12:36:24.739Z",
+    "updated_at": "2026-06-24T12:36:24.739Z",
+    "user": 6,
+    "program": 213,
+    "memo": ""
+  }
+},
+{
+  "model": "myoutings.userprogramsave",
+  "pk": 3,
+  "fields": {
+    "created_at": "2026-06-24T12:37:38.063Z",
+    "updated_at": "2026-06-24T12:37:38.063Z",
+    "user": 8,
+    "program": 213,
+    "memo": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 1,
+  "fields": {
+    "created_at": "2026-06-24T10:39:10.980Z",
+    "updated_at": "2026-06-24T15:15:19.388Z",
+    "user": 1,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:15:19.385Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 2,
+  "fields": {
+    "created_at": "2026-06-24T11:54:53.514Z",
+    "updated_at": "2026-06-24T15:15:19.395Z",
+    "user": 2,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:15:19.393Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 3,
+  "fields": {
+    "created_at": "2026-06-24T15:15:07.090Z",
+    "updated_at": "2026-06-24T15:15:36.918Z",
+    "user": 21,
+    "status": "ready",
+    "signal_count": 1,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 1,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:15:07.318Z",
+    "calculated_at": "2026-06-24T15:15:36.913Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 4,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.397Z",
+    "updated_at": "2026-06-24T15:15:19.400Z",
+    "user": 3,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:15:19.398Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 5,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.402Z",
+    "updated_at": "2026-06-24T15:15:19.406Z",
+    "user": 4,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:15:19.403Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 6,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.407Z",
+    "updated_at": "2026-06-24T15:15:19.410Z",
+    "user": 5,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:15:19.408Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 7,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.412Z",
+    "updated_at": "2026-06-24T15:15:19.422Z",
+    "user": 6,
+    "status": "ready",
+    "signal_count": 4,
+    "library_signal_count": 1,
+    "book_signal_count": 1,
+    "program_signal_count": 1,
+    "written_review_signal_count": 1,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:15:19.413Z",
+    "calculated_at": "2026-06-24T15:15:19.413Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 8,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.424Z",
+    "updated_at": "2026-06-24T15:15:19.427Z",
+    "user": 7,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:15:19.425Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 9,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.428Z",
+    "updated_at": "2026-06-24T15:15:19.436Z",
+    "user": 8,
+    "status": "ready",
+    "signal_count": 4,
+    "library_signal_count": 1,
+    "book_signal_count": 1,
+    "program_signal_count": 1,
+    "written_review_signal_count": 1,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:15:19.429Z",
+    "calculated_at": "2026-06-24T15:15:19.429Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 10,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.437Z",
+    "updated_at": "2026-06-24T15:15:19.444Z",
+    "user": 9,
+    "status": "ready",
+    "signal_count": 2,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 2,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:15:19.438Z",
+    "calculated_at": "2026-06-24T15:15:19.438Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 11,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.446Z",
+    "updated_at": "2026-06-24T15:15:19.451Z",
+    "user": 10,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:15:19.448Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 12,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.453Z",
+    "updated_at": "2026-06-24T15:15:19.459Z",
+    "user": 11,
+    "status": "ready",
+    "signal_count": 2,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 2,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:15:19.454Z",
+    "calculated_at": "2026-06-24T15:15:19.454Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 13,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.460Z",
+    "updated_at": "2026-06-24T15:15:19.466Z",
+    "user": 12,
+    "status": "ready",
+    "signal_count": 1,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 1,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:15:19.461Z",
+    "calculated_at": "2026-06-24T15:15:19.461Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 14,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.468Z",
+    "updated_at": "2026-06-24T15:15:19.473Z",
+    "user": 13,
+    "status": "ready",
+    "signal_count": 2,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 2,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:15:19.469Z",
+    "calculated_at": "2026-06-24T15:15:19.469Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 15,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.475Z",
+    "updated_at": "2026-06-24T15:15:19.482Z",
+    "user": 14,
+    "status": "ready",
+    "signal_count": 1,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 1,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:15:19.477Z",
+    "calculated_at": "2026-06-24T15:15:19.477Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 16,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.484Z",
+    "updated_at": "2026-06-24T15:15:19.487Z",
+    "user": 15,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:15:19.484Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 17,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.489Z",
+    "updated_at": "2026-06-24T15:15:19.493Z",
+    "user": 16,
+    "status": "ready",
+    "signal_count": 1,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 1,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:15:19.490Z",
+    "calculated_at": "2026-06-24T15:15:19.490Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 18,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.494Z",
+    "updated_at": "2026-06-24T15:15:19.497Z",
+    "user": 17,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:15:19.495Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 19,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.500Z",
+    "updated_at": "2026-06-24T15:15:19.504Z",
+    "user": 18,
+    "status": "ready",
+    "signal_count": 1,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 1,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:15:19.501Z",
+    "calculated_at": "2026-06-24T15:15:19.501Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 20,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.508Z",
+    "updated_at": "2026-06-24T15:15:19.512Z",
+    "user": 19,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:15:19.509Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 21,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.514Z",
+    "updated_at": "2026-06-24T15:15:19.519Z",
+    "user": 20,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:15:19.516Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 22,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.525Z",
+    "updated_at": "2026-06-24T15:15:19.529Z",
+    "user": 22,
+    "status": "ready",
+    "signal_count": 1,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 1,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:15:19.526Z",
+    "calculated_at": "2026-06-24T15:15:19.526Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 23,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.596Z",
+    "updated_at": "2026-06-24T15:30:12.761Z",
+    "user": 25,
+    "status": "ready",
+    "signal_count": 1,
+    "library_signal_count": 1,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:30:12.757Z",
+    "calculated_at": "2026-06-24T15:30:12.757Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 24,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.598Z",
+    "updated_at": "2026-06-24T15:30:12.809Z",
+    "user": 26,
+    "status": "ready",
+    "signal_count": 1,
+    "library_signal_count": 1,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:30:12.805Z",
+    "calculated_at": "2026-06-24T15:30:12.805Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 25,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.656Z",
+    "updated_at": "2026-06-24T15:30:12.660Z",
+    "user": 23,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:30:12.656Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 26,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.711Z",
+    "updated_at": "2026-06-24T15:30:12.714Z",
+    "user": 24,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:30:12.713Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 27,
+  "fields": {
+    "created_at": "2026-06-24T15:31:10.151Z",
+    "updated_at": "2026-06-24T15:31:10.513Z",
+    "user": 29,
+    "status": "ready",
+    "signal_count": 1,
+    "library_signal_count": 1,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:31:10.509Z",
+    "calculated_at": "2026-06-24T15:31:10.509Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 28,
+  "fields": {
+    "created_at": "2026-06-24T15:31:10.154Z",
+    "updated_at": "2026-06-24T15:31:10.643Z",
+    "user": 30,
+    "status": "ready",
+    "signal_count": 1,
+    "library_signal_count": 1,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": "2026-06-24T15:31:10.640Z",
+    "calculated_at": "2026-06-24T15:31:10.640Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 29,
+  "fields": {
+    "created_at": "2026-06-24T15:31:10.210Z",
+    "updated_at": "2026-06-24T15:31:10.310Z",
+    "user": 27,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:31:10.308Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreference",
+  "pk": 30,
+  "fields": {
+    "created_at": "2026-06-24T15:31:10.350Z",
+    "updated_at": "2026-06-24T15:31:10.466Z",
+    "user": 28,
+    "status": "collecting",
+    "signal_count": 0,
+    "library_signal_count": 0,
+    "book_signal_count": 0,
+    "program_signal_count": 0,
+    "written_review_signal_count": 0,
+    "liked_review_signal_count": 0,
+    "algorithm_version": "v1_recency365_halflife90_replace_all",
+    "eligible_since": null,
+    "calculated_at": "2026-06-24T15:31:10.465Z",
+    "failure_message": ""
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 6,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.422Z",
+    "updated_at": "2026-06-24T15:15:19.422Z",
+    "user_preference": 7,
+    "tag": 64,
+    "score": "1.498726",
+    "count": "0.999150",
+    "rank": 1,
+    "source_count_library": 0,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 1,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 7,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.422Z",
+    "updated_at": "2026-06-24T15:15:19.422Z",
+    "user_preference": 7,
+    "tag": 7,
+    "score": "0.499575",
+    "count": "0.999150",
+    "rank": 2,
+    "source_count_library": 1,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 0,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 8,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.422Z",
+    "updated_at": "2026-06-24T15:15:19.422Z",
+    "user_preference": 7,
+    "tag": 12,
+    "score": "0.499575",
+    "count": "0.999150",
+    "rank": 3,
+    "source_count_library": 1,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 0,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 9,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.422Z",
+    "updated_at": "2026-06-24T15:15:19.422Z",
+    "user_preference": 7,
+    "tag": 16,
+    "score": "0.499575",
+    "count": "0.999150",
+    "rank": 4,
+    "source_count_library": 1,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 0,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 10,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.434Z",
+    "updated_at": "2026-06-24T15:15:19.434Z",
+    "user_preference": 9,
+    "tag": 64,
+    "score": "1.498735",
+    "count": "0.999157",
+    "rank": 1,
+    "source_count_library": 0,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 1,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 11,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.434Z",
+    "updated_at": "2026-06-24T15:15:19.434Z",
+    "user_preference": 9,
+    "tag": 7,
+    "score": "0.499578",
+    "count": "0.999157",
+    "rank": 2,
+    "source_count_library": 1,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 0,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 12,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.434Z",
+    "updated_at": "2026-06-24T15:15:19.434Z",
+    "user_preference": 9,
+    "tag": 12,
+    "score": "0.499578",
+    "count": "0.999157",
+    "rank": 3,
+    "source_count_library": 1,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 0,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 13,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.434Z",
+    "updated_at": "2026-06-24T15:15:19.434Z",
+    "user_preference": 9,
+    "tag": 16,
+    "score": "0.499578",
+    "count": "0.999157",
+    "rank": 4,
+    "source_count_library": 1,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 0,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 14,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.443Z",
+    "updated_at": "2026-06-24T15:15:19.443Z",
+    "user_preference": 10,
+    "tag": 65,
+    "score": "2.997680",
+    "count": "1.998453",
+    "rank": 1,
+    "source_count_library": 0,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 2,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 15,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.458Z",
+    "updated_at": "2026-06-24T15:15:19.458Z",
+    "user_preference": 12,
+    "tag": 65,
+    "score": "2.997698",
+    "count": "1.998465",
+    "rank": 1,
+    "source_count_library": 0,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 2,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 16,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.465Z",
+    "updated_at": "2026-06-24T15:15:19.465Z",
+    "user_preference": 13,
+    "tag": 65,
+    "score": "0.799386",
+    "count": "0.999233",
+    "rank": 1,
+    "source_count_library": 0,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 0,
+    "source_count_review_liked": 1
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 17,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.472Z",
+    "updated_at": "2026-06-24T15:15:19.472Z",
+    "user_preference": 14,
+    "tag": 65,
+    "score": "2.997726",
+    "count": "1.998484",
+    "rank": 1,
+    "source_count_library": 0,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 2,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 18,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.481Z",
+    "updated_at": "2026-06-24T15:15:19.481Z",
+    "user_preference": 15,
+    "tag": 65,
+    "score": "0.799394",
+    "count": "0.999242",
+    "rank": 1,
+    "source_count_library": 0,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 0,
+    "source_count_review_liked": 1
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 20,
+  "fields": {
+    "created_at": "2026-06-24T15:15:19.529Z",
+    "updated_at": "2026-06-24T15:15:19.529Z",
+    "user_preference": 22,
+    "tag": 35,
+    "score": "1.499998",
+    "count": "0.999999",
+    "rank": 1,
+    "source_count_library": 0,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 1,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 22,
+  "fields": {
+    "created_at": "2026-06-24T15:15:36.918Z",
+    "updated_at": "2026-06-24T15:15:36.918Z",
+    "user_preference": 3,
+    "tag": 35,
+    "score": "1.499996",
+    "count": "0.999997",
+    "rank": 1,
+    "source_count_library": 0,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 1,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 23,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.761Z",
+    "updated_at": "2026-06-24T15:30:12.761Z",
+    "user_preference": 23,
+    "tag": 8,
+    "score": "0.500000",
+    "count": "1.000000",
+    "rank": 1,
+    "source_count_library": 1,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 0,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 24,
+  "fields": {
+    "created_at": "2026-06-24T15:30:12.808Z",
+    "updated_at": "2026-06-24T15:30:12.808Z",
+    "user_preference": 24,
+    "tag": 8,
+    "score": "0.500000",
+    "count": "1.000000",
+    "rank": 1,
+    "source_count_library": 1,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 0,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 25,
+  "fields": {
+    "created_at": "2026-06-24T15:31:10.512Z",
+    "updated_at": "2026-06-24T15:31:10.512Z",
+    "user_preference": 27,
+    "tag": 8,
+    "score": "0.500000",
+    "count": "1.000000",
+    "rank": 1,
+    "source_count_library": 1,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 0,
+    "source_count_review_liked": 0
+  }
+},
+{
+  "model": "preferences.userpreferenceitem",
+  "pk": 26,
+  "fields": {
+    "created_at": "2026-06-24T15:31:10.643Z",
+    "updated_at": "2026-06-24T15:31:10.643Z",
+    "user_preference": 28,
+    "tag": 8,
+    "score": "0.500000",
+    "count": "1.000000",
+    "rank": 1,
+    "source_count_library": 1,
+    "source_count_book": 0,
+    "source_count_program": 0,
+    "source_count_review_written": 0,
+    "source_count_review_liked": 0
+  }
+}
+]
