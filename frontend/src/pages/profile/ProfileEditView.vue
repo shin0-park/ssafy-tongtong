@@ -1,9 +1,10 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
+import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
 import { useAuthStore } from '@/stores/auth'
 import { buildMultipartPayload, hasFiles } from '@/utils/formData'
 
@@ -17,6 +18,7 @@ const form = reactive({
   remove_profile_image: false,
 })
 const selectedImage = ref(null)
+const selectedImagePreview = ref('')
 const isLoading = ref(false)
 const isSubmitting = ref(false)
 const error = ref(null)
@@ -46,6 +48,13 @@ async function loadProfile() {
 
 function handleImageChange(event) {
   selectedImage.value = event.target.files?.[0] ?? null
+}
+
+function revokeSelectedImagePreview() {
+  if (selectedImagePreview.value) {
+    URL.revokeObjectURL(selectedImagePreview.value)
+    selectedImagePreview.value = ''
+  }
 }
 
 function validateImage() {
@@ -94,7 +103,16 @@ async function submitProfile() {
   }
 }
 
+watch(selectedImage, (file) => {
+  revokeSelectedImagePreview()
+
+  if (file) {
+    selectedImagePreview.value = URL.createObjectURL(file)
+  }
+})
+
 onMounted(loadProfile)
+onBeforeUnmount(revokeSelectedImagePreview)
 </script>
 
 <template>
@@ -162,6 +180,14 @@ onMounted(loadProfile)
             {{ firstFieldError('profile_image') }}
           </p>
         </div>
+
+        <ResponsiveImage
+          v-if="selectedImagePreview || authStore.user?.profile_image_url"
+          class="profile-avatar profile-avatar-preview"
+          :src="selectedImagePreview || authStore.user?.profile_image_url"
+          :alt="form.profile_image_alt || '프로필 이미지 미리보기'"
+          fallback-label="이미지 없음"
+        />
 
         <label class="form-check">
           <input v-model="form.remove_profile_image" class="form-check-input" type="checkbox" />

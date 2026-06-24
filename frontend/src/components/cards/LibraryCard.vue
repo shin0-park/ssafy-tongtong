@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import SaveButton from '@/components/actions/SaveButton.vue'
+import AttributionOverlay from '@/components/media/AttributionOverlay.vue'
+import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
 
 const props = defineProps({
   library: {
@@ -69,15 +71,14 @@ function formatHolidayStatus(status) {
 <template>
   <article class="library-card">
     <div class="library-thumb">
-      <img
-        v-if="thumbnailUrl"
+      <ResponsiveImage
         :src="thumbnailUrl"
         :alt="`${library.name} 대표 이미지`"
-        loading="lazy"
-        decoding="async"
+        fallback-label="이미지 없음"
       />
     </div>
     <div class="p-3">
+      <AttributionOverlay class="mb-2" :text="library.thumbnail?.attribution_text" />
       <h3 class="h5 mb-2">
         <RouterLink class="stretched-link text-decoration-none" :to="`/libraries/${library.id}`">
           {{ library.name }}

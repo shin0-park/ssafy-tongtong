@@ -317,6 +317,21 @@
   text-align: center;
 }
 
+.profile-avatar {
+  width: 88px;
+  height: 88px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--color-bg-soft);
+}
+
+.profile-avatar-preview {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-xl);
+}
+
 .related-mini-grid {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
