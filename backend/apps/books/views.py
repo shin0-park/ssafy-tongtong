@@ -9,8 +9,13 @@ from apps.integrations.data4library import (
     Data4LibraryConfigurationError,
 )
 
-from .models import Book
-from .serializers import BookDetailSerializer, BookListSerializer
+from .models import Book, PopularBookSnapshot
+from .serializers import (
+    BookDetailSerializer,
+    BookListSerializer,
+    PopularBookItemSerializer,
+    PopularBookSnapshotSerializer,
+)
 from .services import (
     serialize_book_holding_libraries,
     serialize_data4library_book,
@@ -29,6 +34,8 @@ DIRECT_SEARCH_PARAMS = ("title", "author", "isbn13", "keyword", "publisher")
 ALLOWED_SORT_VALUES = {"loan", "title", "author", "pub", "pubYear", "isbn"}
 ALLOWED_ORDER_VALUES = {"asc", "desc"}
 MAX_SEARCH_PAGE_SIZE = 100
+DEFAULT_POPULAR_BOOK_LIMIT = 10
+MAX_POPULAR_BOOK_LIMIT = 50
 
 
 class BookQueryMixin:
@@ -45,6 +52,41 @@ class BookQueryMixin:
 class BookListAPIView(BookQueryMixin, generics.ListAPIView):
     serializer_class = BookListSerializer
     pagination_class = StandardPageNumberPagination
+
+
+class PopularBookListAPIView(APIView):
+    def get(self, request):
+        try:
+            limit = parse_limited_positive_int(
+                request.query_params.get("limit"),
+                default=DEFAULT_POPULAR_BOOK_LIMIT,
+                maximum=MAX_POPULAR_BOOK_LIMIT,
+            )
+        except ValueError:
+            return Response({"detail": "limit must be a positive integer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        region = request.query_params.get("region", "21").strip() or "21"
+        snapshot = (
+            PopularBookSnapshot.objects.filter(region_code=region)
+            .prefetch_related("items__book")
+            .order_by("-period_end", "-fetched_at", "-id")
+            .first()
+        )
+        if snapshot is None:
+            return Response(
+                {
+                    "snapshot": None,
+                    "items": [],
+                }
+            )
+
+        items = list(snapshot.items.select_related("book").order_by("rank", "id")[:limit])
+        return Response(
+            {
+                "snapshot": PopularBookSnapshotSerializer(snapshot).data,
+                "items": PopularBookItemSerializer(items, many=True).data,
+            }
+        )
 
 
 class BookDetailAPIView(BookQueryMixin, generics.RetrieveAPIView):
@@ -167,3 +209,15 @@ def parse_positive_int(value, default):
     except (TypeError, ValueError):
         return default
     return parsed if parsed > 0 else default
+
+
+def parse_limited_positive_int(value, *, default, maximum):
+    if value in (None, ""):
+        return default
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Expected integer.") from exc
+    if parsed <= 0:
+        raise ValueError("Expected positive integer.")
+    return min(parsed, maximum)

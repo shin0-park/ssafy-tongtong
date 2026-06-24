@@ -113,6 +113,13 @@ class UserReviewDetailAPIView(UserReviewQueryMixin, generics.RetrieveUpdateDestr
             return super().get_queryset()
         return review_response_queryset()
 
+    @transaction.atomic
+    def retrieve(self, request, *args, **kwargs):
+        review = self.get_object()
+        UserReview.objects.filter(pk=review.pk).update(view_count=F("view_count") + 1)
+        review = review_response_queryset().get(pk=review.pk)
+        return Response(UserReviewSerializer(review).data)
+
     def ensure_owner(self, review):
         if review.user_id != self.request.user.id:
             raise PermissionDenied("You do not have permission to modify this review.")

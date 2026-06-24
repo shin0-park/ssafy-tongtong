@@ -1,5 +1,7 @@
 from decimal import Decimal
+import logging
 
+from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
@@ -22,13 +24,36 @@ from apps.tags.models import Tag
 
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
+
+ALLOWED_PROFILE_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    profile_image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserProfile
+        fields = ("bio", "profile_image_url", "profile_image_alt")
+
+    def get_profile_image_url(self, obj):
+        try:
+            return obj.profile_image.url if obj.profile_image else ""
+        except ValueError:
+            return ""
 
 
 class UserSerializer(serializers.ModelSerializer):
+    profile = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ("id", "email", "nickname")
+        fields = ("id", "email", "nickname", "profile")
         read_only_fields = fields
+
+    def get_profile(self, obj):
+        profile, _ = UserProfile.objects.get_or_create(user=obj)
+        return UserProfileSerializer(profile).data
 
 
 class SignupSerializer(serializers.Serializer):
@@ -75,11 +100,70 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
-class MeUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ("id", "email", "nickname")
-        read_only_fields = ("id", "email")
+class MeUpdateSerializer(serializers.Serializer):
+    nickname = serializers.CharField(max_length=50, required=False)
+    bio = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    profile_image_alt = serializers.CharField(max_length=200, required=False, allow_blank=True)
+    remove_profile_image = serializers.BooleanField(required=False, default=False)
+    profile_image = serializers.FileField(required=False, write_only=True)
+
+    def validate_profile_image(self, image):
+        extension = image.name.rsplit(".", 1)[-1].lower() if "." in image.name else ""
+        if extension not in ALLOWED_PROFILE_IMAGE_EXTENSIONS:
+            raise serializers.ValidationError("Only jpg, jpeg, png, and webp images are supported.")
+
+        max_upload_bytes = getattr(settings, "MEDIA_MAX_UPLOAD_MB", 10) * 1024 * 1024
+        if image.size > max_upload_bytes:
+            raise serializers.ValidationError(
+                f"Each image must be {getattr(settings, 'MEDIA_MAX_UPLOAD_MB', 10)}MB or smaller."
+            )
+        serializers.ImageField().run_validation(image)
+        if hasattr(image, "seek"):
+            image.seek(0)
+        return image
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        changed_user_fields = []
+        if "nickname" in validated_data:
+            instance.nickname = validated_data["nickname"]
+            changed_user_fields.append("nickname")
+        if changed_user_fields:
+            instance.save(update_fields=changed_user_fields + ["updated_at"])
+
+        profile, _ = UserProfile.objects.get_or_create(user=instance)
+        changed_profile_fields = []
+        if "bio" in validated_data:
+            profile.bio = validated_data["bio"]
+            changed_profile_fields.append("bio")
+        if "profile_image_alt" in validated_data:
+            profile.profile_image_alt = validated_data["profile_image_alt"]
+            changed_profile_fields.append("profile_image_alt")
+
+        profile_image = validated_data.get("profile_image")
+        remove_profile_image = validated_data.get("remove_profile_image", False)
+        if remove_profile_image or profile_image is not None:
+            delete_profile_image_file(profile)
+            profile.profile_image = None
+            changed_profile_fields.append("profile_image")
+        if profile_image is not None:
+            profile.profile_image = profile_image
+
+        if changed_profile_fields:
+            profile.save(update_fields=list(dict.fromkeys(changed_profile_fields + ["updated_at"])))
+        return instance
+
+    def create(self, validated_data):
+        raise NotImplementedError("MeUpdateSerializer only updates existing users.")
+
+
+def delete_profile_image_file(profile):
+    if not profile.profile_image:
+        return
+    try:
+        profile.profile_image.delete(save=False)
+    except Exception:
+        logger.warning("Failed to delete profile image file.", exc_info=True)
 
 
 class PreferredPurposeSerializer(serializers.ModelSerializer):
