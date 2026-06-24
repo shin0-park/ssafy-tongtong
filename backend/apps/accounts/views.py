@@ -12,6 +12,8 @@ from apps.accounts.serializers import (
     LoginSerializer,
     MeUpdateSerializer,
     SignupSerializer,
+    UserPreferencesSerializer,
+    UserPreferencesUpdateSerializer,
     UserSerializer,
 )
 
@@ -124,3 +126,19 @@ class MeAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(UserSerializer(request.user).data)
+
+
+class MePreferencesAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        return Response(UserPreferencesSerializer(request.user).data)
+
+    def put(self, request):
+        serializer = UserPreferencesUpdateSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(UserPreferencesSerializer(request.user).data)

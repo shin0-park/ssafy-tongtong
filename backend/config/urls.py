@@ -24,5 +24,6 @@ urlpatterns = [
     path('api/v1/programs/', include('apps.programs.urls')),
     path('api/v1/reviews/', include('apps.community.urls')),
     path('api/v1/my-outings/', include('apps.myoutings.urls')),
+    path('api/v1/preferences/', include('apps.preferences.urls')),
     path('admin/', admin.site.urls),
 ]

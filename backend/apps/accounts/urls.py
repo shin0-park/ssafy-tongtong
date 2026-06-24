@@ -4,6 +4,7 @@ from apps.accounts.views import (
     LoginAPIView,
     LogoutAPIView,
     MeAPIView,
+    MePreferencesAPIView,
     SignupAPIView,
     TokenRefreshAPIView,
 )
@@ -15,4 +16,5 @@ urlpatterns = [
     path("auth/token/refresh/", TokenRefreshAPIView.as_view(), name="auth-token-refresh"),
     path("auth/logout/", LogoutAPIView.as_view(), name="auth-logout"),
     path("users/me/", MeAPIView.as_view(), name="users-me"),
+    path("users/me/preferences/", MePreferencesAPIView.as_view(), name="users-me-preferences"),
 ]
