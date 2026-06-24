@@ -9,6 +9,7 @@ from .models import (
     LibraryOpeningHour,
     LibraryStatisticSnapshot,
 )
+from .services import resolve_library_operation_status
 
 
 FACILITY_FIELDS = (
@@ -161,6 +162,11 @@ class LibraryListSerializer(serializers.ModelSerializer):
     thumbnail = serializers.SerializerMethodField()
     purpose_score = serializers.SerializerMethodField()
     distance_km = serializers.SerializerMethodField()
+    open_today = serializers.SerializerMethodField()
+    open_now = serializers.SerializerMethodField()
+    today_hours = serializers.SerializerMethodField()
+    closed_reason = serializers.SerializerMethodField()
+    operation_status_reason = serializers.SerializerMethodField()
 
     class Meta:
         model = Library
@@ -178,6 +184,11 @@ class LibraryListSerializer(serializers.ModelSerializer):
             "thumbnail",
             "purpose_score",
             "distance_km",
+            "open_today",
+            "open_now",
+            "today_hours",
+            "closed_reason",
+            "operation_status_reason",
         )
 
     def get_book_count(self, obj):
@@ -197,6 +208,28 @@ class LibraryListSerializer(serializers.ModelSerializer):
 
     def get_distance_km(self, obj):
         return getattr(obj, "distance_km", None)
+
+    def get_operation_status(self, obj):
+        operation_status = getattr(obj, "_operation_status", None)
+        if operation_status is None:
+            operation_status = resolve_library_operation_status(obj)
+            obj._operation_status = operation_status
+        return operation_status
+
+    def get_open_today(self, obj):
+        return self.get_operation_status(obj)["open_today"]
+
+    def get_open_now(self, obj):
+        return self.get_operation_status(obj)["open_now"]
+
+    def get_today_hours(self, obj):
+        return self.get_operation_status(obj)["today_hours"]
+
+    def get_closed_reason(self, obj):
+        return self.get_operation_status(obj)["closed_reason"]
+
+    def get_operation_status_reason(self, obj):
+        return self.get_operation_status(obj)["operation_status_reason"]
 
 
 class LibraryDetailSerializer(LibraryListSerializer):

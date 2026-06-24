@@ -1,12 +1,20 @@
 import math
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from django.db.models import Prefetch
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from apps.recommendations.models import Purpose, PurposeTagRule
 
-from .models import LibraryTag, LibraryTagSourceMethod
+from .models import (
+    ClosureRuleType,
+    LibraryTag,
+    LibraryTagSourceMethod,
+    ScheduleDayType,
+    ScheduleStatus,
+)
 
 
 FACILITY_FIELDS = (
@@ -41,12 +49,10 @@ FACILITY_TAG_CODES = {
 SUPPORTED_PURPOSES = {"study", "book", "kids", "mood", "nearby"}
 UNSUPPORTED_LIBRARY_FILTERS = {
     "radius_km",
-    "open_today",
-    "open_now",
-    "weekend_open",
     "holiday_status",
     "late_open_after",
 }
+OPERATION_FILTER_PARAMS = {"open_today", "open_now", "weekend_open"}
 ALLOWED_ORDERING = {"name", "-book_count", "-reading_seat_count", "purpose_score"}
 
 TAG_DIRECT_SOURCES = {
@@ -71,6 +77,10 @@ def validate_library_filter_params(params):
     for field in FACILITY_FILTER_PARAMS:
         if field in params and params.get(field) != "true":
             raise ValidationError({field: "Only true facility filters are supported."})
+
+    for field in OPERATION_FILTER_PARAMS:
+        if field in params and params.get(field) != "true":
+            raise ValidationError({field: "Only true operation filters are supported."})
 
     parse_non_negative_int(params.get("min_book_count"), "min_book_count")
     parse_non_negative_int(params.get("min_reading_seat_count"), "min_reading_seat_count")
@@ -149,6 +159,7 @@ def apply_advanced_library_filters(queryset, params):
 
     libraries = list(queryset)
     libraries = filter_by_minimum_statistics(libraries, params)
+    libraries = filter_by_operation_status(libraries, params)
 
     lat_lng = None
     if params.get("lat") is not None or params.get("lng") is not None:
@@ -202,6 +213,180 @@ def order_libraries(libraries, params, purpose_code):
     if purpose_code:
         return sorted(libraries, key=lambda library: (getattr(library, "purpose_score", 0), library.name, library.id), reverse=True)
     return sorted(libraries, key=lambda library: (library.name, library.id))
+
+
+def filter_by_operation_status(libraries, params):
+    if params.get("open_today") == "true":
+        libraries = [
+            library
+            for library in libraries
+            if resolve_library_operation_status(library)["open_today"] is True
+        ]
+    if params.get("open_now") == "true":
+        libraries = [
+            library
+            for library in libraries
+            if resolve_library_operation_status(library)["open_now"] is True
+        ]
+    if params.get("weekend_open") == "true":
+        libraries = [library for library in libraries if is_weekend_open(library)]
+    return libraries
+
+
+def resolve_library_operation_status(library, at=None, target_date=None):
+    current_at = timezone.localtime(at) if at else timezone.localtime()
+    operation_date = target_date or current_at.date()
+
+    closed_reason, reason = resolve_closure_reason(library, operation_date)
+    if closed_reason:
+        return build_operation_payload(
+            open_today=False,
+            open_now=False,
+            today_hours=None,
+            closed_reason=closed_reason,
+            operation_status_reason=reason,
+        )
+
+    opening_hour = get_opening_hour_for_date(library, operation_date)
+    if opening_hour is None:
+        return build_operation_payload(
+            open_today=None,
+            open_now=None,
+            today_hours=None,
+            closed_reason="operation_unknown",
+            operation_status_reason="no_opening_hour_for_date",
+        )
+
+    if opening_hour.schedule_status == ScheduleStatus.CLOSED:
+        return build_operation_payload(
+            open_today=False,
+            open_now=False,
+            today_hours=None,
+            closed_reason="opening_hour_closed",
+            operation_status_reason="opening_hour_status_closed",
+        )
+    if opening_hour.schedule_status != ScheduleStatus.OPEN:
+        return build_operation_payload(
+            open_today=None,
+            open_now=None,
+            today_hours=None,
+            closed_reason="operation_unknown",
+            operation_status_reason="opening_hour_status_unknown",
+        )
+
+    today_hours = build_today_hours(opening_hour)
+    if today_hours is None:
+        return build_operation_payload(
+            open_today=True,
+            open_now=None,
+            today_hours=None,
+            closed_reason=None,
+            operation_status_reason="opening_hour_without_time",
+        )
+
+    open_now = is_open_at(opening_hour, current_at, operation_date) if operation_date == current_at.date() else None
+    return build_operation_payload(
+        open_today=True,
+        open_now=open_now,
+        today_hours=today_hours,
+        closed_reason=None,
+        operation_status_reason="weekly_opening_hour",
+    )
+
+
+def build_operation_payload(open_today, open_now, today_hours, closed_reason, operation_status_reason):
+    return {
+        "open_today": open_today,
+        "open_now": open_now,
+        "today_hours": today_hours,
+        "closed_reason": closed_reason,
+        "operation_status_reason": operation_status_reason,
+    }
+
+
+def resolve_closure_reason(library, operation_date):
+    closure_rules = get_current_closure_rules(library)
+    for rule in closure_rules:
+        if rule.rule_type == ClosureRuleType.FULL_CLOSURE:
+            return "full_closure", "closure_rule"
+    for rule in closure_rules:
+        normalized_rule = rule.normalized_rule or {}
+        if rule.rule_type == ClosureRuleType.WEEKLY and normalized_rule.get("day_of_week") == operation_date.weekday():
+            return "weekly_closure", "closure_rule"
+        if rule.rule_type == ClosureRuleType.NTH_WEEKDAY and matches_nth_weekday_rule(normalized_rule, operation_date):
+            return "nth_weekday_closure", "closure_rule"
+    return None, None
+
+
+def matches_nth_weekday_rule(normalized_rule, operation_date):
+    if normalized_rule.get("day_of_week") != operation_date.weekday():
+        return False
+    nth_values = normalized_rule.get("nth") or []
+    nth_week = (operation_date.day - 1) // 7 + 1
+    return nth_week in nth_values
+
+
+def get_opening_hour_for_date(library, operation_date):
+    opening_hours = get_current_opening_hours(library)
+    matching_hours = [
+        opening_hour
+        for opening_hour in opening_hours
+        if opening_hour.day_type == ScheduleDayType.DAY_OF_WEEK
+        and opening_hour.day_of_week == operation_date.weekday()
+    ]
+    return matching_hours[0] if matching_hours else None
+
+
+def build_today_hours(opening_hour):
+    if not opening_hour.open_time or not opening_hour.close_time:
+        return None
+    if opening_hour.open_time == time(0, 0) and opening_hour.close_time == time(0, 0):
+        return None
+    return {
+        "open": opening_hour.open_time.strftime("%H:%M"),
+        "close": opening_hour.close_time.strftime("%H:%M"),
+        "closes_next_day": opening_hour.closes_next_day,
+    }
+
+
+def is_open_at(opening_hour, current_at, operation_date):
+    if not opening_hour.open_time or not opening_hour.close_time:
+        return None
+    if opening_hour.open_time == time(0, 0) and opening_hour.close_time == time(0, 0):
+        return None
+
+    opened_at = timezone.make_aware(datetime.combine(operation_date, opening_hour.open_time), current_at.tzinfo)
+    closed_date = operation_date + timedelta(days=1) if opening_hour.closes_next_day else operation_date
+    closed_at = timezone.make_aware(datetime.combine(closed_date, opening_hour.close_time), current_at.tzinfo)
+    return opened_at <= current_at < closed_at
+
+
+def is_weekend_open(library, at=None):
+    current_at = timezone.localtime(at) if at else timezone.localtime()
+    today = current_at.date()
+    days_until_saturday = (5 - today.weekday()) % 7
+    saturday = today + timedelta(days=days_until_saturday)
+    sunday = saturday + timedelta(days=1)
+    return any(
+        resolve_library_operation_status(library, at=current_at, target_date=date)["open_today"] is True
+        for date in (saturday, sunday)
+    )
+
+
+def get_current_opening_hours(library):
+    opening_hours = getattr(library, "current_opening_hours", None)
+    if opening_hours is not None:
+        return opening_hours
+    return list(
+        library.opening_hours.filter(is_current=True).order_by("day_type", "day_of_week", "specific_date", "sequence", "id")
+    )
+
+
+def get_current_closure_rules(library):
+    closure_rules = getattr(library, "current_closure_rules", None)
+    if closure_rules is not None:
+        return closure_rules
+    return list(library.closure_rules.filter(is_current=True).order_by("priority", "id"))
 
 
 def annotate_distance(libraries, lat_lng):
