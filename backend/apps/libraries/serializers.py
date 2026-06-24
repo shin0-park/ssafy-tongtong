@@ -9,7 +9,7 @@ from .models import (
     LibraryOpeningHour,
     LibraryStatisticSnapshot,
 )
-from .services import resolve_library_operation_status
+from .services import get_daily_schedule_for_date, resolve_library_operation_status
 
 
 FACILITY_FIELDS = (
@@ -230,6 +230,26 @@ class LibraryListSerializer(serializers.ModelSerializer):
 
     def get_operation_status_reason(self, obj):
         return self.get_operation_status(obj)["operation_status_reason"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        holiday_operation_date = self.context.get("holiday_operation_date")
+        if holiday_operation_date:
+            data["holiday_operation_status"] = self.get_holiday_operation_status(instance, holiday_operation_date)
+        return data
+
+    def get_holiday_operation_status(self, obj, holiday_operation_date):
+        daily_schedule = get_daily_schedule_for_date(obj, holiday_operation_date)
+        if not daily_schedule:
+            return None
+        return {
+            "date": daily_schedule.date.isoformat(),
+            "status": daily_schedule.status,
+            "open_time": daily_schedule.open_time.strftime("%H:%M") if daily_schedule.open_time else None,
+            "close_time": daily_schedule.close_time.strftime("%H:%M") if daily_schedule.close_time else None,
+            "closes_next_day": daily_schedule.closes_next_day,
+            "reason_code": daily_schedule.reason_code or None,
+        }
 
 
 class LibraryDetailSerializer(LibraryListSerializer):

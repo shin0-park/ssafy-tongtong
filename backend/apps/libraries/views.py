@@ -12,6 +12,7 @@ from .services import (
     apply_advanced_library_filters,
     calculate_similar_libraries,
     collect_operation_prefetch_dates,
+    get_holiday_status_target_date,
     library_tag_prefetch,
     parse_limit,
 )
@@ -94,6 +95,13 @@ class LibraryQueryMixin:
 class LibraryListAPIView(LibraryQueryMixin, generics.ListAPIView):
     serializer_class = LibraryListSerializer
     pagination_class = StandardPageNumberPagination
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        params = self.request.query_params
+        if "holiday_status" in params or "holiday_date" in params:
+            context["holiday_operation_date"] = get_holiday_status_target_date(params)
+        return context
 
 
 class LibraryDetailAPIView(LibraryQueryMixin, generics.RetrieveAPIView):
