@@ -3,6 +3,7 @@ from django.db.models import F, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -21,36 +22,36 @@ from .models import (
 from .serializers import UserReviewSerializer, UserReviewWriteSerializer
 
 
+def review_response_queryset():
+    return UserReview.objects.select_related("user", "library").prefetch_related(
+        Prefetch(
+            "tag_links",
+            queryset=ReviewTag.objects.select_related("tag").order_by("created_at", "id"),
+            to_attr="prefetched_tag_links",
+        ),
+        Prefetch(
+            "book_references",
+            queryset=ReviewBookReference.objects.select_related("book").order_by("display_order", "id"),
+            to_attr="prefetched_book_references",
+        ),
+        Prefetch(
+            "program_references",
+            queryset=ReviewProgramReference.objects.select_related("program__library").order_by("display_order", "id"),
+            to_attr="prefetched_program_references",
+        ),
+        Prefetch(
+            "images",
+            queryset=UserReviewImage.objects.order_by("display_order", "id"),
+            to_attr="prefetched_images",
+        ),
+    )
+
+
 class UserReviewQueryMixin:
     serializer_class = UserReviewSerializer
 
     def get_queryset(self):
-        queryset = (
-            UserReview.objects.filter(moderation_status=ReviewModerationStatus.VISIBLE)
-            .select_related("user", "library")
-            .prefetch_related(
-                Prefetch(
-                    "tag_links",
-                    queryset=ReviewTag.objects.select_related("tag").order_by("created_at", "id"),
-                    to_attr="prefetched_tag_links",
-                ),
-                Prefetch(
-                    "book_references",
-                    queryset=ReviewBookReference.objects.select_related("book").order_by("display_order", "id"),
-                    to_attr="prefetched_book_references",
-                ),
-                Prefetch(
-                    "program_references",
-                    queryset=ReviewProgramReference.objects.select_related("program__library").order_by("display_order", "id"),
-                    to_attr="prefetched_program_references",
-                ),
-                Prefetch(
-                    "images",
-                    queryset=UserReviewImage.objects.order_by("display_order", "id"),
-                    to_attr="prefetched_images",
-                ),
-            )
-        )
+        queryset = review_response_queryset().filter(moderation_status=ReviewModerationStatus.VISIBLE)
         return self.apply_filters(queryset).order_by(self.get_ordering(), "-id").distinct()
 
     def apply_filters(self, queryset):
@@ -91,11 +92,13 @@ class UserReviewListAPIView(UserReviewQueryMixin, generics.ListCreateAPIView):
     serializer_class = UserReviewSerializer
     pagination_class = StandardPageNumberPagination
     permission_classes = (IsAuthenticatedOrReadOnly,)
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def create(self, request, *args, **kwargs):
         serializer = UserReviewWriteSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         review = serializer.save()
+        review = review_response_queryset().get(pk=review.pk)
         return Response(UserReviewSerializer(review).data, status=201)
 
 
@@ -103,35 +106,12 @@ class UserReviewDetailAPIView(UserReviewQueryMixin, generics.RetrieveUpdateDestr
     serializer_class = UserReviewSerializer
     lookup_url_kwarg = "review_id"
     permission_classes = (IsAuthenticatedOrReadOnly,)
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def get_queryset(self):
         if self.request.method == "GET":
             return super().get_queryset()
-        return (
-            UserReview.objects.select_related("user", "library")
-            .prefetch_related(
-                Prefetch(
-                    "tag_links",
-                    queryset=ReviewTag.objects.select_related("tag").order_by("created_at", "id"),
-                    to_attr="prefetched_tag_links",
-                ),
-                Prefetch(
-                    "book_references",
-                    queryset=ReviewBookReference.objects.select_related("book").order_by("display_order", "id"),
-                    to_attr="prefetched_book_references",
-                ),
-                Prefetch(
-                    "program_references",
-                    queryset=ReviewProgramReference.objects.select_related("program__library").order_by("display_order", "id"),
-                    to_attr="prefetched_program_references",
-                ),
-                Prefetch(
-                    "images",
-                    queryset=UserReviewImage.objects.order_by("display_order", "id"),
-                    to_attr="prefetched_images",
-                ),
-            )
-        )
+        return review_response_queryset()
 
     def ensure_owner(self, review):
         if review.user_id != self.request.user.id:
@@ -148,6 +128,7 @@ class UserReviewDetailAPIView(UserReviewQueryMixin, generics.RetrieveUpdateDestr
         )
         serializer.is_valid(raise_exception=True)
         review = serializer.save()
+        review = review_response_queryset().get(pk=review.pk)
         return Response(UserReviewSerializer(review).data)
 
     def destroy(self, request, *args, **kwargs):

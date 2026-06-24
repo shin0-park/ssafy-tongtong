@@ -1,3 +1,7 @@
+import json
+import logging
+
+from django.conf import settings
 from django.db import transaction
 from rest_framework import serializers
 
@@ -12,7 +16,13 @@ from .models import (
     ReviewProgramReference,
     ReviewTag,
     UserReview,
+    UserReviewImage,
 )
+
+logger = logging.getLogger(__name__)
+
+ALLOWED_REVIEW_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
+MAX_REVIEW_IMAGE_COUNT = 5
 
 
 class ReviewLibrarySummarySerializer(serializers.Serializer):
@@ -37,6 +47,7 @@ class ReviewImageSummarySerializer(serializers.Serializer):
     id = serializers.IntegerField()
     url = serializers.SerializerMethodField()
     alt_text = serializers.CharField()
+    display_order = serializers.IntegerField()
 
     def get_url(self, obj):
         try:
@@ -114,6 +125,7 @@ class UserReviewSerializer(serializers.ModelSerializer):
 class UserReviewWriteSerializer(serializers.Serializer):
     library_id = serializers.IntegerField(required=False)
     content = serializers.CharField(required=False, allow_blank=False, trim_whitespace=True)
+    replace_images = serializers.BooleanField(required=False, default=False)
     tag_codes = serializers.ListField(
         child=serializers.CharField(),
         required=False,
@@ -130,8 +142,54 @@ class UserReviewWriteSerializer(serializers.Serializer):
         allow_empty=True,
     )
 
+    def to_internal_value(self, data):
+        data = self.normalize_multipart_arrays(data)
+        return super().to_internal_value(data)
+
+    @staticmethod
+    def normalize_multipart_arrays(data):
+        if not hasattr(data, "getlist"):
+            return data
+
+        normalized = {key: data.get(key) for key in data.keys() if key != "images"}
+        for field in ("tag_codes", "book_ids", "program_ids"):
+            if field not in data:
+                continue
+            values = data.getlist(field)
+            if len(values) == 1:
+                parsed = UserReviewWriteSerializer.parse_array_value(values[0], field)
+            else:
+                parsed = []
+                for value in values:
+                    parsed_value = UserReviewWriteSerializer.parse_array_value(value, field)
+                    if isinstance(parsed_value, list):
+                        parsed.extend(parsed_value)
+                    else:
+                        parsed.append(parsed_value)
+            normalized[field] = parsed
+        return normalized
+
+    @staticmethod
+    def parse_array_value(value, field):
+        if not isinstance(value, str):
+            return value
+        stripped = value.strip()
+        if not stripped:
+            return []
+        if stripped.startswith("["):
+            try:
+                parsed = json.loads(stripped)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError({field: "Expected a valid JSON array string."})
+            if not isinstance(parsed, list):
+                raise serializers.ValidationError({field: "Expected a JSON array."})
+            return parsed
+        return value
+
     def validate(self, attrs):
         is_create = self.instance is None
+        uploaded_images = self.get_uploaded_images()
+        replace_images = attrs.get("replace_images", False)
 
         if is_create and "library_id" not in attrs:
             raise serializers.ValidationError({"library_id": "This field is required."})
@@ -139,6 +197,8 @@ class UserReviewWriteSerializer(serializers.Serializer):
             raise serializers.ValidationError({"content": "This field is required."})
         if is_create and "tag_codes" not in attrs:
             raise serializers.ValidationError({"tag_codes": "This field is required."})
+        if not is_create and uploaded_images and not replace_images:
+            raise serializers.ValidationError({"replace_images": "Set replace_images=true to update review images."})
 
         library = self.instance.library if self.instance else None
         if "library_id" in attrs:
@@ -203,7 +263,38 @@ class UserReviewWriteSerializer(serializers.Serializer):
                 raise serializers.ValidationError({"program_ids": "Related programs must belong to the review library."})
             attrs["programs"] = sorted(programs, key=lambda program: program_ids.index(program.id))
 
+        if is_create or replace_images:
+            self.validate_images(uploaded_images)
+            attrs["images"] = uploaded_images
+
         return attrs
+
+    def get_uploaded_images(self):
+        request = self.context.get("request")
+        if not request or not hasattr(request, "FILES"):
+            return []
+        return list(request.FILES.getlist("images"))
+
+    @staticmethod
+    def validate_images(images):
+        if len(images) > MAX_REVIEW_IMAGE_COUNT:
+            raise serializers.ValidationError({"images": f"Upload no more than {MAX_REVIEW_IMAGE_COUNT} images."})
+
+        max_upload_bytes = getattr(settings, "MEDIA_MAX_UPLOAD_MB", 10) * 1024 * 1024
+        image_field = serializers.ImageField()
+        for image in images:
+            extension = image.name.rsplit(".", 1)[-1].lower() if "." in image.name else ""
+            if extension not in ALLOWED_REVIEW_IMAGE_EXTENSIONS:
+                raise serializers.ValidationError(
+                    {"images": "Only jpg, jpeg, png, and webp images are supported."}
+                )
+            if image.size > max_upload_bytes:
+                raise serializers.ValidationError(
+                    {"images": f"Each image must be {getattr(settings, 'MEDIA_MAX_UPLOAD_MB', 10)}MB or smaller."}
+                )
+            image_field.run_validation(image)
+            if hasattr(image, "seek"):
+                image.seek(0)
 
     @staticmethod
     def deduplicate(values):
@@ -227,6 +318,7 @@ class UserReviewWriteSerializer(serializers.Serializer):
         self.replace_tags(review, validated_data["tags"])
         self.replace_book_references(review, validated_data.get("books", []))
         self.replace_program_references(review, validated_data.get("programs", []))
+        self.create_review_images(review, validated_data.get("images", []))
         return review
 
     @transaction.atomic
@@ -241,6 +333,8 @@ class UserReviewWriteSerializer(serializers.Serializer):
             self.replace_book_references(instance, validated_data["books"])
         if "programs" in validated_data:
             self.replace_program_references(instance, validated_data["programs"])
+        if validated_data.get("replace_images"):
+            self.replace_review_images(instance, validated_data.get("images", []))
         return instance
 
     @staticmethod
@@ -267,3 +361,19 @@ class UserReviewWriteSerializer(serializers.Serializer):
                 for index, program in enumerate(programs)
             ]
         )
+
+    @staticmethod
+    def create_review_images(review, images):
+        for index, image in enumerate(images):
+            UserReviewImage.objects.create(review=review, image=image, display_order=index)
+
+    @staticmethod
+    def replace_review_images(review, images):
+        existing_images = list(UserReviewImage.objects.filter(review=review))
+        for review_image in existing_images:
+            try:
+                review_image.image.delete(save=False)
+            except Exception:
+                logger.warning("Failed to delete review image file.", exc_info=True)
+        UserReviewImage.objects.filter(pk__in=[image.pk for image in existing_images]).delete()
+        UserReviewWriteSerializer.create_review_images(review, images)

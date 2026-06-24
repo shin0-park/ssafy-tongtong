@@ -175,6 +175,9 @@ AUTH_USER_MODEL = 'accounts.User'
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_MAX_UPLOAD_MB = int(os.environ.get("MEDIA_MAX_UPLOAD_MB", "10"))
 
 DATA4LIBRARY_API_KEY = os.environ.get("DATA4LIBRARY_API_KEY", "")
 DATA4LIBRARY_BASE_URL = os.environ.get("DATA4LIBRARY_BASE_URL", "http://data4library.kr/api")
