@@ -1,4 +1,5 @@
 import json
+import re
 from dataclasses import dataclass
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -13,7 +14,28 @@ class Data4LibraryConfigurationError(Exception):
 
 
 class Data4LibraryAPIError(Exception):
-    pass
+    def __init__(
+        self,
+        message,
+        *,
+        endpoint=None,
+        request_preview=None,
+        status_code=None,
+        reason=None,
+        content_type=None,
+        body_preview=None,
+        original_exception_class=None,
+        json_parse_failed=False,
+    ):
+        super().__init__(message)
+        self.endpoint = endpoint
+        self.request_preview = request_preview or {}
+        self.status_code = status_code
+        self.reason = reason
+        self.content_type = content_type
+        self.body_preview = body_preview
+        self.original_exception_class = original_exception_class
+        self.json_parse_failed = json_parse_failed
 
 
 @dataclass
@@ -44,6 +66,20 @@ class Data4LibraryBookLibrary:
     call_number: str
     loan_available: bool | None
     loan_status: str
+
+
+@dataclass
+class Data4LibraryLibrary:
+    external_library_key: str
+    name: str
+    address: str
+    homepage_url: str
+    phone: str
+    latitude: str
+    longitude: str
+    closed: str
+    operating_time: str
+    book_count: int | None
 
 
 class Data4LibraryClient:
@@ -96,23 +132,81 @@ class Data4LibraryClient:
             "results": results,
         }
 
+    def list_libraries(self, region="21", page=1, page_size=100):
+        if not self.api_key:
+            raise Data4LibraryConfigurationError("DATA4LIBRARY_API_KEY is not configured.")
+
+        request_params = {
+            "authKey": self.api_key,
+            "format": "json",
+            "region": region,
+            "pageNo": page,
+            "pageSize": page_size,
+        }
+        payload = self._get_json("libSrch", request_params)
+        return parse_libraries_payload(payload)
+
     def _get_json(self, endpoint, params):
         url = f"{self.base_url}/{endpoint}?{urlencode(params)}"
+        request_preview = build_request_preview(self.base_url, endpoint, params)
         try:
             with urlopen(url, timeout=self.timeout) as response:
                 charset = response.headers.get_content_charset() or "utf-8"
                 body = response.read().decode(charset)
+                content_type = response.headers.get("content-type", "")
         except HTTPError as exc:
-            raise Data4LibraryAPIError(f"Data4Library request failed with status {exc.code}.") from exc
+            body_preview = read_error_body_preview(exc)
+            raise Data4LibraryAPIError(
+                f"Data4Library request failed with status {exc.code}.",
+                endpoint=endpoint,
+                request_preview=request_preview,
+                status_code=exc.code,
+                reason=exc.reason,
+                content_type=exc.headers.get("content-type", ""),
+                body_preview=body_preview,
+                original_exception_class=exc.__class__.__name__,
+            ) from exc
         except URLError as exc:
-            raise Data4LibraryAPIError("Data4Library request failed.") from exc
+            raise Data4LibraryAPIError(
+                "Data4Library request failed.",
+                endpoint=endpoint,
+                request_preview=request_preview,
+                reason=str(exc.reason),
+                original_exception_class=exc.__class__.__name__,
+            ) from exc
         except TimeoutError as exc:
-            raise Data4LibraryAPIError("Data4Library request timed out.") from exc
+            raise Data4LibraryAPIError(
+                "Data4Library request timed out.",
+                endpoint=endpoint,
+                request_preview=request_preview,
+                original_exception_class=exc.__class__.__name__,
+            ) from exc
 
         try:
             return json.loads(body)
         except json.JSONDecodeError as exc:
-            raise Data4LibraryAPIError("Data4Library returned invalid JSON.") from exc
+            raise Data4LibraryAPIError(
+                "Data4Library returned invalid JSON.",
+                endpoint=endpoint,
+                request_preview=request_preview,
+                content_type=content_type,
+                body_preview=mask_sensitive_text(body[:300]),
+                original_exception_class=exc.__class__.__name__,
+                json_parse_failed=True,
+            ) from exc
+
+
+def parse_libraries_payload(payload):
+    response = payload.get("response", payload)
+    libs = response.get("libs", {})
+    raw_items = [unwrap_item(item, "lib") for item in ensure_list(libs.get("lib") if isinstance(libs, dict) else libs)]
+    results = [normalize_library(item) for item in raw_items]
+
+    return {
+        "count": parse_int(response.get("numFound"), default=len(results)),
+        "result_num": parse_int(response.get("resultNum"), default=len(results)),
+        "results": results,
+    }
 
 
 def ensure_list(value: Any):
@@ -157,6 +251,36 @@ def first_value(item, *keys):
     return ""
 
 
+def build_request_preview(base_url, endpoint, params):
+    masked_params = {
+        key: "<masked>" if key.lower() in {"authkey", "authorization", "token", "apikey", "api_key"} else value
+        for key, value in params.items()
+    }
+    path = f"{base_url.rstrip('/')}/{endpoint}".replace("http://data4library.kr", "")
+    return {
+        "endpoint": endpoint,
+        "path": path,
+        "params": masked_params,
+    }
+
+
+def read_error_body_preview(exc):
+    try:
+        charset = exc.headers.get_content_charset() or "utf-8"
+        body = exc.read().decode(charset, errors="replace")
+    except Exception:
+        return ""
+    return mask_sensitive_text(body[:300])
+
+
+def mask_sensitive_text(value):
+    return re.sub(
+        r"(?i)\b(authKey|serviceKey|apiKey|api_key|token|authorization)=([^&\s]+)",
+        r"\1=<masked>",
+        str(value or ""),
+    )
+
+
 def normalize_book(item):
     return Data4LibraryBook(
         isbn13=str(item.get("isbn13") or "").strip(),
@@ -186,4 +310,19 @@ def normalize_book_library(item):
         call_number=str(first_value(item, "callNumber", "call_no", "callNo")).strip(),
         loan_available=parse_bool(first_value(item, "loanAvailable", "loan_available", "loanYn")),
         loan_status=str(first_value(item, "loanStatus", "loan_status", "hasBook")).strip(),
+    )
+
+
+def normalize_library(item):
+    return Data4LibraryLibrary(
+        external_library_key=str(first_value(item, "libCode", "libcode", "lib_code")).strip(),
+        name=str(first_value(item, "libName", "libname", "lib_name")).strip(),
+        address=str(first_value(item, "address", "addr")).strip(),
+        homepage_url=str(first_value(item, "homepage", "homepageURL", "homepage_url")).strip(),
+        phone=str(first_value(item, "tel", "phone")).strip(),
+        latitude=str(first_value(item, "latitude", "lat")).strip(),
+        longitude=str(first_value(item, "longitude", "lng", "lon")).strip(),
+        closed=str(first_value(item, "closed", "close")).strip(),
+        operating_time=str(first_value(item, "operatingTime", "operating_time")).strip(),
+        book_count=parse_int(first_value(item, "BookCount", "bookCount", "book_count")),
     )
