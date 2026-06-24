@@ -1,5 +1,11 @@
-from django.db.models import Prefetch, Q
+from django.db import transaction
+from django.db.models import F, Prefetch, Q
+from django.shortcuts import get_object_or_404
 from rest_framework import generics
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.common.pagination import StandardPageNumberPagination
 
@@ -10,8 +16,9 @@ from .models import (
     ReviewTag,
     UserReview,
     UserReviewImage,
+    UserReviewLike,
 )
-from .serializers import UserReviewSerializer
+from .serializers import UserReviewSerializer, UserReviewWriteSerializer
 
 
 class UserReviewQueryMixin:
@@ -80,11 +87,111 @@ class UserReviewQueryMixin:
         return [item.strip() for item in value.split(",") if item.strip()]
 
 
-class UserReviewListAPIView(UserReviewQueryMixin, generics.ListAPIView):
+class UserReviewListAPIView(UserReviewQueryMixin, generics.ListCreateAPIView):
     serializer_class = UserReviewSerializer
     pagination_class = StandardPageNumberPagination
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+
+    def create(self, request, *args, **kwargs):
+        serializer = UserReviewWriteSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        review = serializer.save()
+        return Response(UserReviewSerializer(review).data, status=201)
 
 
-class UserReviewDetailAPIView(UserReviewQueryMixin, generics.RetrieveAPIView):
+class UserReviewDetailAPIView(UserReviewQueryMixin, generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserReviewSerializer
     lookup_url_kwarg = "review_id"
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+
+    def get_queryset(self):
+        if self.request.method == "GET":
+            return super().get_queryset()
+        return (
+            UserReview.objects.select_related("user", "library")
+            .prefetch_related(
+                Prefetch(
+                    "tag_links",
+                    queryset=ReviewTag.objects.select_related("tag").order_by("created_at", "id"),
+                    to_attr="prefetched_tag_links",
+                ),
+                Prefetch(
+                    "book_references",
+                    queryset=ReviewBookReference.objects.select_related("book").order_by("display_order", "id"),
+                    to_attr="prefetched_book_references",
+                ),
+                Prefetch(
+                    "program_references",
+                    queryset=ReviewProgramReference.objects.select_related("program__library").order_by("display_order", "id"),
+                    to_attr="prefetched_program_references",
+                ),
+                Prefetch(
+                    "images",
+                    queryset=UserReviewImage.objects.order_by("display_order", "id"),
+                    to_attr="prefetched_images",
+                ),
+            )
+        )
+
+    def ensure_owner(self, review):
+        if review.user_id != self.request.user.id:
+            raise PermissionDenied("You do not have permission to modify this review.")
+
+    def partial_update(self, request, *args, **kwargs):
+        review = self.get_object()
+        self.ensure_owner(review)
+        serializer = UserReviewWriteSerializer(
+            review,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        review = serializer.save()
+        return Response(UserReviewSerializer(review).data)
+
+    def destroy(self, request, *args, **kwargs):
+        review = self.get_object()
+        self.ensure_owner(review)
+        review.delete()
+        return Response(status=204)
+
+
+class ReviewLikeAPIView(APIView):
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+
+    def get_review(self):
+        return get_object_or_404(
+            UserReview.objects.filter(moderation_status=ReviewModerationStatus.VISIBLE),
+            pk=self.kwargs["review_id"],
+        )
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        review = self.get_review()
+        _, created = UserReviewLike.objects.get_or_create(user=request.user, review=review)
+        if created:
+            UserReview.objects.filter(pk=review.pk).update(like_count=F("like_count") + 1)
+        review.refresh_from_db(fields=["like_count"])
+        return Response(
+            {
+                "liked": True,
+                "review_id": review.id,
+                "like_count": review.like_count,
+            }
+        )
+
+    @transaction.atomic
+    def delete(self, request, *args, **kwargs):
+        review = self.get_review()
+        deleted_count, _ = UserReviewLike.objects.filter(user=request.user, review=review).delete()
+        if deleted_count:
+            UserReview.objects.filter(pk=review.pk, like_count__gt=0).update(like_count=F("like_count") - 1)
+        review.refresh_from_db(fields=["like_count"])
+        return Response(
+            {
+                "liked": False,
+                "review_id": review.id,
+                "like_count": review.like_count,
+            }
+        )
