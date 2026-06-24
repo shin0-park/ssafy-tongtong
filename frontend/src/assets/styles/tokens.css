@@ -1,0 +1,93 @@
+:root {
+  color-scheme: light;
+
+  --color-primary-900: #1f3d2b;
+  --color-primary-800: #2c5139;
+  --color-primary-700: #386848;
+  --color-primary-600: #477d58;
+  --color-primary-500: #5f936c;
+  --color-primary-300: #a9d0ae;
+  --color-primary-200: #d7ead9;
+  --color-primary-100: #edf7ee;
+
+  --color-leaf-100: #eff8ef;
+  --color-mint-100: #eefaf6;
+  --color-cream-50: #fffdf7;
+  --color-cream-100: #fff8e8;
+  --color-apricot-100: #fff0d8;
+  --color-apricot-500: #e8a85f;
+
+  --color-gray-900: #262a24;
+  --color-gray-800: #3a3f38;
+  --color-gray-700: #555b52;
+  --color-gray-600: #6f766b;
+  --color-gray-300: #cbd0c5;
+  --color-gray-200: #e3e6de;
+  --color-gray-100: #f1f3ed;
+  --color-white: #ffffff;
+
+  --color-success: #3f7d54;
+  --color-danger: #c75c54;
+  --color-info: #527b8f;
+
+  --color-bg-page: var(--color-cream-50);
+  --color-bg-section: var(--color-cream-100);
+  --color-bg-card: var(--color-white);
+  --color-bg-soft: #f8f3e5;
+  --color-bg-leaf-soft: var(--color-leaf-100);
+  --color-bg-mint-soft: var(--color-mint-100);
+  --color-border-subtle: rgba(38, 42, 36, 0.1);
+  --color-border-strong: rgba(38, 42, 36, 0.18);
+  --color-text-primary: var(--color-gray-900);
+  --color-text-secondary: var(--color-gray-700);
+  --color-text-muted: var(--color-gray-600);
+  --color-text-inverse: #ffffff;
+
+  --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-size-13: 0.8125rem;
+  --font-size-14: 0.875rem;
+  --font-size-15: 0.9375rem;
+  --font-size-18: 1.125rem;
+  --font-size-20: 1.25rem;
+  --font-size-24: 1.5rem;
+  --font-size-32: 2rem;
+  --line-height-title: 1.35;
+  --line-height-body: 1.6;
+  --line-height-card: 1.5;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 2rem;
+  --space-8: 2.5rem;
+  --space-10: 4rem;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-pill: 999px;
+
+  --shadow-xs: 0 1px 2px rgba(31, 61, 43, 0.06);
+  --shadow-sm: 0 4px 12px rgba(31, 61, 43, 0.08);
+  --shadow-md: 0 8px 24px rgba(31, 61, 43, 0.1);
+
+  --border-subtle: 1px solid var(--color-border-subtle);
+  --border-strong: 1px solid var(--color-border-strong);
+
+  --ratio-library-card: 16 / 9;
+  --ratio-book-cover: 2 / 3;
+
+  --lo-page-bg: var(--color-bg-page);
+  --lo-text: var(--color-text-primary);
+  --lo-muted: var(--color-text-muted);
+  --lo-border: var(--color-border-subtle);
+  --lo-surface: var(--color-bg-card);
+  --lo-accent: var(--color-primary-700);
+}
