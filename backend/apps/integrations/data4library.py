@@ -1,6 +1,7 @@
 import json
 import re
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -52,6 +53,30 @@ class Data4LibraryBook:
     cover_image_url: str
     source_detail_url: str
     loan_count: int | None
+
+
+@dataclass
+class Data4LibraryBookDetail:
+    isbn13: str
+    title: str
+    authors_text: str
+    publisher: str
+    publication_date: date | None
+    publication_year: int | None
+    addition_symbol: str
+    volume: str
+    kdc_class_no: str
+    kdc_class_name: str
+    description: str
+    cover_image_url: str
+    source_detail_url: str
+
+
+@dataclass
+class Data4LibraryPopularBook:
+    rank: int | None
+    book: Data4LibraryBook
+    source_payload: dict
 
 
 @dataclass
@@ -132,6 +157,31 @@ class Data4LibraryClient:
             "results": results,
         }
 
+    def get_popular_books(self, params):
+        if not self.api_key:
+            raise Data4LibraryConfigurationError("DATA4LIBRARY_API_KEY is not configured.")
+
+        request_params = {
+            "authKey": self.api_key,
+            "format": "json",
+            **params,
+        }
+        payload = self._get_json("loanItemSrch", request_params)
+        return parse_popular_books_payload(payload)
+
+    def get_book_detail(self, isbn13, loaninfo=False):
+        if not self.api_key:
+            raise Data4LibraryConfigurationError("DATA4LIBRARY_API_KEY is not configured.")
+
+        request_params = {
+            "authKey": self.api_key,
+            "format": "json",
+            "isbn13": isbn13,
+            "loaninfoYN": "Y" if loaninfo else "N",
+        }
+        payload = self._get_json("srchDtlList", request_params)
+        return parse_book_detail_payload(payload)
+
     def list_libraries(self, region="21", page=1, page_size=100):
         if not self.api_key:
             raise Data4LibraryConfigurationError("DATA4LIBRARY_API_KEY is not configured.")
@@ -209,6 +259,33 @@ def parse_libraries_payload(payload):
     }
 
 
+def parse_popular_books_payload(payload):
+    response = payload.get("response", payload)
+    docs = response.get("docs", {})
+    raw_items = [unwrap_item(item, "doc") for item in ensure_list(docs.get("doc") if isinstance(docs, dict) else docs)]
+    results = [normalize_popular_book(item) for item in raw_items]
+
+    return {
+        "num_found": parse_int(response.get("numFound"), default=len(results)),
+        "result_num": parse_int(response.get("resultNum"), default=len(results)),
+        "results": results,
+    }
+
+
+def parse_book_detail_payload(payload):
+    response = payload.get("response", payload)
+    detail = response.get("detail", {})
+    raw_items = ensure_list(detail.get("book") if isinstance(detail, dict) else detail)
+    if not raw_items:
+        docs = response.get("docs", {})
+        raw_items = [unwrap_item(item, "doc") for item in ensure_list(docs.get("doc") if isinstance(docs, dict) else docs)]
+    if not raw_items and isinstance(response.get("book"), dict):
+        raw_items = [response["book"]]
+    if not raw_items:
+        return None
+    return normalize_book_detail(unwrap_item(raw_items[0], "book"))
+
+
 def ensure_list(value: Any):
     if value is None or value == "":
         return []
@@ -241,6 +318,31 @@ def parse_bool(value):
     if normalized in {"n", "no", "false", "0", "unavailable", "loan_unavailable"}:
         return False
     return None
+
+
+def parse_date(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    digits = re.sub(r"\D", "", raw)
+    if len(digits) >= 8:
+        try:
+            return date(int(digits[:4]), int(digits[4:6]), int(digits[6:8]))
+        except ValueError:
+            return None
+    if len(digits) == 4:
+        try:
+            return date(int(digits), 1, 1)
+        except ValueError:
+            return None
+    return None
+
+
+def parse_publication_year_from_date(value):
+    parsed = parse_date(value)
+    if parsed:
+        return parsed.year
+    return parse_int(value)
 
 
 def first_value(item, *keys):
@@ -295,6 +397,40 @@ def normalize_book(item):
         cover_image_url=str(item.get("bookImageURL") or "").strip(),
         source_detail_url=str(item.get("bookDtlUrl") or "").strip(),
         loan_count=parse_int(item.get("loan_count")),
+    )
+
+
+def normalize_popular_book(item):
+    book = normalize_book(item)
+    rank = parse_int(first_value(item, "ranking", "rank", "no"))
+    loan_count = parse_int(first_value(item, "loan_count", "loanCnt", "loan_count_sum"))
+    if loan_count is not None:
+        book.loan_count = loan_count
+    return Data4LibraryPopularBook(
+        rank=rank,
+        book=book,
+        source_payload={key: value for key, value in item.items() if key != "authKey"},
+    )
+
+
+def normalize_book_detail(item):
+    publication_date = parse_date(first_value(item, "publication_date", "publicationDate", "pubDate"))
+    return Data4LibraryBookDetail(
+        isbn13=str(first_value(item, "isbn13", "isbn")).strip(),
+        title=str(first_value(item, "bookname", "bookName", "title")).strip(),
+        authors_text=str(first_value(item, "authors", "author")).strip(),
+        publisher=str(first_value(item, "publisher")).strip(),
+        publication_date=publication_date,
+        publication_year=publication_date.year if publication_date else parse_publication_year_from_date(
+            first_value(item, "publication_year", "publicationDate", "pubDate")
+        ),
+        addition_symbol=str(first_value(item, "addition_symbol", "additionSymbol")).strip(),
+        volume=str(first_value(item, "vol", "volume")).strip(),
+        kdc_class_no=str(first_value(item, "class_no", "classNo", "kdc_class_no")).strip(),
+        kdc_class_name=str(first_value(item, "class_nm", "className", "kdc_class_name")).strip(),
+        description=str(first_value(item, "description", "bookDescription", "contents")).strip(),
+        cover_image_url=str(first_value(item, "bookImageURL", "bookImageUrl", "cover_image_url")).strip(),
+        source_detail_url=str(first_value(item, "bookDtlUrl", "bookDetailUrl", "source_detail_url")).strip(),
     )
 
 

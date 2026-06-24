@@ -1,11 +1,15 @@
-from django.db.models import Prefetch
+import hashlib
+import json
+from datetime import timedelta
+
+from django.db.models import Max, Prefetch, Q
 from django.utils import timezone
 
-from apps.integrations.data4library import Data4LibraryBook
+from apps.integrations.data4library import Data4LibraryBook, Data4LibraryBookDetail
 from apps.libraries.models import Library, LibraryExternalIdentifier, LibraryImage, LibraryStatisticSnapshot
 from apps.libraries.serializers import LibraryListSerializer
 
-from .models import Book
+from .models import Book, PopularBookItem, PopularBookScopeType, PopularBookSnapshot
 
 
 DATA4LIBRARY_PROVIDER_CODE = "data4library"
@@ -62,6 +66,218 @@ def upsert_book_from_data4library(book_data: Data4LibraryBook):
     changed_fields.append("metadata_fetched_at")
     book.save(update_fields=changed_fields)
     return book
+
+
+def upsert_book_basic_from_data4library(book_data: Data4LibraryBook, *, dry_run=False):
+    if not book_data.isbn13:
+        return None, "rejected"
+
+    defaults = build_book_basic_defaults(book_data)
+    try:
+        book = Book.objects.get(isbn13=book_data.isbn13)
+    except Book.DoesNotExist:
+        if dry_run:
+            preview = Book(isbn13=book_data.isbn13, **defaults)
+            preview.id = None
+            return preview, "would_create"
+        return Book.objects.create(isbn13=book_data.isbn13, **defaults), "created"
+
+    changed_fields = []
+    if not book.title and defaults["title"]:
+        book.title = defaults["title"]
+        changed_fields.append("title")
+
+    fill_if_empty_fields = (
+        "authors_text",
+        "publisher",
+        "publication_year",
+        "volume",
+        "addition_symbol",
+        "kdc_class_no",
+        "kdc_class_name",
+        "cover_image_url",
+        "source_detail_url",
+        "provider_code",
+    )
+    for field in fill_if_empty_fields:
+        if not getattr(book, field) and defaults[field]:
+            setattr(book, field, defaults[field])
+            changed_fields.append(field)
+
+    if not changed_fields:
+        return book, "skipped"
+    if dry_run:
+        return book, "would_update"
+    book.save(update_fields=changed_fields)
+    return book, "updated"
+
+
+def build_book_basic_defaults(book_data: Data4LibraryBook):
+    return {
+        "title": book_data.title or book_data.isbn13,
+        "authors_text": book_data.authors_text,
+        "publisher": book_data.publisher,
+        "publication_year": book_data.publication_year,
+        "volume": book_data.volume,
+        "addition_symbol": book_data.addition_symbol,
+        "kdc_class_no": book_data.kdc_class_no,
+        "kdc_class_name": book_data.kdc_class_name,
+        "cover_image_url": book_data.cover_image_url,
+        "source_detail_url": book_data.source_detail_url,
+        "provider_code": DATA4LIBRARY_PROVIDER_CODE,
+    }
+
+
+def upsert_popular_snapshot_and_items(
+    *,
+    period_start,
+    period_end,
+    region,
+    query_label,
+    query_params,
+    popular_books,
+    dry_run=False,
+):
+    query_hash = build_query_hash(
+        {
+            "label": query_label,
+            "region": region,
+            **query_params,
+        }
+    )
+    snapshot_defaults = {
+        "provider_code": DATA4LIBRARY_PROVIDER_CODE,
+        "scope_type": PopularBookScopeType.REGION if region else PopularBookScopeType.NATIONAL,
+        "region_code": str(region or ""),
+        "period_start": period_start,
+        "period_end": period_end,
+        "query_params": {"label": query_label, "region": region, **query_params},
+        "query_hash": query_hash,
+        "result_count": len(popular_books),
+        "fetched_at": timezone.now(),
+        "fresh_until": timezone.now() + timedelta(days=7),
+    }
+
+    if dry_run:
+        exists = PopularBookSnapshot.objects.filter(
+            provider_code=DATA4LIBRARY_PROVIDER_CODE,
+            query_hash=query_hash,
+            period_start=period_start,
+            period_end=period_end,
+        ).exists()
+        return None, "would_update" if exists else "would_create", {"created": 0, "updated": 0, "skipped": 0}
+
+    snapshot, created = PopularBookSnapshot.objects.update_or_create(
+        provider_code=DATA4LIBRARY_PROVIDER_CODE,
+        query_hash=query_hash,
+        period_start=period_start,
+        period_end=period_end,
+        defaults=snapshot_defaults,
+    )
+
+    item_stats = {"created": 0, "updated": 0, "skipped": 0}
+    for fallback_rank, popular_book in enumerate(popular_books, start=1):
+        book, _ = upsert_book_basic_from_data4library(popular_book.book)
+        if book is None:
+            continue
+        rank = fallback_rank
+        item_defaults = {
+            "rank": rank,
+            "loan_count": popular_book.book.loan_count,
+            "source_payload": popular_book.source_payload,
+        }
+        item, item_created = PopularBookItem.objects.get_or_create(
+            snapshot=snapshot,
+            book=book,
+            defaults=item_defaults,
+        )
+        if item_created:
+            item_stats["created"] += 1
+            continue
+        if item_has_changed(item, item_defaults):
+            for field, value in item_defaults.items():
+                setattr(item, field, value)
+            item.save(update_fields=list(item_defaults.keys()))
+            item_stats["updated"] += 1
+        else:
+            item_stats["skipped"] += 1
+
+    return snapshot, "created" if created else "updated", item_stats
+
+
+def item_has_changed(item, defaults):
+    return any(getattr(item, field) != value for field, value in defaults.items())
+
+
+def build_query_hash(query_params):
+    encoded = json.dumps(query_params, ensure_ascii=False, sort_keys=True, default=str)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def apply_book_detail(book: Book, detail: Data4LibraryBookDetail, *, dry_run=False):
+    changed_fields = []
+
+    fill_if_empty_fields = {
+        "title": detail.title,
+        "authors_text": detail.authors_text,
+        "publisher": detail.publisher,
+        "publication_date": detail.publication_date,
+        "publication_year": detail.publication_year,
+        "volume": detail.volume,
+        "addition_symbol": detail.addition_symbol,
+        "kdc_class_no": detail.kdc_class_no,
+        "kdc_class_name": detail.kdc_class_name,
+        "description": detail.description,
+        "cover_image_url": detail.cover_image_url,
+        "source_detail_url": detail.source_detail_url,
+    }
+    for field, value in fill_if_empty_fields.items():
+        if not value:
+            continue
+        if field == "description" and book.description:
+            continue
+        if not getattr(book, field):
+            setattr(book, field, value)
+            changed_fields.append(field)
+
+    book.provider_code = DATA4LIBRARY_PROVIDER_CODE
+    changed_fields.append("provider_code")
+    book.metadata_fetched_at = timezone.now()
+    changed_fields.append("metadata_fetched_at")
+
+    changed_fields = list(dict.fromkeys(changed_fields))
+    if not dry_run:
+        book.save(update_fields=changed_fields)
+    return changed_fields
+
+
+def get_book_detail_candidates(*, source, limit, only_missing_description, min_refetch_days):
+    queryset = Book.objects.filter(is_active=True).exclude(isbn13="")
+
+    if source == "popular":
+        popular_book_ids = PopularBookItem.objects.values("book_id")
+        queryset = queryset.filter(id__in=popular_book_ids).annotate(
+            best_rank=Max("popular_items__rank"),
+            max_loan_count=Max("popular_items__loan_count"),
+        )
+    elif source == "saved":
+        queryset = queryset.filter(saved_by_users__isnull=False).distinct()
+    elif source != "all":
+        raise ValueError("source must be one of popular, saved, all.")
+
+    if only_missing_description:
+        queryset = queryset.filter(Q(description="") | Q(description__isnull=True))
+
+    if min_refetch_days is not None:
+        threshold = timezone.now() - timedelta(days=min_refetch_days)
+        queryset = queryset.filter(Q(metadata_fetched_at__isnull=True) | Q(metadata_fetched_at__lt=threshold))
+
+    if source == "popular":
+        queryset = queryset.order_by("best_rank", "-max_loan_count", "id")
+    else:
+        queryset = queryset.order_by("metadata_fetched_at", "id")
+
+    return list(queryset[:limit])
 
 
 def serialize_data4library_book(book_data, local_book):
