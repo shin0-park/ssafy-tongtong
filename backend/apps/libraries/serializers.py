@@ -1,3 +1,4 @@
+from django.templatetags.static import static
 from rest_framework import serializers
 
 from .models import (
@@ -23,6 +24,14 @@ FACILITY_FIELDS = (
     "has_lounge",
     "has_outdoor_space",
 )
+
+LIBRARY_PLACEHOLDER_IMAGES = {
+    "public": "media_assets/placeholders/default_library_public.png",
+    "small": "media_assets/placeholders/default_library_small.png",
+    "children": "media_assets/placeholders/default_library_children.png",
+    "other": "media_assets/placeholders/default_library_public.png",
+}
+DEFAULT_LIBRARY_PLACEHOLDER_TYPE = "public"
 
 
 def get_prefetched_first(instance, attr_name, fallback_queryset):
@@ -65,9 +74,30 @@ def resolve_media_asset_payload(media_asset):
     return {
         "url": image_url,
         "is_fallback": False,
+        "fallback_key": None,
         "license_code": media_asset.license_code or None,
         "attribution_text": media_asset.attribution_text or None,
     }
+
+
+def resolve_library_placeholder_payload(library_type):
+    placeholder_type = library_type if library_type in LIBRARY_PLACEHOLDER_IMAGES else DEFAULT_LIBRARY_PLACEHOLDER_TYPE
+    return {
+        "url": static(LIBRARY_PLACEHOLDER_IMAGES[placeholder_type]),
+        "is_fallback": True,
+        "fallback_key": f"library/{placeholder_type}",
+        "license_code": "internal",
+        "attribution_text": None,
+    }
+
+
+def resolve_library_thumbnail_payload(library):
+    image = get_main_library_image(library)
+    if image:
+        media_asset_payload = resolve_media_asset_payload(image.media_asset)
+        if media_asset_payload:
+            return media_asset_payload
+    return resolve_library_placeholder_payload(library.library_type)
 
 
 class LibraryStatisticSummarySerializer(serializers.ModelSerializer):
@@ -155,8 +185,7 @@ class LibraryListSerializer(serializers.ModelSerializer):
         return statistic.reading_seat_count if statistic else None
 
     def get_thumbnail(self, obj):
-        image = get_main_library_image(obj)
-        return resolve_media_asset_payload(image.media_asset) if image else None
+        return resolve_library_thumbnail_payload(obj)
 
 
 class LibraryDetailSerializer(LibraryListSerializer):
