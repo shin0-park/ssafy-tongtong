@@ -1,12 +1,19 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.books.models import Book
+from apps.common.pagination import StandardPageNumberPagination
 from apps.libraries.models import Library
 from apps.myoutings.models import UserBookSave, UserLibrarySave, UserProgramSave
+from apps.myoutings.serializers import (
+    UserBookSaveSerializer,
+    UserLibrarySaveSerializer,
+    UserProgramSaveSerializer,
+)
 from apps.programs.models import Program
 
 
@@ -87,4 +94,51 @@ class ProgramSaveAPIView(BaseSaveAPIView):
         return get_object_or_404(
             Program.objects.filter(is_visible=True, deleted_at__isnull=True),
             pk=self.kwargs[self.lookup_url_kwarg],
+        )
+
+
+class SavedLibraryListAPIView(ListAPIView):
+    serializer_class = UserLibrarySaveSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = StandardPageNumberPagination
+
+    def get_queryset(self):
+        return (
+            UserLibrarySave.objects.filter(user=self.request.user, library__is_active=True)
+            .select_related("library")
+            .prefetch_related(
+                "library__statistic_snapshots",
+                "library__images__media_asset",
+            )
+            .order_by("-created_at", "-id")
+        )
+
+
+class SavedBookListAPIView(ListAPIView):
+    serializer_class = UserBookSaveSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = StandardPageNumberPagination
+
+    def get_queryset(self):
+        return (
+            UserBookSave.objects.filter(user=self.request.user, book__is_active=True)
+            .select_related("book")
+            .order_by("-created_at", "-id")
+        )
+
+
+class SavedProgramListAPIView(ListAPIView):
+    serializer_class = UserProgramSaveSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = StandardPageNumberPagination
+
+    def get_queryset(self):
+        return (
+            UserProgramSave.objects.filter(
+                user=self.request.user,
+                program__is_visible=True,
+                program__deleted_at__isnull=True,
+            )
+            .select_related("program", "program__library")
+            .order_by("-created_at", "-id")
         )
