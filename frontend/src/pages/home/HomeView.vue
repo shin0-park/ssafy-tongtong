@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import LibraryCard from '@/components/cards/LibraryCard.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -7,13 +8,16 @@ import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
 import { fetchHome } from '@/services/homeService'
 
+const router = useRouter()
 const homeData = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
+const locationMessage = ref('')
 
 const todayItems = computed(() => homeData.value?.today_recommendations?.items ?? [])
 const themeGroups = computed(() => homeData.value?.theme_recommendations ?? [])
 const personalItems = computed(() => homeData.value?.personal_recommendations?.items ?? [])
+const personalRecommendations = computed(() => homeData.value?.personal_recommendations ?? {})
 const hasContent = computed(
   () =>
     todayItems.value.length > 0 ||
@@ -32,6 +36,51 @@ async function loadHome() {
   } finally {
     isLoading.value = false
   }
+}
+
+function goToTheme(code) {
+  locationMessage.value = ''
+
+  if (!code) {
+    router.push('/libraries')
+    return
+  }
+
+  if (code !== 'nearby') {
+    router.push({
+      path: '/libraries',
+      query: { purpose: code },
+    })
+    return
+  }
+
+  if (!navigator.geolocation) {
+    locationMessage.value = '현재 브라우저에서는 위치를 사용할 수 없어 일반 도서관 탐색으로 이동합니다.'
+    router.push('/libraries')
+    return
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      router.push({
+        path: '/libraries',
+        query: {
+          purpose: 'nearby',
+          lat: position.coords.latitude.toFixed(7),
+          lng: position.coords.longitude.toFixed(7),
+        },
+      })
+    },
+    () => {
+      locationMessage.value = '위치 권한을 사용할 수 없어 일반 도서관 탐색으로 이동합니다.'
+      router.push('/libraries')
+    },
+    {
+      enableHighAccuracy: false,
+      timeout: 8000,
+      maximumAge: 300000,
+    },
+  )
 }
 
 onMounted(loadHome)
@@ -59,27 +108,60 @@ onMounted(loadHome)
 
     <div v-else class="d-grid gap-5">
       <section v-if="todayItems.length">
-        <h2 class="section-title">
-          {{ homeData.today_recommendations.theme?.title || '오늘의 추천' }}
-        </h2>
+        <div class="mb-3">
+          <h2 class="section-title mb-1">
+            {{ homeData.today_recommendations.theme?.title || '오늘의 추천' }}
+          </h2>
+          <p v-if="homeData.today_recommendations.theme?.subtitle" class="meta-text mb-0">
+            {{ homeData.today_recommendations.theme.subtitle }}
+          </p>
+        </div>
         <div class="responsive-card-grid">
           <LibraryCard v-for="library in todayItems" :key="library.id" :library="library" />
         </div>
       </section>
 
-      <section v-if="personalItems.length">
+      <section>
         <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
           <div>
             <h2 class="section-title mb-1">
-              {{ homeData.personal_recommendations.title || '나에게 맞는 추천' }}
+              {{ personalRecommendations.title || '나에게 맞는 추천' }}
             </h2>
-            <p v-if="homeData.personal_recommendations.summary_sentence" class="meta-text mb-0">
-              {{ homeData.personal_recommendations.summary_sentence }}
+            <p v-if="personalRecommendations.reason" class="meta-text mb-0">
+              {{ personalRecommendations.reason }}
             </p>
           </div>
+          <RouterLink
+            v-if="personalRecommendations.available === false"
+            class="btn btn-outline-primary btn-sm"
+            to="/preferences"
+          >
+            선호 설정
+          </RouterLink>
         </div>
+        <EmptyState
+          v-if="personalRecommendations.available === false || !personalItems.length"
+          title="개인 추천을 준비 중입니다."
+          description="선호 설정이나 저장, 후기 활동이 쌓이면 맞춤 추천을 보여드립니다."
+        />
         <div class="responsive-card-grid">
           <LibraryCard v-for="library in personalItems" :key="library.id" :library="library" />
+        </div>
+      </section>
+
+      <section v-if="themeGroups.length">
+        <h2 class="section-title">테마로 둘러보기</h2>
+        <p v-if="locationMessage" class="alert alert-info py-2">{{ locationMessage }}</p>
+        <div class="theme-chip-list">
+          <button
+            v-for="group in themeGroups"
+            :key="group.purpose?.code"
+            class="theme-chip"
+            type="button"
+            @click="goToTheme(group.purpose?.code)"
+          >
+            {{ group.purpose?.label || '테마 추천' }}
+          </button>
         </div>
       </section>
 

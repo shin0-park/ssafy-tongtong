@@ -30,6 +30,40 @@ const operationText = computed(() => {
 
   return '운영 정보 없음'
 })
+
+function formatHours(hours) {
+  if (!hours) {
+    return ''
+  }
+
+  if (typeof hours === 'string') {
+    return hours
+  }
+
+  if (hours.open && hours.close) {
+    return `${hours.open} ~ ${hours.close}${hours.closes_next_day ? ' 다음날' : ''}`
+  }
+
+  return ''
+}
+
+function formatHolidayStatus(status) {
+  if (!status) {
+    return ''
+  }
+
+  if (typeof status === 'string') {
+    return status
+  }
+
+  const labels = {
+    open: '운영',
+    closed: '휴관',
+    unknown: '확인 필요',
+  }
+
+  return [status.date, labels[status.status] || status.status].filter(Boolean).join(' · ')
+}
 </script>
 
 <template>
@@ -57,9 +91,14 @@ const operationText = computed(() => {
           {{ Number(library.distance_km).toFixed(1) }}km
         </span>
       </div>
-      <p v-if="library.today_hours" class="meta-text mb-0 mt-2">오늘 {{ library.today_hours }}</p>
+      <p v-if="formatHours(library.today_hours)" class="meta-text mb-0 mt-2">
+        오늘 {{ formatHours(library.today_hours) }}
+      </p>
       <p v-if="library.holiday_operation_status" class="meta-text mb-0 mt-2">
-        공휴일 {{ library.holiday_operation_status }}
+        공휴일 {{ formatHolidayStatus(library.holiday_operation_status) }}
+      </p>
+      <p v-if="library.recommendation_reason" class="recommendation-reason mt-3 mb-0">
+        {{ library.recommendation_reason }}
       </p>
       <div class="mt-3">
         <SaveButton resource-type="library" :resource-id="library.id" />
