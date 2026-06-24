@@ -1,0 +1,368 @@
+[
+{
+  "model": "libraries.publicholidaycalendar",
+  "pk": 1,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.603Z",
+    "updated_at": "2026-06-24T13:21:57.295Z",
+    "year": 2026,
+    "provider_code": "data_go_kr",
+    "is_complete": true,
+    "synced_month_count": 12,
+    "last_attempted_at": "2026-06-24T13:21:56.712Z",
+    "last_completed_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 1,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.607Z",
+    "updated_at": "2026-06-24T13:21:57.297Z",
+    "calendar": 1,
+    "date": "2026-01-01",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "1월1일",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 2,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.608Z",
+    "updated_at": "2026-06-24T13:21:57.298Z",
+    "calendar": 1,
+    "date": "2026-02-16",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "설날",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 3,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.609Z",
+    "updated_at": "2026-06-24T13:21:57.299Z",
+    "calendar": 1,
+    "date": "2026-02-17",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "설날",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 4,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.610Z",
+    "updated_at": "2026-06-24T13:21:57.300Z",
+    "calendar": 1,
+    "date": "2026-02-18",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "설날",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 5,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.611Z",
+    "updated_at": "2026-06-24T13:21:57.301Z",
+    "calendar": 1,
+    "date": "2026-03-01",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "삼일절",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 6,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.612Z",
+    "updated_at": "2026-06-24T13:21:57.302Z",
+    "calendar": 1,
+    "date": "2026-03-02",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "대체공휴일(삼일절)",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 7,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.613Z",
+    "updated_at": "2026-06-24T13:21:57.302Z",
+    "calendar": 1,
+    "date": "2026-05-01",
+    "source_seq": "2",
+    "date_kind": "01",
+    "name": "노동절",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 8,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.614Z",
+    "updated_at": "2026-06-24T13:21:57.303Z",
+    "calendar": 1,
+    "date": "2026-05-05",
+    "source_seq": "2",
+    "date_kind": "01",
+    "name": "어린이날",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 9,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.615Z",
+    "updated_at": "2026-06-24T13:21:57.304Z",
+    "calendar": 1,
+    "date": "2026-05-24",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "부처님오신날",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 10,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.616Z",
+    "updated_at": "2026-06-24T13:21:57.305Z",
+    "calendar": 1,
+    "date": "2026-05-25",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "대체공휴일(부처님오신날)",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 11,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.617Z",
+    "updated_at": "2026-06-24T13:21:57.306Z",
+    "calendar": 1,
+    "date": "2026-06-03",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "전국동시지방선거",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 12,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.617Z",
+    "updated_at": "2026-06-24T13:21:57.307Z",
+    "calendar": 1,
+    "date": "2026-06-06",
+    "source_seq": "2",
+    "date_kind": "01",
+    "name": "현충일",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 13,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.618Z",
+    "updated_at": "2026-06-24T13:21:57.307Z",
+    "calendar": 1,
+    "date": "2026-07-17",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "제헌절",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 14,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.619Z",
+    "updated_at": "2026-06-24T13:21:57.308Z",
+    "calendar": 1,
+    "date": "2026-08-15",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "광복절",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 15,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.620Z",
+    "updated_at": "2026-06-24T13:21:57.309Z",
+    "calendar": 1,
+    "date": "2026-08-17",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "대체공휴일(광복절)",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 16,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.620Z",
+    "updated_at": "2026-06-24T13:21:57.309Z",
+    "calendar": 1,
+    "date": "2026-09-24",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "추석",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 17,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.621Z",
+    "updated_at": "2026-06-24T13:21:57.310Z",
+    "calendar": 1,
+    "date": "2026-09-25",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "추석",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 18,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.622Z",
+    "updated_at": "2026-06-24T13:21:57.310Z",
+    "calendar": 1,
+    "date": "2026-09-26",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "추석",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 19,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.623Z",
+    "updated_at": "2026-06-24T13:21:57.311Z",
+    "calendar": 1,
+    "date": "2026-10-03",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "개천절",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 20,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.624Z",
+    "updated_at": "2026-06-24T13:21:57.312Z",
+    "calendar": 1,
+    "date": "2026-10-05",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "대체공휴일(개천절)",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 21,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.625Z",
+    "updated_at": "2026-06-24T13:21:57.312Z",
+    "calendar": 1,
+    "date": "2026-10-09",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "한글날",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+},
+{
+  "model": "libraries.publicholiday",
+  "pk": 22,
+  "fields": {
+    "created_at": "2026-06-24T13:21:35.625Z",
+    "updated_at": "2026-06-24T13:21:57.313Z",
+    "calendar": 1,
+    "date": "2026-12-25",
+    "source_seq": "1",
+    "date_kind": "01",
+    "name": "기독탄신일",
+    "holiday_code": "",
+    "is_public_holiday": true,
+    "fetched_at": "2026-06-24T13:21:56.712Z"
+  }
+}
+]
