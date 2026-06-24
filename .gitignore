@@ -6,6 +6,10 @@ __pycache__/
 # frontend
 node_modules/
 
-# 전역
+# env
 .env
+backend/.env
+frontend/.env
+
+# 전역
 *.DS_Store
