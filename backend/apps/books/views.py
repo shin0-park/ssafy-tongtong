@@ -11,7 +11,11 @@ from apps.integrations.data4library import (
 
 from .models import Book
 from .serializers import BookDetailSerializer, BookListSerializer
-from .services import serialize_data4library_book, upsert_book_from_data4library
+from .services import (
+    serialize_book_holding_libraries,
+    serialize_data4library_book,
+    upsert_book_from_data4library,
+)
 
 
 SEARCH_TYPE_PARAM_MAP = {
@@ -98,6 +102,41 @@ class BookSearchAPIView(APIView):
                 "page": page,
                 "page_size": page_size,
                 "results": results,
+            }
+        )
+
+
+class BookHoldingLibraryListAPIView(APIView):
+    def get(self, request, isbn13):
+        page = parse_positive_int(request.query_params.get("page"), default=1)
+        page_size = min(parse_positive_int(request.query_params.get("page_size"), default=20), MAX_SEARCH_PAGE_SIZE)
+
+        try:
+            payload = Data4LibraryClient().get_book_libraries(
+                isbn13=isbn13,
+                page=page,
+                page_size=page_size,
+                region="21",
+            )
+        except Data4LibraryConfigurationError:
+            return Response(
+                {"detail": "Data4Library API key is not configured."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except Data4LibraryAPIError:
+            return Response(
+                {"detail": "Data4Library API request failed."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(
+            {
+                "isbn13": isbn13,
+                "source": "data4library",
+                "count": payload["count"],
+                "page": page,
+                "page_size": page_size,
+                "results": serialize_book_holding_libraries(payload["results"]),
             }
         )
 
