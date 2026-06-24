@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.db.models import Prefetch
 
 from apps.community.models import ReviewModerationStatus, UserReview, UserReviewLike
+from apps.integrations.gms import enhance_summary_sentence
 from apps.libraries.models import LibraryStatisticSnapshot
 from apps.libraries.services import FACILITY_FIELDS
 from apps.myoutings.models import UserBookSave, UserLibrarySave, UserProgramSave
@@ -122,6 +123,7 @@ def build_my_outings_dashboard(user, preference=None):
     signal_count = activity_summary["total_signal_count"]
     preference_status = build_preference_status(preference, signal_count)
 
+    rule_summary_sentence = build_summary_sentence(axis_scores, counters, signal_count)
     dashboard = {
         "profile_summary": profile_summary,
         "activity_summary": activity_summary,
@@ -133,7 +135,7 @@ def build_my_outings_dashboard(user, preference=None):
             "top_review_tags": top_counter_items(counters["review_tags"]),
         },
         "outing_type_summary": normalize_axis_scores(axis_scores),
-        "summary_sentence": build_summary_sentence(axis_scores, counters, signal_count),
+        "summary_sentence": build_enhanced_summary_sentence(axis_scores, counters, signal_count, rule_summary_sentence),
         "analysis_basis": build_analysis_basis(signal_count),
         "preference_status": preference_status,
     }
@@ -334,6 +336,35 @@ def build_summary_sentence(axis_scores, counters, signal_count):
 
     focus = top_facility or top_review or "편안한 공간"
     return f"{focus} 같은 머물기 좋은 도서관을 선호하고 있어요."
+
+
+def build_enhanced_summary_sentence(axis_scores, counters, signal_count, rule_sentence):
+    if signal_count == 0:
+        return rule_sentence
+    enhanced = enhance_summary_sentence(
+        {
+            "top_axis": top_axis_code(axis_scores),
+            "top_labels": summary_top_labels(counters),
+            "signal_count": signal_count,
+            "rule_sentence": rule_sentence,
+        }
+    )
+    return enhanced or rule_sentence
+
+
+def top_axis_code(axis_scores):
+    if not axis_scores:
+        return ""
+    return max(AXES, key=lambda axis: axis_scores[axis])
+
+
+def summary_top_labels(counters):
+    labels = []
+    for key in ("facilities", "book_subjects", "program_categories", "review_tags"):
+        label = first_label(counters[key])
+        if label and label not in labels:
+            labels.append(label)
+    return labels[:TOP_ITEM_LIMIT]
 
 
 def build_analysis_basis(signal_count):

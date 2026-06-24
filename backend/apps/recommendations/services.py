@@ -15,6 +15,10 @@ from apps.libraries.models import (
     LibraryStatisticSnapshot,
     LibraryTag,
 )
+from apps.preferences.services import (
+    ensure_user_preference_current,
+    get_behavior_preference_items,
+)
 
 from .models import (
     DailyLibraryRecommendationSet,
@@ -27,6 +31,9 @@ HOME_PURPOSE_CODES = ("study", "book", "kids", "mood", "nearby")
 TODAY_ITEM_LIMIT = 3
 THEME_ITEM_LIMIT = 6
 PERSONAL_ITEM_LIMIT = 3
+BEHAVIOR_ITEM_LIMIT = 20
+MANUAL_PERSONAL_WEIGHT = 1.0
+BEHAVIOR_PERSONAL_WEIGHT = 0.5
 
 TODAY_THEME_REASON_TEMPLATES = {
     "large_space": "넓은 공간과 규모를 기준으로 골랐어요.",
@@ -182,8 +189,13 @@ def build_personal_recommendations(user, libraries, stat_max):
         .select_related("tag")
         .order_by("display_order", "id")
     )
+    has_manual_preference = bool(preferred_purposes or preferred_regions or preferred_tags)
+    preference = ensure_user_preference_current(user)
+    behavior_items = get_behavior_preference_items(user, limit=BEHAVIOR_ITEM_LIMIT) if preference.signal_count else []
+    behavior_tag_scores = build_behavior_tag_scores(behavior_items)
+    has_behavior_preference = bool(behavior_tag_scores)
 
-    if not preferred_purposes and not preferred_regions and not preferred_tags:
+    if not has_manual_preference and not has_behavior_preference:
         return {
             "available": False,
             "reason": "선호 목적과 지역을 설정하면 맞춤 추천을 볼 수 있어요.",
@@ -195,13 +207,20 @@ def build_personal_recommendations(user, libraries, stat_max):
     tag_codes = [preference.tag.code for preference in preferred_tags]
     items = rank_libraries(
         libraries,
-        lambda library: score_personal(library, purpose_codes, region_values, tag_codes, stat_max),
+        lambda library: score_personal_with_behavior(
+            library,
+            purpose_codes,
+            region_values,
+            tag_codes,
+            behavior_tag_scores,
+            stat_max,
+        ),
         PERSONAL_ITEM_LIMIT,
-        "선호 설정을 바탕으로 골랐어요.",
+        personal_reason(has_manual_preference, has_behavior_preference),
     )
     return {
         "available": True,
-        "reason": "선호 목적, 지역, 태그를 바탕으로 골랐어요.",
+        "reason": personal_reason(has_manual_preference, has_behavior_preference),
         "items": items,
     }
 
@@ -256,6 +275,42 @@ def score_personal(library, purpose_codes, region_values, tag_codes, stat_max):
     for tag_code in tag_codes:
         score += score_preferred_tag(library, tag_code, stat_max)
     return score
+
+
+def score_personal_with_behavior(library, purpose_codes, region_values, tag_codes, behavior_tag_scores, stat_max):
+    manual_score = score_personal(library, purpose_codes, region_values, tag_codes, stat_max)
+    behavior_score = score_behavior_tags(library, behavior_tag_scores)
+    return manual_score * MANUAL_PERSONAL_WEIGHT + behavior_score * BEHAVIOR_PERSONAL_WEIGHT
+
+
+def build_behavior_tag_scores(behavior_items):
+    if not behavior_items:
+        return {}
+    max_score = max(float(item.score or 0) for item in behavior_items)
+    if max_score <= 0:
+        return {}
+    return {
+        item.tag_id: float(item.score or 0) / max_score
+        for item in behavior_items
+        if item.tag_id
+    }
+
+
+def score_behavior_tags(library, behavior_tag_scores):
+    if not behavior_tag_scores:
+        return 0
+    links = getattr(library, "active_tag_links", None)
+    if links is None:
+        links = library.tag_links.filter(is_active=True).select_related("tag")
+    return sum(behavior_tag_scores.get(link.tag_id, 0) for link in links if getattr(link, "is_active", True))
+
+
+def personal_reason(has_manual_preference, has_behavior_preference):
+    if has_manual_preference and has_behavior_preference:
+        return "선호 설정과 나들이 활동을 함께 반영했어요."
+    if has_behavior_preference:
+        return "저장과 후기 활동을 바탕으로 골랐어요."
+    return "선호 설정을 바탕으로 골랐어요."
 
 
 def score_preferred_tag(library, tag_code, stat_max):

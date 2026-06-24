@@ -192,3 +192,14 @@ PUBLIC_HOLIDAY_API_OPERATION = os.environ.get(
     "getRestDeInfo",
 )
 PUBLIC_HOLIDAY_API_NUM_OF_ROWS = int(os.environ.get("PUBLIC_HOLIDAY_API_NUM_OF_ROWS", "20"))
+
+GMS_API_KEY = os.environ.get("GMS_API_KEY", "")
+GMS_OPENAI_BASE_URL = os.environ.get("GMS_OPENAI_BASE_URL", "")
+GMS_MODEL = os.environ.get("GMS_MODEL", "")
+GMS_SUMMARY_ENABLED = os.environ.get("GMS_SUMMARY_ENABLED", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+GMS_TIMEOUT_SECONDS = float(os.environ.get("GMS_TIMEOUT_SECONDS", "3"))
