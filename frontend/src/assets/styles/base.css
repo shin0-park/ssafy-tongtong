@@ -77,6 +77,114 @@ a {
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
 }
 
+.book-card {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  height: 100%;
+  border: 1px solid var(--lo-border);
+  border-radius: 8px;
+  background: #fff;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.book-card:hover {
+  border-color: #93c5bd;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+.book-cover-link {
+  display: block;
+  padding: 16px 0 16px 16px;
+}
+
+.book-cover,
+.book-detail-cover {
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #e6edf3;
+}
+
+.book-cover img,
+.book-detail-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.book-cover-fallback {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  padding: 12px;
+  color: var(--lo-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.book-card-body {
+  min-width: 0;
+  padding: 16px;
+}
+
+.book-card-title {
+  display: -webkit-box;
+  margin: 0 0 8px;
+  overflow: hidden;
+  font-size: 1.05rem;
+  font-weight: 720;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.book-chip {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  border: 1px solid #d3ebe7;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: #eefaf8;
+  color: #115e59;
+  font-size: 0.84rem;
+  line-height: 1.2;
+}
+
+.book-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.book-detail-main {
+  min-width: 0;
+}
+
+.holding-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--lo-border);
+  border-radius: 8px;
+  padding: 16px;
+  background: #fff;
+}
+
+.holding-card-actions {
+  display: flex;
+  min-width: 120px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
 .library-thumb {
   aspect-ratio: 16 / 9;
   width: 100%;
@@ -121,4 +229,37 @@ a {
   margin: 6px 0 0;
   color: #b42318;
   font-size: 0.9rem;
+}
+
+@media (max-width: 575.98px) {
+  .book-card,
+  .book-detail-layout,
+  .holding-card {
+    grid-template-columns: 1fr;
+  }
+
+  .book-card {
+    display: block;
+  }
+
+  .book-cover-link {
+    padding: 16px 16px 0;
+  }
+
+  .book-cover {
+    width: min(180px, 100%);
+    margin: 0 auto;
+  }
+
+  .book-detail-cover {
+    width: min(220px, 100%);
+  }
+
+  .holding-card {
+    display: grid;
+  }
+
+  .holding-card-actions {
+    align-items: flex-start;
+  }
 }

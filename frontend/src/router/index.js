@@ -27,10 +27,13 @@ const router = createRouter({
     {
       path: '/books',
       name: 'book-list',
-      component: PlaceholderView,
-      props: {
-        title: '책 둘러보기',
-      },
+      component: () => import('@/pages/books/BookExploreView.vue'),
+    },
+    {
+      path: '/books/:isbn13',
+      name: 'book-detail',
+      component: () => import('@/pages/books/BookDetailView.vue'),
+      props: true,
     },
     {
       path: '/programs',
