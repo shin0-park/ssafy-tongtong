@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -72,6 +73,27 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+}
+
+JWT_REFRESH_COOKIE_NAME = 'library_outing_refresh'
+JWT_REFRESH_COOKIE_MAX_AGE = int(SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
+JWT_REFRESH_COOKIE_HTTPONLY = True
+JWT_REFRESH_COOKIE_SECURE = os.environ.get(
+    'JWT_REFRESH_COOKIE_SECURE',
+    'false',
+).lower() in {'1', 'true', 'yes', 'on'}
+JWT_REFRESH_COOKIE_SAMESITE = os.environ.get('JWT_REFRESH_COOKIE_SAMESITE', 'Lax')
+JWT_REFRESH_COOKIE_PATH = '/api/v1/auth/'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
