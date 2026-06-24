@@ -427,6 +427,21 @@
   display: block;
 }
 
+.kakao-map-panel,
+.map-fallback {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-soft);
+}
+
+.map-fallback {
+  padding: var(--space-4);
+  text-align: center;
+}
+
 .status-badge {
   display: inline-flex;
   width: fit-content;

@@ -9,6 +9,9 @@ import ReviewCard from '@/components/cards/ReviewCard.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
+import AttributionOverlay from '@/components/media/AttributionOverlay.vue'
+import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
+import KakaoMapPanel from '@/components/maps/KakaoMapPanel.vue'
 import { fetchLibraryDetail, fetchSimilarLibraries } from '@/services/libraryService'
 import { fetchPrograms } from '@/services/programService'
 import { fetchReviews } from '@/services/reviewService'
@@ -48,10 +51,64 @@ const facilityItems = computed(() => {
     has_outdoor_space: '야외 공간',
   }
 
+  if (Array.isArray(profile.confirmed_facilities) && profile.confirmed_facilities.length) {
+    return profile.confirmed_facilities
+      .filter((key) => labels[key])
+      .map((key) => ({ key, label: labels[key] }))
+  }
+
   return Object.entries(labels)
     .filter(([key]) => profile[key] === true)
     .map(([key, label]) => ({ key, label }))
 })
+
+function formatBooleanStatus(value, trueText, falseText) {
+  if (value === null || value === undefined) {
+    return '정보 없음'
+  }
+
+  return value ? trueText : falseText
+}
+
+function formatHours(hours) {
+  if (!hours) {
+    return '정보 없음'
+  }
+
+  if (typeof hours === 'string') {
+    return hours
+  }
+
+  if (hours.open && hours.close) {
+    return `${hours.open} ~ ${hours.close}${hours.closes_next_day ? ' 다음날' : ''}`
+  }
+
+  return '정보 없음'
+}
+
+function formatHolidayStatus(status) {
+  if (!status) {
+    return '정보 없음'
+  }
+
+  if (typeof status === 'string') {
+    return status
+  }
+
+  const labels = {
+    open: '운영',
+    closed: '휴관',
+    unknown: '확인 필요',
+  }
+  const statusText = labels[status.status] || status.status || '정보 없음'
+  const hoursText = formatHours({
+    open: status.open_time,
+    close: status.close_time,
+    closes_next_day: status.closes_next_day,
+  })
+
+  return [status.date, statusText, hoursText !== '정보 없음' ? hoursText : null].filter(Boolean).join(' · ')
+}
 
 async function loadLibrary() {
   isLoading.value = true
@@ -126,15 +183,14 @@ onMounted(loadLibrary)
         <div class="col-lg-7">
           <div class="content-panel overflow-hidden">
             <div class="library-thumb">
-              <img
-                v-if="library.thumbnail?.url"
-                :src="library.thumbnail.url"
+              <ResponsiveImage
+                :src="library.thumbnail?.url"
                 :alt="`${library.name} 대표 이미지`"
-                loading="lazy"
-                decoding="async"
+                fallback-label="이미지 없음"
               />
             </div>
             <div class="p-4">
+              <AttributionOverlay class="mb-3" :text="library.thumbnail?.attribution_text" />
               <h2 class="section-title">기본 정보</h2>
               <dl class="row mb-0">
                 <dt class="col-sm-4">주소</dt>
@@ -160,13 +216,13 @@ onMounted(loadLibrary)
             <h2 class="section-title">운영 상태</h2>
             <dl class="row mb-0">
               <dt class="col-6">오늘 운영</dt>
-              <dd class="col-6 text-end">{{ library.open_today === null || library.open_today === undefined ? '정보 없음' : library.open_today ? '운영' : '미운영' }}</dd>
+              <dd class="col-6 text-end">{{ formatBooleanStatus(library.open_today, '운영', '미운영') }}</dd>
               <dt class="col-6">지금 운영</dt>
-              <dd class="col-6 text-end">{{ library.open_now === null || library.open_now === undefined ? '정보 없음' : library.open_now ? '운영 중' : '운영 아님' }}</dd>
+              <dd class="col-6 text-end">{{ formatBooleanStatus(library.open_now, '운영 중', '운영 아님') }}</dd>
               <dt class="col-6">오늘 시간</dt>
-              <dd class="col-6 text-end">{{ library.today_hours || '정보 없음' }}</dd>
+              <dd class="col-6 text-end">{{ formatHours(library.today_hours) }}</dd>
               <dt class="col-6">공휴일 운영</dt>
-              <dd class="col-6 text-end">{{ library.holiday_operation_status || '정보 없음' }}</dd>
+              <dd class="col-6 text-end">{{ formatHolidayStatus(library.holiday_operation_status) }}</dd>
             </dl>
           </section>
 
@@ -191,11 +247,18 @@ onMounted(loadLibrary)
               명시적으로 확인된 시설이 없습니다.
             </p>
             <div v-else class="d-flex flex-wrap gap-2">
-              <span v-for="facility in facilityItems" :key="facility.key" class="badge text-bg-light">
+              <span v-for="facility in facilityItems" :key="facility.key" class="facility-chip">
                 {{ facility.label }}
               </span>
             </div>
           </section>
+
+          <KakaoMapPanel
+            :latitude="library.latitude"
+            :longitude="library.longitude"
+            :title="library.name"
+            :address="library.road_address"
+          />
         </div>
       </div>
 
