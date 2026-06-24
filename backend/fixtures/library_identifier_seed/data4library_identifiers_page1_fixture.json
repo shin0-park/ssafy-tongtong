@@ -1,0 +1,249 @@
+[
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 1,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.682Z",
+    "updated_at": "2026-06-24T07:53:36.682Z",
+    "library": 57,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "121002",
+    "external_name": "부산광역시립구덕도서관",
+    "external_address": "부산광역시 서구 대신공원로 41",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.682Z",
+    "last_fetched_at": "2026-06-24T07:53:36.682Z",
+    "is_active": true
+  }
+},
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 2,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.686Z",
+    "updated_at": "2026-06-24T07:53:36.686Z",
+    "library": 64,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "121003",
+    "external_name": "부산광역시립구포도서관",
+    "external_address": "부산광역시 북구 백양대로1016번다길 43",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.686Z",
+    "last_fetched_at": "2026-06-24T07:53:36.686Z",
+    "is_active": true
+  }
+},
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 3,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.690Z",
+    "updated_at": "2026-06-24T07:53:36.690Z",
+    "library": 58,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "121004",
+    "external_name": "부산광역시립반송도서관",
+    "external_address": "부산광역시 해운대구 아랫반송로 22",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.689Z",
+    "last_fetched_at": "2026-06-24T07:53:36.689Z",
+    "is_active": true
+  }
+},
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 4,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.694Z",
+    "updated_at": "2026-06-24T07:53:36.694Z",
+    "library": 60,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "121006",
+    "external_name": "부산광역시립사하도서관",
+    "external_address": "부산광역시 사하구 승학로 247",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.694Z",
+    "last_fetched_at": "2026-06-24T07:53:36.694Z",
+    "is_active": true
+  }
+},
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 5,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.696Z",
+    "updated_at": "2026-06-24T07:53:36.696Z",
+    "library": 56,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "121007",
+    "external_name": "부산광역시립서동도서관",
+    "external_address": "부산광역시 금정구 서부로76번길 5",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.696Z",
+    "last_fetched_at": "2026-06-24T07:53:36.696Z",
+    "is_active": true
+  }
+},
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 6,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.698Z",
+    "updated_at": "2026-06-24T07:53:36.698Z",
+    "library": 67,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "121008",
+    "external_name": "부산광역시립시민도서관",
+    "external_address": "부산광역시 부산진구 월드컵대로 462",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.698Z",
+    "last_fetched_at": "2026-06-24T07:53:36.698Z",
+    "is_active": true
+  }
+},
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 7,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.701Z",
+    "updated_at": "2026-06-24T07:53:36.701Z",
+    "library": 55,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "121011",
+    "external_name": "부산광역시립연산도서관",
+    "external_address": "부산광역시 연제구 고분로191번길 16",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.701Z",
+    "last_fetched_at": "2026-06-24T07:53:36.701Z",
+    "is_active": true
+  }
+},
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 8,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.703Z",
+    "updated_at": "2026-06-24T07:53:36.703Z",
+    "library": 66,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "121012",
+    "external_name": "부산광역시립중앙도서관",
+    "external_address": "부산광역시 중구 망양로193번길 146",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.703Z",
+    "last_fetched_at": "2026-06-24T07:53:36.703Z",
+    "is_active": true
+  }
+},
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 9,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.705Z",
+    "updated_at": "2026-06-24T07:53:36.705Z",
+    "library": 65,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "121010",
+    "external_name": "부산광역시립중앙도서관 수정분관",
+    "external_address": "부산광역시 동구 홍곡로 53",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.705Z",
+    "last_fetched_at": "2026-06-24T07:53:36.705Z",
+    "is_active": true
+  }
+},
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 10,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.707Z",
+    "updated_at": "2026-06-24T07:53:36.707Z",
+    "library": 62,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "126024",
+    "external_name": "부산광역시립해운대도서관",
+    "external_address": "부산광역시 해운대구 양운로 183",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.707Z",
+    "last_fetched_at": "2026-06-24T07:53:36.707Z",
+    "is_active": true
+  }
+},
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 11,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.709Z",
+    "updated_at": "2026-06-24T07:53:36.709Z",
+    "library": 61,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "121013",
+    "external_name": "부산광역시립해운대도서관 우동분관",
+    "external_address": "부산광역시 해운대구 우동1로 89",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.709Z",
+    "last_fetched_at": "2026-06-24T07:53:36.709Z",
+    "is_active": true
+  }
+},
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 12,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.713Z",
+    "updated_at": "2026-06-24T07:53:36.713Z",
+    "library": 63,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "126014",
+    "external_name": "부산영어도서관",
+    "external_address": "부산광역시 부산진구 가야대로 734",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.713Z",
+    "last_fetched_at": "2026-06-24T07:53:36.713Z",
+    "is_active": true
+  }
+},
+{
+  "model": "libraries.libraryexternalidentifier",
+  "pk": 13,
+  "fields": {
+    "created_at": "2026-06-24T07:53:36.717Z",
+    "updated_at": "2026-06-24T07:53:36.717Z",
+    "library": 193,
+    "provider_code": "data4library",
+    "code_type": "lib_code",
+    "external_code": "726304",
+    "external_name": "아이꿈 작은도서관",
+    "external_address": "부산광역시 강서구 명지국제6로318번길 58",
+    "match_method": "phone_name",
+    "match_confidence": "0.8500",
+    "first_seen_at": "2026-06-24T07:53:36.717Z",
+    "last_fetched_at": "2026-06-24T07:53:36.717Z",
+    "is_active": true
+  }
+}
+]
