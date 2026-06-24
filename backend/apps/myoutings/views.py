@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -27,6 +28,7 @@ from apps.myoutings.serializers import (
     UserProgramSaveSerializer,
 )
 from apps.myoutings.services import build_my_outings_dashboard
+from apps.preferences.services import ensure_user_preference_current, schedule_user_preference_pending
 from apps.programs.models import Program
 
 
@@ -75,21 +77,27 @@ class BaseSaveAPIView(APIView):
             "target_id": self.get_response_target_id(target),
         }
 
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         target = self.get_target()
         _, created = self.save_model.objects.get_or_create(
             user=request.user,
             **{self.save_field: target},
         )
+        if created:
+            schedule_user_preference_pending(request.user)
         response_status = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return Response(self.build_response(target, True), status=response_status)
 
+    @transaction.atomic
     def delete(self, request, *args, **kwargs):
         target = self.get_target()
-        self.save_model.objects.filter(
+        deleted_count, _ = self.save_model.objects.filter(
             user=request.user,
             **{self.save_field: target},
         ).delete()
+        if deleted_count:
+            schedule_user_preference_pending(request.user)
         return Response(self.build_response(target, False), status=status.HTTP_200_OK)
 
 
@@ -139,7 +147,8 @@ class MyOutingsDashboardAPIView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, *args, **kwargs):
-        return Response(build_my_outings_dashboard(request.user), status=status.HTTP_200_OK)
+        preference = ensure_user_preference_current(request.user)
+        return Response(build_my_outings_dashboard(request.user, preference=preference), status=status.HTTP_200_OK)
 
 
 class SavedLibraryListAPIView(ListAPIView):

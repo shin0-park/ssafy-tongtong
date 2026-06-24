@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.pagination import StandardPageNumberPagination
+from apps.preferences.services import schedule_user_preference_pending
 
 from .models import (
     ReviewBookReference,
@@ -94,10 +95,12 @@ class UserReviewListAPIView(UserReviewQueryMixin, generics.ListCreateAPIView):
     permission_classes = (IsAuthenticatedOrReadOnly,)
     parser_classes = (JSONParser, MultiPartParser, FormParser)
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         serializer = UserReviewWriteSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         review = serializer.save()
+        schedule_user_preference_pending(request.user)
         review = review_response_queryset().get(pk=review.pk)
         return Response(UserReviewSerializer(review).data, status=201)
 
@@ -124,9 +127,11 @@ class UserReviewDetailAPIView(UserReviewQueryMixin, generics.RetrieveUpdateDestr
         if review.user_id != self.request.user.id:
             raise PermissionDenied("You do not have permission to modify this review.")
 
+    @transaction.atomic
     def partial_update(self, request, *args, **kwargs):
         review = self.get_object()
         self.ensure_owner(review)
+        affected_liked_users = list(review.likes.exclude(user_id=request.user.id).select_related("user"))
         serializer = UserReviewWriteSerializer(
             review,
             data=request.data,
@@ -135,13 +140,21 @@ class UserReviewDetailAPIView(UserReviewQueryMixin, generics.RetrieveUpdateDestr
         )
         serializer.is_valid(raise_exception=True)
         review = serializer.save()
+        schedule_user_preference_pending(request.user)
+        for liked_review in affected_liked_users:
+            schedule_user_preference_pending(liked_review.user)
         review = review_response_queryset().get(pk=review.pk)
         return Response(UserReviewSerializer(review).data)
 
+    @transaction.atomic
     def destroy(self, request, *args, **kwargs):
         review = self.get_object()
         self.ensure_owner(review)
+        affected_liked_users = list(review.likes.exclude(user_id=request.user.id).select_related("user"))
         review.delete()
+        schedule_user_preference_pending(request.user)
+        for liked_review in affected_liked_users:
+            schedule_user_preference_pending(liked_review.user)
         return Response(status=204)
 
 
@@ -160,6 +173,7 @@ class ReviewLikeAPIView(APIView):
         _, created = UserReviewLike.objects.get_or_create(user=request.user, review=review)
         if created:
             UserReview.objects.filter(pk=review.pk).update(like_count=F("like_count") + 1)
+            schedule_user_preference_pending(request.user)
         review.refresh_from_db(fields=["like_count"])
         return Response(
             {
@@ -175,6 +189,7 @@ class ReviewLikeAPIView(APIView):
         deleted_count, _ = UserReviewLike.objects.filter(user=request.user, review=review).delete()
         if deleted_count:
             UserReview.objects.filter(pk=review.pk, like_count__gt=0).update(like_count=F("like_count") - 1)
+            schedule_user_preference_pending(request.user)
         review.refresh_from_db(fields=["like_count"])
         return Response(
             {

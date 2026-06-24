@@ -66,7 +66,7 @@ liked_review_library_statistic_prefetch = Prefetch(
 )
 
 
-def build_my_outings_dashboard(user):
+def build_my_outings_dashboard(user, preference=None):
     saved_libraries = list(
         UserLibrarySave.objects.filter(user=user, library__is_active=True)
         .select_related("library", "library__facility_profile")
@@ -120,6 +120,7 @@ def build_my_outings_dashboard(user):
     counters = build_behavior_counters(saved_libraries, saved_books, saved_programs, written_reviews, behavior_liked_reviews)
     axis_scores = calculate_axis_scores(saved_libraries, saved_books, saved_programs, written_reviews, behavior_liked_reviews)
     signal_count = activity_summary["total_signal_count"]
+    preference_status = build_preference_status(preference, signal_count)
 
     dashboard = {
         "profile_summary": profile_summary,
@@ -134,11 +135,7 @@ def build_my_outings_dashboard(user):
         "outing_type_summary": normalize_axis_scores(axis_scores),
         "summary_sentence": build_summary_sentence(axis_scores, counters, signal_count),
         "analysis_basis": build_analysis_basis(signal_count),
-        "preference_status": {
-            "status": "ready" if signal_count else "collecting",
-            "signal_count": signal_count,
-            "calculated_at": None,
-        },
+        "preference_status": preference_status,
     }
     return dashboard
 
@@ -350,6 +347,20 @@ def build_analysis_basis(signal_count):
         "has_enough_data": True,
         "basis_text": "저장한 도서관, 책, 프로그램과 작성·좋아요한 후기를 바탕으로 분석했어요.",
         "signal_count": signal_count,
+    }
+
+
+def build_preference_status(preference, fallback_signal_count):
+    if preference is None:
+        return {
+            "status": "ready" if fallback_signal_count else "collecting",
+            "signal_count": fallback_signal_count,
+            "calculated_at": None,
+        }
+    return {
+        "status": preference.status,
+        "signal_count": preference.signal_count,
+        "calculated_at": preference.calculated_at,
     }
 
 
