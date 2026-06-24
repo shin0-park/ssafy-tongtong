@@ -1,0 +1,375 @@
+import math
+
+from django.db.models import Prefetch
+from django.utils import timezone
+
+from apps.accounts.models import (
+    UserPreferredPurpose,
+    UserPreferredRegion,
+    UserPreferredTag,
+)
+from apps.libraries.models import (
+    Library,
+    LibraryFacilityProfile,
+    LibraryImage,
+    LibraryStatisticSnapshot,
+    LibraryTag,
+)
+
+from .models import (
+    DailyLibraryRecommendationSet,
+    DailyRecommendationTheme,
+    Purpose,
+)
+
+
+HOME_PURPOSE_CODES = ("study", "book", "kids", "mood", "nearby")
+TODAY_ITEM_LIMIT = 3
+THEME_ITEM_LIMIT = 6
+PERSONAL_ITEM_LIMIT = 3
+
+TODAY_THEME_REASON_TEMPLATES = {
+    "large_space": "넓은 공간과 규모를 기준으로 골랐어요.",
+    "rich_collection": "장서 규모가 돋보이는 도서관이에요.",
+    "mood_space": "공간 분위기와 머무르기 좋은 조건을 기준으로 골랐어요.",
+    "study_seats": "좌석과 열람 환경을 기준으로 골랐어요.",
+    "family_outing": "어린이·가족 방문에 어울리는 조건을 기준으로 골랐어요.",
+    "restful_space": "쉬어가기 좋은 공간 조건을 기준으로 골랐어요.",
+}
+
+PURPOSE_REASON_TEMPLATES = {
+    "study": "좌석과 열람 공간을 기준으로 골랐어요.",
+    "book": "장서 규모를 기준으로 골랐어요.",
+    "kids": "어린이·가족 방문에 어울리는 조건을 기준으로 골랐어요.",
+    "mood": "머무르기 좋은 공간과 편의시설을 기준으로 골랐어요.",
+    "nearby": "좌표가 확인된 도서관을 기준으로 골랐어요.",
+}
+
+
+def build_home_payload(user=None, lat=None, lng=None, date=None):
+    date = date or timezone.localdate()
+    libraries = list(get_candidate_libraries())
+    stat_max = build_stat_max(libraries)
+    today = build_today_recommendations(libraries, stat_max, date)
+    themes = build_theme_recommendations(libraries, stat_max, lat, lng)
+    personal = build_personal_recommendations(user, libraries, stat_max)
+    return {
+        "today": today,
+        "themes": themes,
+        "personal": personal,
+    }
+
+
+def get_candidate_libraries():
+    return (
+        Library.objects.filter(is_active=True)
+        .select_related("facility_profile")
+        .prefetch_related(
+            Prefetch(
+                "statistic_snapshots",
+                queryset=LibraryStatisticSnapshot.objects.filter(is_current=True).order_by("-reference_date", "-id"),
+                to_attr="current_statistic_snapshots",
+            ),
+            Prefetch(
+                "images",
+                queryset=LibraryImage.objects.filter(is_active=True, is_main=True).select_related("media_asset").order_by("display_order", "id"),
+                to_attr="active_main_images",
+            ),
+            Prefetch(
+                "tag_links",
+                queryset=LibraryTag.objects.filter(is_active=True).select_related("tag"),
+                to_attr="active_tag_links",
+            ),
+        )
+    )
+
+
+def build_stat_max(libraries):
+    max_values = {
+        "book_count": 0,
+        "reading_seat_count": 0,
+        "building_area": 0,
+        "site_area": 0,
+    }
+    for library in libraries:
+        statistic = get_current_statistic(library)
+        if not statistic:
+            continue
+        for field in max_values:
+            max_values[field] = max(max_values[field], number(getattr(statistic, field, 0)))
+    return max_values
+
+
+def build_today_recommendations(libraries, stat_max, date):
+    saved_set = (
+        DailyLibraryRecommendationSet.objects.filter(recommendation_date=date)
+        .select_related("theme")
+        .prefetch_related("items")
+        .order_by("-generated_at", "-id")
+        .first()
+    )
+    if saved_set:
+        library_by_id = {library.id: library for library in libraries}
+        items = []
+        for recommendation_item in saved_set.items.all().order_by("rank", "id")[:TODAY_ITEM_LIMIT]:
+            library = library_by_id.get(recommendation_item.library_id)
+            if not library:
+                continue
+            set_reason(library, TODAY_THEME_REASON_TEMPLATES.get(saved_set.theme.code, "오늘의 추천 기준으로 골랐어요."))
+            items.append(library)
+        return {
+            "theme": theme_payload(saved_set.theme),
+            "items": items,
+        }
+
+    themes = list(DailyRecommendationTheme.objects.filter(is_active=True).order_by("display_order", "code"))
+    if not themes:
+        return {"theme": None, "items": []}
+
+    theme = themes[date.toordinal() % len(themes)]
+    items = rank_libraries(
+        libraries,
+        lambda library: score_daily_theme(library, theme.code, stat_max),
+        TODAY_ITEM_LIMIT,
+        TODAY_THEME_REASON_TEMPLATES.get(theme.code, "오늘의 추천 기준으로 골랐어요."),
+    )
+    return {
+        "theme": theme_payload(theme),
+        "items": items,
+    }
+
+
+def build_theme_recommendations(libraries, stat_max, lat=None, lng=None):
+    purposes = Purpose.objects.filter(
+        code__in=HOME_PURPOSE_CODES,
+        is_active=True,
+        is_home_theme=True,
+    ).order_by("display_order", "code")
+    purpose_by_code = {purpose.code: purpose for purpose in purposes}
+    recommendations = []
+    for code in HOME_PURPOSE_CODES:
+        purpose = purpose_by_code.get(code)
+        if not purpose:
+            continue
+        items = rank_libraries(
+            libraries,
+            lambda library, purpose_code=code: score_purpose(library, purpose_code, stat_max, lat, lng),
+            THEME_ITEM_LIMIT,
+            PURPOSE_REASON_TEMPLATES.get(code, "테마 조건을 기준으로 골랐어요."),
+        )
+        recommendations.append({"purpose": purpose, "items": items})
+    return recommendations
+
+
+def build_personal_recommendations(user, libraries, stat_max):
+    if not user or not user.is_authenticated:
+        return {
+            "available": False,
+            "reason": "로그인 후 선호 목적과 지역을 설정하면 맞춤 추천을 볼 수 있어요.",
+            "items": [],
+        }
+
+    preferred_purposes = list(
+        UserPreferredPurpose.objects.filter(user=user, is_active=True, purpose__is_active=True)
+        .select_related("purpose")
+        .order_by("display_order", "id")
+    )
+    preferred_regions = list(
+        UserPreferredRegion.objects.filter(user=user, is_active=True).order_by("display_order", "id")
+    )
+    preferred_tags = list(
+        UserPreferredTag.objects.filter(user=user, is_active=True, tag__is_active=True)
+        .select_related("tag")
+        .order_by("display_order", "id")
+    )
+
+    if not preferred_purposes and not preferred_regions and not preferred_tags:
+        return {
+            "available": False,
+            "reason": "선호 목적과 지역을 설정하면 맞춤 추천을 볼 수 있어요.",
+            "items": [],
+        }
+
+    region_values = {preference.sigungu for preference in preferred_regions if preference.sigungu}
+    purpose_codes = [preference.purpose.code for preference in preferred_purposes]
+    tag_codes = [preference.tag.code for preference in preferred_tags]
+    items = rank_libraries(
+        libraries,
+        lambda library: score_personal(library, purpose_codes, region_values, tag_codes, stat_max),
+        PERSONAL_ITEM_LIMIT,
+        "선호 설정을 바탕으로 골랐어요.",
+    )
+    return {
+        "available": True,
+        "reason": "선호 목적, 지역, 태그를 바탕으로 골랐어요.",
+        "items": items,
+    }
+
+
+def score_daily_theme(library, theme_code, stat_max):
+    if theme_code == "large_space":
+        return normalized_stat(library, "building_area", stat_max) * 0.6 + normalized_stat(library, "site_area", stat_max) * 0.4
+    if theme_code == "rich_collection":
+        return normalized_stat(library, "book_count", stat_max)
+    if theme_code == "mood_space":
+        return score_purpose(library, "mood", stat_max, None, None)
+    if theme_code == "study_seats":
+        return score_purpose(library, "study", stat_max, None, None)
+    if theme_code == "family_outing":
+        return score_purpose(library, "kids", stat_max, None, None)
+    if theme_code == "restful_space":
+        return score_facility(library, "has_lounge") * 1.5 + score_purpose(library, "mood", stat_max, None, None)
+    return normalized_stat(library, "book_count", stat_max) * 0.5 + normalized_stat(library, "reading_seat_count", stat_max) * 0.5
+
+
+def score_purpose(library, purpose_code, stat_max, lat=None, lng=None):
+    if purpose_code == "study":
+        return normalized_stat(library, "reading_seat_count", stat_max) * 2 + score_facility(library, "has_reading_room") * 1.5
+    if purpose_code == "book":
+        return normalized_stat(library, "book_count", stat_max) * 2
+    if purpose_code == "kids":
+        library_type_score = 2 if library.library_type == "children" else 0
+        return library_type_score + score_facility(library, "has_children_room") * 2
+    if purpose_code == "mood":
+        return (
+            normalized_stat(library, "building_area", stat_max)
+            + normalized_stat(library, "site_area", stat_max)
+            + score_facility(library, "has_lounge")
+            + score_facility(library, "has_cafe") * 0.8
+            + score_facility(library, "has_outdoor_space")
+        )
+    if purpose_code == "nearby":
+        if lat is not None and lng is not None and library.latitude is not None and library.longitude is not None:
+            return 1 / (1 + distance_km(lat, lng, float(library.latitude), float(library.longitude)))
+        return 1 if library.latitude is not None and library.longitude is not None else 0
+    return 0
+
+
+def score_personal(library, purpose_codes, region_values, tag_codes, stat_max):
+    score = 0
+    if library.sigungu in region_values:
+        score += 4
+    for purpose_code in purpose_codes:
+        if purpose_code == "program":
+            continue
+        score += score_purpose(library, purpose_code, stat_max, None, None)
+    for tag_code in tag_codes:
+        score += score_preferred_tag(library, tag_code, stat_max)
+    return score
+
+
+def score_preferred_tag(library, tag_code, stat_max):
+    facility_code_map = {
+        "facility_reading_room": "has_reading_room",
+        "facility_children_room": "has_children_room",
+        "facility_digital_room": "has_digital_room",
+        "facility_parking": "has_parking",
+        "facility_cafe": "has_cafe",
+        "facility_wifi": "has_wifi",
+        "facility_nursing_room": "has_nursing_room",
+        "facility_accessible": "has_accessible_facility",
+        "facility_elevator": "has_elevator",
+        "facility_lounge": "has_lounge",
+        "facility_outdoor_space": "has_outdoor_space",
+    }
+    library_type_code_map = {
+        "public_library": "public",
+        "small_library": "small",
+        "children_library": "children",
+    }
+    if tag_code in facility_code_map:
+        return score_facility(library, facility_code_map[tag_code]) * 1.5
+    if tag_code in library_type_code_map:
+        return 1.5 if library.library_type == library_type_code_map[tag_code] else 0
+    if tag_code == "many_seats":
+        return normalized_stat(library, "reading_seat_count", stat_max)
+    if tag_code == "rich_collection":
+        return normalized_stat(library, "book_count", stat_max)
+    return 0
+
+
+def rank_libraries(libraries, score_func, limit, reason):
+    scored_libraries = []
+    for library in libraries:
+        score = score_func(library)
+        scored_libraries.append((score, library.name, library.id, library))
+    scored_libraries.sort(key=lambda item: (-item[0], item[1], item[2]))
+    items = []
+    for _, _, _, library in scored_libraries[:limit]:
+        set_reason(library, reason)
+        items.append(library)
+    return items
+
+
+def theme_payload(theme):
+    return {
+        "code": theme.code,
+        "title": theme.label,
+        "subtitle": theme.subtitle,
+    }
+
+
+def purpose_payload(purpose):
+    return {
+        "code": purpose.code,
+        "label": purpose.label,
+    }
+
+
+def set_reason(library, reason):
+    library.recommendation_reason = reason
+
+
+def get_current_statistic(library):
+    statistics = getattr(library, "current_statistic_snapshots", None)
+    if statistics is not None:
+        return statistics[0] if statistics else None
+    return library.statistic_snapshots.filter(is_current=True).order_by("-reference_date", "-id").first()
+
+
+def get_facility_profile(library):
+    try:
+        return library.facility_profile
+    except LibraryFacilityProfile.DoesNotExist:
+        return None
+
+
+def score_facility(library, field):
+    facility_profile = get_facility_profile(library)
+    return 1 if facility_profile and getattr(facility_profile, field) is True else 0
+
+
+def normalized_stat(library, field, stat_max):
+    max_value = stat_max.get(field, 0)
+    if max_value <= 0:
+        return 0
+    statistic = get_current_statistic(library)
+    if not statistic:
+        return 0
+    return number(getattr(statistic, field, 0)) / max_value
+
+
+def number(value):
+    return float(value or 0)
+
+
+def parse_coordinate(value):
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def distance_km(lat1, lng1, lat2, lng2):
+    radius_km = 6371
+    d_lat = math.radians(lat2 - lat1)
+    d_lng = math.radians(lng2 - lng1)
+    a = (
+        math.sin(d_lat / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(d_lng / 2) ** 2
+    )
+    return radius_km * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
