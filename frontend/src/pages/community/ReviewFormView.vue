@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
 import { createReview, fetchReviewDetail, updateReview } from '@/services/reviewService'
-import { extractErrorMessage } from '@/utils/apiError'
+import { extractErrorMessage, normalizeApiError } from '@/utils/apiError'
 import { buildMultipartPayload, hasFiles } from '@/utils/formData'
 
 const route = useRoute()
@@ -15,6 +15,7 @@ const isEdit = computed(() => route.name === 'review-edit')
 const isLoading = ref(false)
 const isSaving = ref(false)
 const errorMessage = ref('')
+const fieldErrors = ref({})
 const validationMessage = ref('')
 const selectedImages = ref([])
 
@@ -34,20 +35,20 @@ function splitValues(value) {
     .filter(Boolean)
 }
 
+function splitNumericValues(value) {
+  return splitValues(value)
+    .map((item) => Number(item))
+    .filter((item) => Number.isFinite(item))
+}
+
 function buildPayload() {
-  const payload = {
+  return {
     library_id: form.library_id ? Number(form.library_id) : null,
     content: form.content.trim(),
     tag_codes: splitValues(form.tag_codes),
-    book_ids: splitValues(form.book_ids),
-    program_ids: splitValues(form.program_ids),
+    book_ids: splitNumericValues(form.book_ids),
+    program_ids: splitNumericValues(form.program_ids),
   }
-
-  if (isEdit.value) {
-    payload.replace_images = form.replace_images
-  }
-
-  return payload
 }
 
 function validate() {
@@ -81,6 +82,16 @@ function handleImageChange(event) {
   selectedImages.value = Array.from(event.target.files ?? [])
 }
 
+function firstFieldError(fieldName) {
+  const fieldError = fieldErrors.value?.[fieldName]
+
+  if (Array.isArray(fieldError)) {
+    return fieldError[0]
+  }
+
+  return fieldError || ''
+}
+
 async function loadReview() {
   if (!isEdit.value) {
     return
@@ -104,6 +115,7 @@ async function loadReview() {
       .join(', ')
   } catch (error) {
     errorMessage.value = extractErrorMessage(error, '후기 정보를 불러오지 못했어요.')
+    fieldErrors.value = normalizeApiError(error).fields ?? {}
   } finally {
     isLoading.value = false
   }
@@ -117,12 +129,20 @@ async function handleSubmit() {
 
   isSaving.value = true
   errorMessage.value = ''
+  fieldErrors.value = {}
 
   try {
     const payload = buildPayload()
     const hasSelectedImages = hasFiles(selectedImages.value)
-    const requestBody = hasSelectedImages
-      ? buildMultipartPayload(payload, { images: selectedImages.value })
+    const shouldSendMultipart = hasSelectedImages || (isEdit.value && form.replace_images)
+    const requestBody = shouldSendMultipart
+      ? buildMultipartPayload(
+          {
+            ...payload,
+            replace_images: isEdit.value ? form.replace_images : undefined,
+          },
+          { images: selectedImages.value },
+        )
       : payload
 
     const review = isEdit.value
@@ -131,7 +151,9 @@ async function handleSubmit() {
 
     await router.push(`/reviews/${review.id ?? route.params.id}`)
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, '후기를 저장하지 못했어요.')
+    const normalizedError = normalizeApiError(error)
+    errorMessage.value = normalizedError.message || '후기를 저장하지 못했어요.'
+    fieldErrors.value = normalizedError.fields ?? {}
   } finally {
     isSaving.value = false
   }
@@ -163,27 +185,43 @@ onMounted(loadReview)
 
       <label class="form-field mb-3">
         <span>도서관 ID</span>
-        <input v-model.trim="form.library_id" class="form-control" type="number" min="1" required />
+          <input v-model.trim="form.library_id" class="form-control" type="number" min="1" required />
+          <p v-if="firstFieldError('library_id')" class="field-error">
+            {{ firstFieldError('library_id') }}
+          </p>
       </label>
 
       <label class="form-field mb-3">
         <span>후기</span>
         <textarea v-model="form.content" class="form-control" rows="5" maxlength="200" required />
+        <span class="meta-text">{{ form.content.trim().length }}/200</span>
+        <p v-if="firstFieldError('content')" class="field-error">
+          {{ firstFieldError('content') }}
+        </p>
       </label>
 
       <label class="form-field mb-3">
         <span>태그 코드</span>
         <input v-model.trim="form.tag_codes" class="form-control" placeholder="review_quiet, review_kids" />
+        <p v-if="firstFieldError('tag_codes')" class="field-error">
+          {{ firstFieldError('tag_codes') }}
+        </p>
       </label>
 
       <label class="form-field mb-3">
         <span>관련 책 ID</span>
         <input v-model.trim="form.book_ids" class="form-control" />
+        <p v-if="firstFieldError('book_ids')" class="field-error">
+          {{ firstFieldError('book_ids') }}
+        </p>
       </label>
 
       <label class="form-field mb-3">
         <span>관련 프로그램 ID</span>
         <input v-model.trim="form.program_ids" class="form-control" />
+        <p v-if="firstFieldError('program_ids')" class="field-error">
+          {{ firstFieldError('program_ids') }}
+        </p>
       </label>
 
       <label class="form-field mb-3">
@@ -195,11 +233,20 @@ onMounted(loadReview)
           multiple
           @change="handleImageChange"
         />
+        <span class="meta-text">선택 {{ selectedImages.length }}장 / 최대 5장</span>
+        <p v-if="firstFieldError('images')" class="field-error">
+          {{ firstFieldError('images') }}
+        </p>
       </label>
 
       <label v-if="isEdit" class="form-check mb-4">
         <input v-model="form.replace_images" class="form-check-input" type="checkbox" />
-        <span class="form-check-label">선택한 이미지로 기존 이미지를 교체</span>
+        <span class="form-check-label">
+          선택한 이미지로 기존 이미지를 교체
+          <span v-if="form.replace_images && !selectedImages.length" class="meta-text d-block">
+            새 이미지를 선택하지 않으면 기존 이미지가 모두 삭제됩니다.
+          </span>
+        </span>
       </label>
 
       <div class="d-flex flex-wrap justify-content-end gap-2">

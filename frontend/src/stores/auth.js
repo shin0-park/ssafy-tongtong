@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 
 import * as accountService from '@/services/accountService'
 import * as authService from '@/services/authService'
+import { normalizeUser } from '@/utils/userProfile'
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref(null)
@@ -14,7 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function setSession(payload) {
     accessToken.value = payload.access
-    user.value = payload.user ?? user.value
+    user.value = normalizeUser(payload.user ?? user.value)
     authError.value = null
   }
 
@@ -57,7 +58,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       await refreshAccessToken()
-      user.value = await accountService.fetchCurrentUser()
+      user.value = normalizeUser(await accountService.fetchCurrentUser())
       import('@/stores/interaction').then(({ useInteractionStore }) => {
         useInteractionStore().hydrate()
       })
@@ -71,17 +72,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchCurrentUser() {
-    user.value = await accountService.fetchCurrentUser()
+    user.value = normalizeUser(await accountService.fetchCurrentUser())
     return user.value
   }
 
   async function updateCurrentUser(payload) {
-    user.value = await accountService.updateCurrentUser(payload)
+    user.value = normalizeUser(await accountService.updateCurrentUser(payload))
     return user.value
   }
 
   async function updateCurrentUserProfile(payload, config = {}) {
-    user.value = await accountService.updateCurrentUserProfile(payload, config)
+    user.value = normalizeUser(await accountService.updateCurrentUserProfile(payload, config))
     return user.value
   }
 

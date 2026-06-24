@@ -336,10 +336,46 @@
   font-size: var(--font-size-18);
 }
 
+.metric-card h2 {
+  margin: 0;
+  font-size: var(--font-size-32);
+}
+
 .summary-card p {
   margin: 0;
   color: var(--color-text-muted);
   white-space: pre-line;
+}
+
+.outing-score-list,
+.preference-summary-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.outing-score-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 120px) minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.outing-score-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-soft);
+}
+
+.outing-score-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary-600);
+}
+
+.preference-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .preference-fieldset {

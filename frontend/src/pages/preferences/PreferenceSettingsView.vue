@@ -21,15 +21,17 @@ const errorMessage = ref('')
 const savedMessage = ref('')
 
 const form = reactive({
-  purposes: [],
-  regions: [],
-  facility_tags: [],
+  purpose_codes: [],
+  region_keys: [],
+  tag_codes: [],
 })
 
 const purposeOptions = computed(() => normalizeOptions(options.value?.purposes ?? options.value?.purpose_options))
-const regionOptions = computed(() => normalizeOptions(options.value?.regions ?? options.value?.region_options))
-const facilityOptions = computed(() =>
-  normalizeOptions(options.value?.facility_tags ?? options.value?.facility_options),
+const regionOptions = computed(() => normalizeRegionOptions(options.value?.regions ?? options.value?.region_options))
+const tagOptions = computed(() =>
+  normalizeOptions(options.value?.tags ?? options.value?.facility_tags ?? options.value?.facility_options).filter(
+    (item) => !item.group || item.group === 'facility',
+  ),
 )
 
 function normalizeOptions(values) {
@@ -48,14 +50,66 @@ function normalizeOptions(values) {
     return {
       value: item.code ?? item.value ?? item.id,
       label: item.label ?? item.name ?? item.code ?? item.value ?? item.id,
+      group: item.tag_group,
     }
   }).filter((item) => item.value)
 }
 
+function normalizeRegionOptions(values) {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  return values.map((item) => {
+    if (typeof item === 'string') {
+      return {
+        value: item,
+        label: item,
+        payload: {
+          sido: '부산광역시',
+          sigungu: item,
+        },
+      }
+    }
+
+    const sido = item.sido || '부산광역시'
+    const sigungu = item.sigungu || item.name || item.value
+
+    return {
+      value: item.region_key || `${sido}:${sigungu}`,
+      label: [sido, sigungu].filter(Boolean).join(' '),
+      payload: {
+        sido,
+        sigungu,
+      },
+    }
+  }).filter((item) => item.value && item.payload.sigungu)
+}
+
 function syncPreferences(preferences) {
-  form.purposes = [...(preferences.purposes ?? preferences.purpose_codes ?? [])]
-  form.regions = [...(preferences.regions ?? preferences.sigungu_codes ?? [])]
-  form.facility_tags = [...(preferences.facility_tags ?? preferences.facility_tag_codes ?? [])]
+  form.purpose_codes = (preferences.purposes ?? preferences.purpose_codes ?? [])
+    .map((purpose) => purpose.code ?? purpose)
+    .filter(Boolean)
+  form.region_keys = (preferences.regions ?? preferences.sigungu_codes ?? [])
+    .map((region) => {
+      if (typeof region === 'string') {
+        return region
+      }
+
+      return region.region_key || `${region.sido || '부산광역시'}:${region.sigungu}`
+    })
+    .filter(Boolean)
+  form.tag_codes = (preferences.tags ?? preferences.tag_codes ?? preferences.facility_tags ?? [])
+    .map((tag) => tag.code ?? tag)
+    .filter(Boolean)
+}
+
+function selectedRegionsPayload() {
+  const optionMap = new Map(regionOptions.value.map((item) => [item.value, item.payload]))
+
+  return form.region_keys
+    .map((key) => optionMap.get(key))
+    .filter(Boolean)
 }
 
 async function loadPreferences() {
@@ -85,9 +139,9 @@ async function handleSubmit() {
 
   try {
     const data = await updateMyPreferences({
-      purposes: form.purposes,
-      regions: form.regions,
-      facility_tags: form.facility_tags,
+      purpose_codes: form.purpose_codes,
+      regions: selectedRegionsPayload(),
+      tag_codes: form.tag_codes,
     })
     syncPreferences(data)
     savedMessage.value = '선호 설정을 저장했어요.'
@@ -114,7 +168,7 @@ onMounted(loadPreferences)
     <LoadingState v-if="isLoading" title="선호 설정을 불러오는 중입니다." />
     <ErrorState v-else-if="errorMessage && !options" :message="errorMessage" @retry="loadPreferences" />
     <EmptyState
-      v-else-if="!purposeOptions.length && !regionOptions.length && !facilityOptions.length"
+      v-else-if="!purposeOptions.length && !regionOptions.length && !tagOptions.length"
       title="선호 옵션이 아직 준비되지 않았어요."
       description="옵션 API가 준비되면 이 화면에서 선호를 설정할 수 있습니다."
     />
@@ -125,7 +179,7 @@ onMounted(loadPreferences)
       <fieldset v-if="purposeOptions.length" class="preference-fieldset">
         <legend>방문 목적</legend>
         <label v-for="item in purposeOptions" :key="item.value" class="preference-option">
-          <input v-model="form.purposes" class="form-check-input" type="checkbox" :value="item.value" />
+          <input v-model="form.purpose_codes" class="form-check-input" type="checkbox" :value="item.value" />
           <span>{{ item.label }}</span>
         </label>
       </fieldset>
@@ -133,15 +187,15 @@ onMounted(loadPreferences)
       <fieldset v-if="regionOptions.length" class="preference-fieldset">
         <legend>선호 지역</legend>
         <label v-for="item in regionOptions" :key="item.value" class="preference-option">
-          <input v-model="form.regions" class="form-check-input" type="checkbox" :value="item.value" />
+          <input v-model="form.region_keys" class="form-check-input" type="checkbox" :value="item.value" />
           <span>{{ item.label }}</span>
         </label>
       </fieldset>
 
-      <fieldset v-if="facilityOptions.length" class="preference-fieldset">
+      <fieldset v-if="tagOptions.length" class="preference-fieldset">
         <legend>선호 시설</legend>
-        <label v-for="item in facilityOptions" :key="item.value" class="preference-option">
-          <input v-model="form.facility_tags" class="form-check-input" type="checkbox" :value="item.value" />
+        <label v-for="item in tagOptions" :key="item.value" class="preference-option">
+          <input v-model="form.tag_codes" class="form-check-input" type="checkbox" :value="item.value" />
           <span>{{ item.label }}</span>
         </label>
       </fieldset>
