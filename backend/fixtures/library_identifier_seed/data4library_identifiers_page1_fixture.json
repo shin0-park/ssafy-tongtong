@@ -1,249 +1,249 @@
 [
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 1,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.682Z",
-    "updated_at": "2026-06-24T07:53:36.682Z",
-    "library": 57,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "121002",
-    "external_name": "ºÎ»ê±¤¿ª½Ã¸³±¸´öµµ¼­°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã ¼­±¸ ´ë½Å°ø¿ø·Î 41",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.682Z",
-    "last_fetched_at": "2026-06-24T07:53:36.682Z",
-    "is_active": true
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 1,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.682Z",
+      "updated_at": "2026-06-24T07:53:36.682Z",
+      "library": 57,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "121002",
+      "external_name": "ë¶€ì‚°ê´‘ì—­ì‹œë¦½êµ¬ë•ë„ì„œê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ ì„œêµ¬ ëŒ€ì‹ ê³µì›ë¡œ 41",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.682Z",
+      "last_fetched_at": "2026-06-24T07:53:36.682Z",
+      "is_active": true
+    }
+  },
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 2,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.686Z",
+      "updated_at": "2026-06-24T07:53:36.686Z",
+      "library": 64,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "121003",
+      "external_name": "ë¶€ì‚°ê´‘ì—­ì‹œë¦½êµ¬í¬ë„ì„œê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ ë¶êµ¬ ë°±ì–‘ëŒ€ë¡œ1016ë²ˆë‹¤ê¸¸ 43",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.686Z",
+      "last_fetched_at": "2026-06-24T07:53:36.686Z",
+      "is_active": true
+    }
+  },
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 3,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.690Z",
+      "updated_at": "2026-06-24T07:53:36.690Z",
+      "library": 58,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "121004",
+      "external_name": "ë¶€ì‚°ê´‘ì—­ì‹œë¦½ë°˜ì†¡ë„ì„œê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ í•´ìš´ëŒ€êµ¬ ì•„ë«ë°˜ì†¡ë¡œ 22",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.689Z",
+      "last_fetched_at": "2026-06-24T07:53:36.689Z",
+      "is_active": true
+    }
+  },
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 4,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.694Z",
+      "updated_at": "2026-06-24T07:53:36.694Z",
+      "library": 60,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "121006",
+      "external_name": "ë¶€ì‚°ê´‘ì—­ì‹œë¦½ì‚¬í•˜ë„ì„œê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ ì‚¬í•˜êµ¬ ìŠ¹í•™ë¡œ 247",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.694Z",
+      "last_fetched_at": "2026-06-24T07:53:36.694Z",
+      "is_active": true
+    }
+  },
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 5,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.696Z",
+      "updated_at": "2026-06-24T07:53:36.696Z",
+      "library": 56,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "121007",
+      "external_name": "ë¶€ì‚°ê´‘ì—­ì‹œë¦½ì„œë™ë„ì„œê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ ê¸ˆì •êµ¬ ì„œë¶€ë¡œ76ë²ˆê¸¸ 5",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.696Z",
+      "last_fetched_at": "2026-06-24T07:53:36.696Z",
+      "is_active": true
+    }
+  },
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 6,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.698Z",
+      "updated_at": "2026-06-24T07:53:36.698Z",
+      "library": 67,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "121008",
+      "external_name": "ë¶€ì‚°ê´‘ì—­ì‹œë¦½ì‹œë¯¼ë„ì„œê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ ë¶€ì‚°ì§„êµ¬ ì›”ë“œì»µëŒ€ë¡œ 462",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.698Z",
+      "last_fetched_at": "2026-06-24T07:53:36.698Z",
+      "is_active": true
+    }
+  },
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 7,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.701Z",
+      "updated_at": "2026-06-24T07:53:36.701Z",
+      "library": 55,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "121011",
+      "external_name": "ë¶€ì‚°ê´‘ì—­ì‹œë¦½ì—°ì‚°ë„ì„œê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ ì—°ì œêµ¬ ê³ ë¶„ë¡œ191ë²ˆê¸¸ 16",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.701Z",
+      "last_fetched_at": "2026-06-24T07:53:36.701Z",
+      "is_active": true
+    }
+  },
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 8,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.703Z",
+      "updated_at": "2026-06-24T07:53:36.703Z",
+      "library": 66,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "121012",
+      "external_name": "ë¶€ì‚°ê´‘ì—­ì‹œë¦½ì¤‘ì•™ë„ì„œê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ ì¤‘êµ¬ ë§ì–‘ë¡œ193ë²ˆê¸¸ 146",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.703Z",
+      "last_fetched_at": "2026-06-24T07:53:36.703Z",
+      "is_active": true
+    }
+  },
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 9,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.705Z",
+      "updated_at": "2026-06-24T07:53:36.705Z",
+      "library": 65,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "121010",
+      "external_name": "ë¶€ì‚°ê´‘ì—­ì‹œë¦½ì¤‘ì•™ë„ì„œê´€ ìˆ˜ì •ë¶„ê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ ë™êµ¬ í™ê³¡ë¡œ 53",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.705Z",
+      "last_fetched_at": "2026-06-24T07:53:36.705Z",
+      "is_active": true
+    }
+  },
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 10,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.707Z",
+      "updated_at": "2026-06-24T07:53:36.707Z",
+      "library": 62,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "126024",
+      "external_name": "ë¶€ì‚°ê´‘ì—­ì‹œë¦½í•´ìš´ëŒ€ë„ì„œê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ í•´ìš´ëŒ€êµ¬ ì–‘ìš´ë¡œ 183",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.707Z",
+      "last_fetched_at": "2026-06-24T07:53:36.707Z",
+      "is_active": true
+    }
+  },
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 11,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.709Z",
+      "updated_at": "2026-06-24T07:53:36.709Z",
+      "library": 61,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "121013",
+      "external_name": "ë¶€ì‚°ê´‘ì—­ì‹œë¦½í•´ìš´ëŒ€ë„ì„œê´€ ìš°ë™ë¶„ê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ í•´ìš´ëŒ€êµ¬ ìš°ë™1ë¡œ 89",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.709Z",
+      "last_fetched_at": "2026-06-24T07:53:36.709Z",
+      "is_active": true
+    }
+  },
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 12,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.713Z",
+      "updated_at": "2026-06-24T07:53:36.713Z",
+      "library": 63,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "126014",
+      "external_name": "ë¶€ì‚°ì˜ì–´ë„ì„œê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ ë¶€ì‚°ì§„êµ¬ ê°€ì•¼ëŒ€ë¡œ 734",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.713Z",
+      "last_fetched_at": "2026-06-24T07:53:36.713Z",
+      "is_active": true
+    }
+  },
+  {
+    "model": "libraries.libraryexternalidentifier",
+    "pk": 13,
+    "fields": {
+      "created_at": "2026-06-24T07:53:36.717Z",
+      "updated_at": "2026-06-24T07:53:36.717Z",
+      "library": 193,
+      "provider_code": "data4library",
+      "code_type": "lib_code",
+      "external_code": "726304",
+      "external_name": "ì•„ì´ê¿ˆ ì‘ì€ë„ì„œê´€",
+      "external_address": "ë¶€ì‚°ê´‘ì—­ì‹œ ê°•ì„œêµ¬ ëª…ì§€êµ­ì œ6ë¡œ318ë²ˆê¸¸ 58",
+      "match_method": "phone_name",
+      "match_confidence": "0.8500",
+      "first_seen_at": "2026-06-24T07:53:36.717Z",
+      "last_fetched_at": "2026-06-24T07:53:36.717Z",
+      "is_active": true
+    }
   }
-},
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 2,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.686Z",
-    "updated_at": "2026-06-24T07:53:36.686Z",
-    "library": 64,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "121003",
-    "external_name": "ºÎ»ê±¤¿ª½Ã¸³±¸Æ÷µµ¼­°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã ºÏ±¸ ¹é¾ç´ë·Î1016¹ø´Ù±æ 43",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.686Z",
-    "last_fetched_at": "2026-06-24T07:53:36.686Z",
-    "is_active": true
-  }
-},
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 3,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.690Z",
-    "updated_at": "2026-06-24T07:53:36.690Z",
-    "library": 58,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "121004",
-    "external_name": "ºÎ»ê±¤¿ª½Ã¸³¹İ¼Ûµµ¼­°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã ÇØ¿î´ë±¸ ¾Æ·§¹İ¼Û·Î 22",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.689Z",
-    "last_fetched_at": "2026-06-24T07:53:36.689Z",
-    "is_active": true
-  }
-},
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 4,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.694Z",
-    "updated_at": "2026-06-24T07:53:36.694Z",
-    "library": 60,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "121006",
-    "external_name": "ºÎ»ê±¤¿ª½Ã¸³»çÇÏµµ¼­°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã »çÇÏ±¸ ½ÂÇĞ·Î 247",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.694Z",
-    "last_fetched_at": "2026-06-24T07:53:36.694Z",
-    "is_active": true
-  }
-},
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 5,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.696Z",
-    "updated_at": "2026-06-24T07:53:36.696Z",
-    "library": 56,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "121007",
-    "external_name": "ºÎ»ê±¤¿ª½Ã¸³¼­µ¿µµ¼­°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã ±İÁ¤±¸ ¼­ºÎ·Î76¹ø±æ 5",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.696Z",
-    "last_fetched_at": "2026-06-24T07:53:36.696Z",
-    "is_active": true
-  }
-},
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 6,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.698Z",
-    "updated_at": "2026-06-24T07:53:36.698Z",
-    "library": 67,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "121008",
-    "external_name": "ºÎ»ê±¤¿ª½Ã¸³½Ã¹Îµµ¼­°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã ºÎ»êÁø±¸ ¿ùµåÄÅ´ë·Î 462",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.698Z",
-    "last_fetched_at": "2026-06-24T07:53:36.698Z",
-    "is_active": true
-  }
-},
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 7,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.701Z",
-    "updated_at": "2026-06-24T07:53:36.701Z",
-    "library": 55,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "121011",
-    "external_name": "ºÎ»ê±¤¿ª½Ã¸³¿¬»êµµ¼­°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã ¿¬Á¦±¸ °íºĞ·Î191¹ø±æ 16",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.701Z",
-    "last_fetched_at": "2026-06-24T07:53:36.701Z",
-    "is_active": true
-  }
-},
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 8,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.703Z",
-    "updated_at": "2026-06-24T07:53:36.703Z",
-    "library": 66,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "121012",
-    "external_name": "ºÎ»ê±¤¿ª½Ã¸³Áß¾Óµµ¼­°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã Áß±¸ ¸Á¾ç·Î193¹ø±æ 146",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.703Z",
-    "last_fetched_at": "2026-06-24T07:53:36.703Z",
-    "is_active": true
-  }
-},
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 9,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.705Z",
-    "updated_at": "2026-06-24T07:53:36.705Z",
-    "library": 65,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "121010",
-    "external_name": "ºÎ»ê±¤¿ª½Ã¸³Áß¾Óµµ¼­°ü ¼öÁ¤ºĞ°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã µ¿±¸ È«°î·Î 53",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.705Z",
-    "last_fetched_at": "2026-06-24T07:53:36.705Z",
-    "is_active": true
-  }
-},
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 10,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.707Z",
-    "updated_at": "2026-06-24T07:53:36.707Z",
-    "library": 62,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "126024",
-    "external_name": "ºÎ»ê±¤¿ª½Ã¸³ÇØ¿î´ëµµ¼­°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã ÇØ¿î´ë±¸ ¾ç¿î·Î 183",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.707Z",
-    "last_fetched_at": "2026-06-24T07:53:36.707Z",
-    "is_active": true
-  }
-},
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 11,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.709Z",
-    "updated_at": "2026-06-24T07:53:36.709Z",
-    "library": 61,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "121013",
-    "external_name": "ºÎ»ê±¤¿ª½Ã¸³ÇØ¿î´ëµµ¼­°ü ¿ìµ¿ºĞ°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã ÇØ¿î´ë±¸ ¿ìµ¿1·Î 89",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.709Z",
-    "last_fetched_at": "2026-06-24T07:53:36.709Z",
-    "is_active": true
-  }
-},
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 12,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.713Z",
-    "updated_at": "2026-06-24T07:53:36.713Z",
-    "library": 63,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "126014",
-    "external_name": "ºÎ»ê¿µ¾îµµ¼­°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã ºÎ»êÁø±¸ °¡¾ß´ë·Î 734",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.713Z",
-    "last_fetched_at": "2026-06-24T07:53:36.713Z",
-    "is_active": true
-  }
-},
-{
-  "model": "libraries.libraryexternalidentifier",
-  "pk": 13,
-  "fields": {
-    "created_at": "2026-06-24T07:53:36.717Z",
-    "updated_at": "2026-06-24T07:53:36.717Z",
-    "library": 193,
-    "provider_code": "data4library",
-    "code_type": "lib_code",
-    "external_code": "726304",
-    "external_name": "¾ÆÀÌ²Ş ÀÛÀºµµ¼­°ü",
-    "external_address": "ºÎ»ê±¤¿ª½Ã °­¼­±¸ ¸íÁö±¹Á¦6·Î318¹ø±æ 58",
-    "match_method": "phone_name",
-    "match_confidence": "0.8500",
-    "first_seen_at": "2026-06-24T07:53:36.717Z",
-    "last_fetched_at": "2026-06-24T07:53:36.717Z",
-    "is_active": true
-  }
-}
 ]
