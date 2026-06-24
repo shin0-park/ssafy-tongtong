@@ -5,13 +5,18 @@ import { useRouter } from 'vue-router'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
 import { useAuthStore } from '@/stores/auth'
+import { buildMultipartPayload, hasFiles } from '@/utils/formData'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const form = reactive({
   nickname: '',
+  bio: '',
+  profile_image_alt: '',
+  remove_profile_image: false,
 })
+const selectedImage = ref(null)
 const isLoading = ref(false)
 const isSubmitting = ref(false)
 const error = ref(null)
@@ -30,6 +35,8 @@ async function loadProfile() {
   try {
     const user = await authStore.fetchCurrentUser()
     form.nickname = user.nickname || ''
+    form.bio = user.bio || ''
+    form.profile_image_alt = user.profile_image_alt || ''
   } catch (requestError) {
     error.value = requestError
   } finally {
@@ -37,14 +44,48 @@ async function loadProfile() {
   }
 }
 
+function handleImageChange(event) {
+  selectedImage.value = event.target.files?.[0] ?? null
+}
+
+function validateImage() {
+  if (!selectedImage.value) {
+    return ''
+  }
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+  return allowedTypes.includes(selectedImage.value.type)
+    ? ''
+    : '프로필 이미지는 jpg, png, webp 형식만 사용할 수 있어요.'
+}
+
 async function submitProfile() {
   isSubmitting.value = true
   error.value = null
 
   try {
-    await authStore.updateCurrentUser({
+    const imageError = validateImage()
+    if (imageError) {
+      throw {
+        message: imageError,
+        fields: {
+          profile_image: imageError,
+        },
+      }
+    }
+
+    const payload = {
       nickname: form.nickname,
-    })
+      bio: form.bio,
+      profile_image_alt: form.profile_image_alt,
+      remove_profile_image: form.remove_profile_image,
+    }
+
+    const requestBody = hasFiles([selectedImage.value])
+      ? buildMultipartPayload(payload, { profile_image: selectedImage.value })
+      : payload
+
+    await authStore.updateCurrentUserProfile(requestBody)
     await router.replace('/profile')
   } catch (requestError) {
     error.value = requestError
@@ -62,8 +103,8 @@ onMounted(loadProfile)
 
     <div v-else class="auth-card content-panel p-4">
       <div class="mb-4">
-        <h1 class="page-title">닉네임 수정</h1>
-        <p class="page-subtitle">프로필에는 이메일과 닉네임만 사용합니다.</p>
+        <h1 class="page-title">프로필 수정</h1>
+        <p class="page-subtitle">닉네임, 소개, 프로필 이미지를 관리합니다.</p>
       </div>
 
       <ErrorState
@@ -88,6 +129,44 @@ onMounted(loadProfile)
           />
           <p v-if="firstFieldError('nickname')" class="field-error">{{ firstFieldError('nickname') }}</p>
         </div>
+
+        <div>
+          <label class="form-label" for="profile-bio">소개</label>
+          <textarea id="profile-bio" v-model="form.bio" class="form-control" rows="4" />
+          <p v-if="firstFieldError('bio')" class="field-error">{{ firstFieldError('bio') }}</p>
+        </div>
+
+        <div>
+          <label class="form-label" for="profile-image-alt">이미지 대체 텍스트</label>
+          <input
+            id="profile-image-alt"
+            v-model.trim="form.profile_image_alt"
+            class="form-control"
+            type="text"
+          />
+          <p v-if="firstFieldError('profile_image_alt')" class="field-error">
+            {{ firstFieldError('profile_image_alt') }}
+          </p>
+        </div>
+
+        <div>
+          <label class="form-label" for="profile-image">프로필 이미지</label>
+          <input
+            id="profile-image"
+            class="form-control"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            @change="handleImageChange"
+          />
+          <p v-if="firstFieldError('profile_image')" class="field-error">
+            {{ firstFieldError('profile_image') }}
+          </p>
+        </div>
+
+        <label class="form-check">
+          <input v-model="form.remove_profile_image" class="form-check-input" type="checkbox" />
+          <span class="form-check-label">현재 프로필 이미지 삭제</span>
+        </label>
 
         <div class="d-flex gap-2">
           <button class="btn btn-primary" type="submit" :disabled="isSubmitting">

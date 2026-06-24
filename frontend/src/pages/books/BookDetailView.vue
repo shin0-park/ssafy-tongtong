@@ -2,9 +2,12 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
+import SaveButton from '@/components/actions/SaveButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
+import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
+import PaginationBar from '@/components/navigation/PaginationBar.vue'
 import { fetchBookDetail, fetchBookLibraries } from '@/services/bookService'
 import { readPageQuery } from '@/utils/query'
 
@@ -168,16 +171,11 @@ onMounted(loadPage)
     <template v-else>
       <div class="book-detail-layout mb-4">
         <div class="book-detail-cover">
-          <img
-            v-if="book.cover_image_url"
+          <ResponsiveImage
             :src="book.cover_image_url"
             :alt="`${book.title} 표지`"
-            loading="lazy"
-            decoding="async"
+            fallback-label="표지 없음"
           />
-          <div v-else class="book-cover-fallback" aria-hidden="true">
-            <span>표지 없음</span>
-          </div>
         </div>
 
         <div class="book-detail-main">
@@ -198,6 +196,14 @@ onMounted(loadPage)
             </dd>
           </dl>
 
+          <p v-if="book.description" class="mb-3">{{ book.description }}</p>
+
+          <div v-if="book.tags?.length" class="d-flex flex-wrap gap-2 mb-3">
+            <span v-for="tag in book.tags" :key="tag.code || tag.id || tag.name" class="book-chip">
+              {{ tag.label || tag.name || tag.code }}
+            </span>
+          </div>
+
           <div class="d-flex flex-wrap gap-2">
             <a
               v-if="book.source_detail_url"
@@ -208,10 +214,12 @@ onMounted(loadPage)
             >
               원천 상세 보기
             </a>
-            <button class="btn btn-outline-secondary btn-sm" type="button" disabled>
-              저장 준비 중
-            </button>
+            <SaveButton resource-type="book" :resource-id="book.isbn13" />
           </div>
+
+          <p v-if="book.source_name || book.source_updated_at" class="meta-text mt-3 mb-0">
+            {{ [book.source_name, book.source_updated_at].filter(Boolean).join(' · ') }}
+          </p>
         </div>
       </div>
 
@@ -294,25 +302,12 @@ onMounted(loadPage)
             </article>
           </div>
 
-          <div class="d-flex justify-content-center gap-2 mt-4">
-            <button
-              class="btn btn-outline-secondary"
-              type="button"
-              :disabled="!hasPreviousHoldingsPage"
-              @click="goToHoldingsPage(holdingsPage - 1)"
-            >
-              이전
-            </button>
-            <span class="meta-text align-self-center">{{ holdingsPage }}페이지</span>
-            <button
-              class="btn btn-outline-secondary"
-              type="button"
-              :disabled="!hasNextHoldingsPage"
-              @click="goToHoldingsPage(holdingsPage + 1)"
-            >
-              다음
-            </button>
-          </div>
+          <PaginationBar
+            :current-page="holdingsPage"
+            :has-previous="hasPreviousHoldingsPage"
+            :has-next="hasNextHoldingsPage"
+            @change="goToHoldingsPage"
+          />
         </template>
       </section>
     </template>

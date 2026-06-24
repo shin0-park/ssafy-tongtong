@@ -36,8 +36,9 @@ const count = ref(0)
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-const page = computed(() => readPageQuery(route))
-const pageSize = computed(() => Number(route.query.page_size) || 12)
+const pageQuery = computed(() => readPageQuery(route))
+const page = computed(() => pageQuery.value.page)
+const pageSize = computed(() => pageQuery.value.page_size || 12)
 
 const meta = computed(() => {
   const map = {

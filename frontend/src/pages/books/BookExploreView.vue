@@ -6,7 +6,9 @@ import BookCard from '@/components/cards/BookCard.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
-import { searchBooks } from '@/services/bookService'
+import PaginationBar from '@/components/navigation/PaginationBar.vue'
+import ResultCount from '@/components/navigation/ResultCount.vue'
+import { fetchPopularBooks, searchBooks } from '@/services/bookService'
 import { readPageQuery } from '@/utils/query'
 
 const route = useRoute()
@@ -23,12 +25,17 @@ const SEARCH_TYPE_VALUES = new Set(SEARCH_TYPES.map((type) => type.value))
 const DEFAULT_PAGE_SIZE = 20
 
 const books = ref([])
+const popularBooks = ref([])
 const responseMeta = ref({ num_found: 0, page: 1, page_size: DEFAULT_PAGE_SIZE })
 const isLoading = ref(false)
+const isPopularLoading = ref(false)
 const error = ref(null)
+const popularError = ref(null)
 const filters = reactive({
   search_type: normalizeSearchType(route.query.search_type),
   q: normalizeText(route.query.q),
+  sort: normalizeText(route.query.sort),
+  order: normalizeText(route.query.order),
 })
 
 const hasSearchQuery = computed(() => normalizeText(route.query.q).length > 0)
@@ -78,6 +85,8 @@ function buildRequestParams() {
     q: normalizeText(route.query.q),
     page: pageQuery.page,
     page_size: pageQuery.page_size || DEFAULT_PAGE_SIZE,
+    sort: normalizeText(route.query.sort),
+    order: normalizeText(route.query.order),
   }
 }
 
@@ -112,6 +121,21 @@ async function loadBooks() {
   }
 }
 
+async function loadPopularBooks() {
+  isPopularLoading.value = true
+  popularError.value = null
+
+  try {
+    const data = await fetchPopularBooks({ limit: 6 })
+    popularBooks.value = data.results ?? data.books ?? []
+  } catch (requestError) {
+    popularBooks.value = []
+    popularError.value = requestError
+  } finally {
+    isPopularLoading.value = false
+  }
+}
+
 function applySearch() {
   const nextQuery = normalizeText(filters.q)
 
@@ -121,6 +145,8 @@ function applySearch() {
       ? {
           search_type: normalizeSearchType(filters.search_type),
           q: nextQuery,
+          sort: filters.sort || undefined,
+          order: filters.order || undefined,
           page: 1,
           page_size: route.query.page_size || DEFAULT_PAGE_SIZE,
         }
@@ -143,45 +169,77 @@ watch(
   () => {
     filters.search_type = normalizeSearchType(route.query.search_type)
     filters.q = normalizeText(route.query.q)
+    filters.sort = normalizeText(route.query.sort)
+    filters.order = normalizeText(route.query.order)
     loadBooks()
   },
 )
 
-onMounted(loadBooks)
+onMounted(() => {
+  loadPopularBooks()
+  loadBooks()
+})
 </script>
 
 <template>
   <section class="page-shell">
-    <div class="mb-4">
+    <div class="page-header">
       <h1 class="page-title">책 둘러보기</h1>
       <p class="page-subtitle">
-        정보나루 책 검색을 통해 부산 도서관에서 찾고 싶은 책의 기본 정보를 확인합니다.
+        정보나루 책 검색과 주간 인기 도서를 함께 살펴봅니다.
       </p>
     </div>
 
-    <form class="content-panel p-3 mb-4" @submit.prevent="applySearch">
-      <div class="row g-2 align-items-end">
-        <div class="col-md-3">
-          <label class="form-label" for="book-search-type">검색 기준</label>
-          <select id="book-search-type" v-model="filters.search_type" class="form-select">
+    <section class="mb-5">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h2 class="section-title mb-0">주간 인기 도서</h2>
+      </div>
+      <LoadingState v-if="isPopularLoading" title="인기 도서를 불러오는 중입니다." />
+      <p v-else-if="popularError" class="meta-text">인기 도서를 불러오지 못했어요.</p>
+      <EmptyState
+        v-else-if="!popularBooks.length"
+        title="인기 도서가 아직 없어요."
+        description="집계 데이터가 준비되면 이곳에 표시됩니다."
+      />
+      <div v-else class="responsive-card-grid">
+        <BookCard v-for="book in popularBooks" :key="book.isbn13" :book="book" />
+      </div>
+    </section>
+
+    <form class="content-panel p-4 mb-4" @submit.prevent="applySearch">
+      <div class="filter-grid">
+        <label class="form-field">
+          <span>검색 기준</span>
+          <select v-model="filters.search_type" class="form-select">
             <option v-for="type in SEARCH_TYPES" :key="type.value" :value="type.value">
               {{ type.label }}
             </option>
           </select>
-        </div>
-        <div class="col-md-7">
-          <label class="form-label" for="book-query">검색어</label>
+        </label>
+        <label class="form-field">
+          <span>검색어</span>
           <input
-            id="book-query"
             v-model.trim="filters.q"
             class="form-control"
             type="search"
             placeholder="도서명, 저자, ISBN, 키워드, 출판사"
           />
-        </div>
-        <div class="col-md-2 d-grid">
-          <button class="btn btn-primary" type="submit">검색</button>
-        </div>
+        </label>
+        <label class="form-field">
+          <span>정렬 기준</span>
+          <input v-model.trim="filters.sort" class="form-control" type="text" placeholder="loan_count" />
+        </label>
+        <label class="form-field">
+          <span>정렬 방향</span>
+          <select v-model="filters.order" class="form-select">
+            <option value="">기본</option>
+            <option value="asc">오름차순</option>
+            <option value="desc">내림차순</option>
+          </select>
+        </label>
+      </div>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button class="btn btn-primary" type="submit">검색</button>
       </div>
     </form>
 
@@ -204,31 +262,16 @@ onMounted(loadBooks)
     />
 
     <template v-else>
-      <p class="meta-text mb-3">총 {{ responseMeta.num_found.toLocaleString() }}권</p>
-      <div class="row g-3">
-        <div v-for="book in books" :key="book.isbn13" class="col-md-6 col-lg-4">
-          <BookCard :book="book" />
-        </div>
+      <ResultCount :count="responseMeta.num_found" label="권" />
+      <div class="responsive-card-grid">
+        <BookCard v-for="book in books" :key="book.isbn13" :book="book" />
       </div>
-      <div class="d-flex justify-content-center gap-2 mt-4">
-        <button
-          class="btn btn-outline-secondary"
-          type="button"
-          :disabled="!hasPreviousPage"
-          @click="goToPage(currentPage - 1)"
-        >
-          이전
-        </button>
-        <span class="meta-text align-self-center">{{ currentPage }}페이지</span>
-        <button
-          class="btn btn-outline-secondary"
-          type="button"
-          :disabled="!hasNextPage"
-          @click="goToPage(currentPage + 1)"
-        >
-          다음
-        </button>
-      </div>
+      <PaginationBar
+        :current-page="currentPage"
+        :has-previous="hasPreviousPage"
+        :has-next="hasNextPage"
+        @change="goToPage"
+      />
     </template>
   </section>
 </template>

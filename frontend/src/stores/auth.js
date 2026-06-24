@@ -71,6 +71,11 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value
   }
 
+  async function updateCurrentUserProfile(payload, config = {}) {
+    user.value = await accountService.updateCurrentUserProfile(payload, config)
+    return user.value
+  }
+
   async function logout() {
     try {
       await authService.logout()
@@ -92,6 +97,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshAccessToken,
     fetchCurrentUser,
     updateCurrentUser,
+    updateCurrentUserProfile,
     clearSession,
     setSession,
   }

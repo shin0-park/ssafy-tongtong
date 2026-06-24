@@ -30,8 +30,9 @@ const filters = reactive({
   ordering: '-created_at',
 })
 
-const page = computed(() => readPageQuery(route))
-const pageSize = computed(() => Number(route.query.page_size) || 12)
+const pageQuery = computed(() => readPageQuery(route))
+const page = computed(() => pageQuery.value.page)
+const pageSize = computed(() => pageQuery.value.page_size || 12)
 const hasSearched = computed(() =>
   Boolean(filters.q || filters.library_id || filters.tag || filters.user_id),
 )

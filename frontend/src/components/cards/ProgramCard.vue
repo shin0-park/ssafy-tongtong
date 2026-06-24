@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
+import SaveButton from '@/components/actions/SaveButton.vue'
+
 const props = defineProps({
   program: {
     type: Object,
@@ -15,8 +17,13 @@ const libraryTo = computed(() =>
 )
 const categoryText = computed(() => props.program.category_display || '분류 정보 없음')
 const targetText = computed(() => {
-  const targets = props.program.target_display ?? []
-  return targets.length ? targets.join(', ') : '대상 정보 없음'
+  const targets = props.program.target_display ?? props.program.target ?? []
+
+  if (Array.isArray(targets)) {
+    return targets.length ? targets.join(', ') : '대상 정보 없음'
+  }
+
+  return targets || '대상 정보 없음'
 })
 
 function formatDate(value) {
@@ -35,6 +42,15 @@ function formatPeriod(startDate, endDate) {
 }
 
 function statusText(type, status) {
+  const displayField =
+    type === 'application'
+      ? props.program.application_status_display
+      : props.program.operation_status_display
+
+  if (displayField) {
+    return displayField
+  }
+
   if (!status) {
     return '정보 없음'
   }
@@ -42,9 +58,15 @@ function statusText(type, status) {
   const labels = {
     application: {
       available: '신청 가능',
+      open: '신청 가능',
+      closed: '신청 종료',
+      scheduled: '신청 예정',
     },
     operation: {
       upcoming: '운영 예정',
+      scheduled: '운영 예정',
+      ongoing: '운영 중',
+      ended: '운영 종료',
     },
   }
 
@@ -56,11 +78,11 @@ function statusClass(type, status) {
     return 'status-badge status-badge-muted'
   }
 
-  if (type === 'application' && status === 'available') {
+  if (type === 'application' && ['available', 'open'].includes(status)) {
     return 'status-badge status-badge-positive'
   }
 
-  if (type === 'operation' && status === 'upcoming') {
+  if (type === 'operation' && ['upcoming', 'scheduled', 'ongoing'].includes(status)) {
     return 'status-badge status-badge-info'
   }
 
@@ -94,6 +116,9 @@ function statusClass(type, status) {
         <span :class="statusClass('operation', program.operation_status)">
           {{ statusText('operation', program.operation_status) }}
         </span>
+        <span v-if="program.application_required !== null && program.application_required !== undefined" class="status-badge status-badge-muted">
+          {{ program.application_required ? '신청 필요' : '신청 불필요' }}
+        </span>
       </div>
 
       <dl class="program-card-meta mb-0">
@@ -114,9 +139,7 @@ function statusClass(type, status) {
       >
         원문 확인
       </a>
-      <button class="btn btn-outline-secondary btn-sm" type="button" disabled>
-        저장 준비 중
-      </button>
+      <SaveButton v-if="program.id" resource-type="program" :resource-id="program.id" />
     </div>
   </article>
 </template>

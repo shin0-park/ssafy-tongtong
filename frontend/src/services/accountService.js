@@ -10,7 +10,7 @@ export async function updateCurrentUser(payload) {
   return data
 }
 
-export async function updateCurrentUserProfile(payload) {
-  const { data } = await apiClient.patch('/users/me/', payload)
+export async function updateCurrentUserProfile(payload, config = {}) {
+  const { data } = await apiClient.patch('/users/me/', payload, config)
   return data
 }

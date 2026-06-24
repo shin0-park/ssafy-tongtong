@@ -6,6 +6,8 @@ import ProgramCard from '@/components/cards/ProgramCard.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
+import PaginationBar from '@/components/navigation/PaginationBar.vue'
+import ResultCount from '@/components/navigation/ResultCount.vue'
 import { fetchPrograms } from '@/services/programService'
 import { readPageQuery } from '@/utils/query'
 
@@ -21,7 +23,7 @@ const error = ref(null)
 const filters = reactive(readFiltersFromRoute())
 
 const hasPrograms = computed(() => programs.value.length > 0)
-const currentPage = computed(() => Number(route.query.page || 1))
+const currentPage = computed(() => readPageQuery(route).page)
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -121,63 +123,47 @@ onMounted(loadPrograms)
 
 <template>
   <section class="page-shell">
-    <div class="mb-4">
+    <div class="page-header">
       <h1 class="page-title">문화 프로그램</h1>
       <p class="page-subtitle">
-        부산 도서관의 문화 프로그램을 현재 공개 API가 지원하는 조건으로 찾아봅니다.
+        부산 도서관의 문화 프로그램을 검색과 필터로 찾아봅니다.
       </p>
     </div>
 
-    <form class="content-panel p-3 mb-4" @submit.prevent="applyFilters">
-      <div class="row g-2 align-items-end">
-        <div class="col-md-4">
-          <label class="form-label" for="program-query">검색어</label>
-          <input id="program-query" v-model.trim="filters.q" class="form-control" type="search" />
-        </div>
-        <div class="col-md-2">
-          <label class="form-label" for="program-library-id">도서관 ID</label>
-          <input
-            id="program-library-id"
-            v-model.trim="filters.library_id"
-            class="form-control"
-            inputmode="numeric"
-            type="text"
-          />
-        </div>
-        <div class="col-md-3">
-          <label class="form-label" for="program-sigungu">구군</label>
-          <input id="program-sigungu" v-model.trim="filters.sigungu" class="form-control" type="text" />
-        </div>
-        <div class="col-md-3">
-          <label class="form-label" for="program-category">분류</label>
-          <input id="program-category" v-model.trim="filters.category" class="form-control" type="text" />
-        </div>
-        <div class="col-md-3">
-          <label class="form-label" for="program-target">대상</label>
-          <input id="program-target" v-model.trim="filters.target" class="form-control" type="text" />
-        </div>
-        <div class="col-md-3">
-          <label class="form-label" for="program-application-status">신청 상태</label>
-          <input
-            id="program-application-status"
-            v-model.trim="filters.application_status"
-            class="form-control"
-            type="text"
-          />
-        </div>
-        <div class="col-md-3">
-          <label class="form-label" for="program-operation-status">운영 상태</label>
-          <input
-            id="program-operation-status"
-            v-model.trim="filters.operation_status"
-            class="form-control"
-            type="text"
-          />
-        </div>
-        <div class="col-md-3 d-flex gap-2">
-          <button class="btn btn-primary flex-fill" type="submit">검색</button>
-          <button class="btn btn-outline-secondary" type="button" @click="clearFilters">초기화</button>
-        </div>
+    <form class="content-panel p-4 mb-4" @submit.prevent="applyFilters">
+      <div class="filter-grid">
+        <label class="form-field">
+          <span>검색어</span>
+          <input v-model.trim="filters.q" class="form-control" type="search" />
+        </label>
+        <label class="form-field">
+          <span>도서관 ID</span>
+          <input v-model.trim="filters.library_id" class="form-control" inputmode="numeric" type="text" />
+        </label>
+        <label class="form-field">
+          <span>구군</span>
+          <input v-model.trim="filters.sigungu" class="form-control" type="text" />
+        </label>
+        <label class="form-field">
+          <span>분류</span>
+          <input v-model.trim="filters.category" class="form-control" type="text" />
+        </label>
+        <label class="form-field">
+          <span>대상</span>
+          <input v-model.trim="filters.target" class="form-control" type="text" />
+        </label>
+        <label class="form-field">
+          <span>신청 상태</span>
+          <input v-model.trim="filters.application_status" class="form-control" type="text" />
+        </label>
+        <label class="form-field">
+          <span>운영 상태</span>
+          <input v-model.trim="filters.operation_status" class="form-control" type="text" />
+        </label>
+      </div>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button class="btn btn-outline-secondary" type="button" @click="clearFilters">초기화</button>
+        <button class="btn btn-primary" type="submit">검색</button>
       </div>
     </form>
 
@@ -195,31 +181,16 @@ onMounted(loadPrograms)
     />
 
     <template v-else>
-      <p class="meta-text mb-3">총 {{ pagination.count.toLocaleString() }}개</p>
-      <div class="row g-3">
-        <div v-for="program in programs" :key="program.id" class="col-lg-6">
-          <ProgramCard :program="program" />
-        </div>
+      <ResultCount :count="pagination.count" label="개" />
+      <div class="stack-list">
+        <ProgramCard v-for="program in programs" :key="program.id" :program="program" />
       </div>
-      <div class="d-flex justify-content-center gap-2 mt-4">
-        <button
-          class="btn btn-outline-secondary"
-          type="button"
-          :disabled="!pagination.previous"
-          @click="goToPage(currentPage - 1)"
-        >
-          이전
-        </button>
-        <span class="meta-text align-self-center">{{ currentPage }}페이지</span>
-        <button
-          class="btn btn-outline-secondary"
-          type="button"
-          :disabled="!pagination.next"
-          @click="goToPage(currentPage + 1)"
-        >
-          다음
-        </button>
-      </div>
+      <PaginationBar
+        :current-page="currentPage"
+        :has-previous="Boolean(pagination.previous)"
+        :has-next="Boolean(pagination.next)"
+        @change="goToPage"
+      />
     </template>
   </section>
 </template>

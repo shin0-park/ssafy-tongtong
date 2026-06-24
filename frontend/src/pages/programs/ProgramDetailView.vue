@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
+import SaveButton from '@/components/actions/SaveButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
@@ -22,8 +23,13 @@ const regionText = computed(() =>
     .join(' '),
 )
 const targetText = computed(() => {
-  const targets = program.value?.target_display ?? []
-  return targets.length ? targets.join(', ') : '정보 없음'
+  const targets = program.value?.target_display ?? program.value?.target ?? []
+
+  if (Array.isArray(targets)) {
+    return targets.length ? targets.join(', ') : '정보 없음'
+  }
+
+  return targets || '정보 없음'
 })
 
 const errorTitle = computed(() => {
@@ -58,6 +64,15 @@ function formatPeriod(startDate, endDate) {
 }
 
 function statusText(type, status) {
+  const displayField =
+    type === 'application'
+      ? program.value?.application_status_display
+      : program.value?.operation_status_display
+
+  if (displayField) {
+    return displayField
+  }
+
   if (!status) {
     return '정보 없음'
   }
@@ -65,9 +80,15 @@ function statusText(type, status) {
   const labels = {
     application: {
       available: '신청 가능',
+      open: '신청 가능',
+      closed: '신청 종료',
+      scheduled: '신청 예정',
     },
     operation: {
       upcoming: '운영 예정',
+      scheduled: '운영 예정',
+      ongoing: '운영 중',
+      ended: '운영 종료',
     },
   }
 
@@ -79,11 +100,11 @@ function statusClass(type, status) {
     return 'status-badge status-badge-muted'
   }
 
-  if (type === 'application' && status === 'available') {
+  if (type === 'application' && ['available', 'open'].includes(status)) {
     return 'status-badge status-badge-positive'
   }
 
-  if (type === 'operation' && status === 'upcoming') {
+  if (type === 'operation' && ['upcoming', 'scheduled', 'ongoing'].includes(status)) {
     return 'status-badge status-badge-info'
   }
 
@@ -139,6 +160,9 @@ onMounted(loadProgram)
           <span :class="statusClass('operation', program.operation_status)">
             {{ statusText('operation', program.operation_status) }}
           </span>
+          <span v-if="program.application_required !== null && program.application_required !== undefined" class="status-badge status-badge-muted">
+            {{ program.application_required ? '신청 필요' : '신청 불필요' }}
+          </span>
         </div>
 
         <div class="d-flex flex-wrap gap-2">
@@ -151,9 +175,7 @@ onMounted(loadProgram)
           >
             원문에서 확인
           </a>
-          <button class="btn btn-outline-secondary btn-sm" type="button" disabled>
-            저장 준비 중
-          </button>
+          <SaveButton resource-type="program" :resource-id="program.id" />
         </div>
       </div>
 
@@ -174,6 +196,16 @@ onMounted(loadProgram)
               <dd class="col-sm-8">{{ statusText('application', program.application_status) }}</dd>
               <dt class="col-sm-4">운영 상태</dt>
               <dd class="col-sm-8">{{ statusText('operation', program.operation_status) }}</dd>
+              <dt class="col-sm-4">신청 필요</dt>
+              <dd class="col-sm-8">
+                {{
+                  program.application_required === null || program.application_required === undefined
+                    ? '정보 없음'
+                    : program.application_required
+                      ? '필요'
+                      : '불필요'
+                }}
+              </dd>
             </dl>
           </section>
         </div>

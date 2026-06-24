@@ -2,6 +2,9 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
+import SaveButton from '@/components/actions/SaveButton.vue'
+import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
+
 const props = defineProps({
   book: {
     type: Object,
@@ -22,16 +25,11 @@ const kdcText = computed(() =>
   <article class="book-card">
     <RouterLink class="book-cover-link" :to="detailTo" :aria-label="`${book.title} 상세 보기`">
       <div class="book-cover">
-        <img
-          v-if="book.cover_image_url"
+        <ResponsiveImage
           :src="book.cover_image_url"
           :alt="`${book.title} 표지`"
-          loading="lazy"
-          decoding="async"
+          fallback-label="표지 없음"
         />
-        <div v-else class="book-cover-fallback" aria-hidden="true">
-          <span>표지 없음</span>
-        </div>
       </div>
     </RouterLink>
 
@@ -47,9 +45,7 @@ const kdcText = computed(() =>
       <p v-if="book.loan_count !== null && book.loan_count !== undefined" class="meta-text mb-3">
         대출 {{ book.loan_count.toLocaleString() }}회
       </p>
-      <button class="btn btn-outline-secondary btn-sm" type="button" disabled>
-        저장 준비 중
-      </button>
+      <SaveButton v-if="book.isbn13" resource-type="book" :resource-id="book.isbn13" />
     </div>
   </article>
 </template>

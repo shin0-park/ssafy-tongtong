@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
+import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -39,9 +40,17 @@ onMounted(loadProfile)
 
     <div v-else class="content-panel p-4">
       <div class="d-flex flex-wrap justify-content-between gap-3 mb-4">
-        <div>
+        <div class="d-flex align-items-center gap-3">
+          <ResponsiveImage
+            class="profile-avatar"
+            :src="authStore.user?.profile_image_url"
+            :alt="authStore.user?.profile_image_alt || `${authStore.user?.nickname || '사용자'} 프로필 이미지`"
+            fallback-label="이미지 없음"
+          />
+          <div>
           <h1 class="page-title">프로필</h1>
-          <p class="page-subtitle">계정의 이메일과 닉네임을 확인합니다.</p>
+            <p class="page-subtitle">계정 정보와 공개 프로필을 확인합니다.</p>
+          </div>
         </div>
         <RouterLink class="btn btn-outline-primary align-self-start" to="/profile/edit">수정</RouterLink>
       </div>
@@ -51,6 +60,10 @@ onMounted(loadProfile)
         <dd class="col-sm-9">{{ authStore.user?.email || '-' }}</dd>
         <dt class="col-sm-3">닉네임</dt>
         <dd class="col-sm-9">{{ authStore.user?.nickname || '-' }}</dd>
+        <dt class="col-sm-3">소개</dt>
+        <dd class="col-sm-9">{{ authStore.user?.bio || '소개가 없습니다.' }}</dd>
+        <dt class="col-sm-3">이미지 대체 텍스트</dt>
+        <dd class="col-sm-9">{{ authStore.user?.profile_image_alt || '-' }}</dd>
       </dl>
     </div>
   </section>
