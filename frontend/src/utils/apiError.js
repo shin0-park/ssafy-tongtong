@@ -40,3 +40,7 @@ export function normalizeApiError(error) {
     fields: null,
   }
 }
+
+export function extractErrorMessage(error, fallback = '요청을 처리하지 못했습니다.') {
+  return normalizeApiError(error).message || fallback
+}

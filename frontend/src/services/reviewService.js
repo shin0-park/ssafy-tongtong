@@ -15,13 +15,13 @@ export async function fetchReviewDetail(reviewId) {
   return data
 }
 
-export async function createReview(payload) {
-  const { data } = await apiClient.post('/reviews/', payload)
+export async function createReview(payload, config = {}) {
+  const { data } = await apiClient.post('/reviews/', payload, config)
   return data
 }
 
-export async function updateReview(reviewId, payload) {
-  const { data } = await apiClient.patch(`/reviews/${reviewId}/`, payload)
+export async function updateReview(reviewId, payload, config = {}) {
+  const { data } = await apiClient.patch(`/reviews/${reviewId}/`, payload, config)
   return data
 }
 

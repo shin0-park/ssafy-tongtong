@@ -48,11 +48,31 @@ const router = createRouter({
     },
     {
       path: '/reviews',
+      redirect: '/community',
+    },
+    {
+      path: '/community',
       name: 'review-list',
-      component: PlaceholderView,
-      props: {
-        title: '커뮤니티',
-      },
+      component: () => import('@/pages/community/ReviewListView.vue'),
+    },
+    {
+      path: '/reviews/new',
+      name: 'review-create',
+      component: () => import('@/pages/community/ReviewFormView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/reviews/:id/edit',
+      name: 'review-edit',
+      component: () => import('@/pages/community/ReviewFormView.vue'),
+      props: true,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/reviews/:id',
+      name: 'review-detail',
+      component: () => import('@/pages/community/ReviewDetailView.vue'),
+      props: true,
     },
     {
       path: '/auth/login',
@@ -68,17 +88,49 @@ const router = createRouter({
     },
     {
       path: '/my-outings',
-      redirect: '/my-outings/libraries',
+      redirect: '/my-outings/dashboard',
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/my-outings/dashboard',
+      name: 'my-outings-dashboard',
+      component: () => import('@/pages/myoutings/MyOutingsDashboardView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/my-outings/libraries',
       name: 'my-outings-libraries',
-      component: PlaceholderView,
+      component: () => import('@/pages/myoutings/MyOutingsListView.vue'),
       meta: { requiresAuth: true },
-      props: {
-        title: '저장한 도서관',
-      },
+      props: { kind: 'libraries' },
+    },
+    {
+      path: '/my-outings/books',
+      name: 'my-outings-books',
+      component: () => import('@/pages/myoutings/MyOutingsListView.vue'),
+      meta: { requiresAuth: true },
+      props: { kind: 'books' },
+    },
+    {
+      path: '/my-outings/programs',
+      name: 'my-outings-programs',
+      component: () => import('@/pages/myoutings/MyOutingsListView.vue'),
+      meta: { requiresAuth: true },
+      props: { kind: 'programs' },
+    },
+    {
+      path: '/my-outings/reviews',
+      name: 'my-outings-reviews',
+      component: () => import('@/pages/myoutings/MyOutingsListView.vue'),
+      meta: { requiresAuth: true },
+      props: { kind: 'reviews' },
+    },
+    {
+      path: '/my-outings/liked-reviews',
+      name: 'my-outings-liked-reviews',
+      component: () => import('@/pages/myoutings/MyOutingsListView.vue'),
+      meta: { requiresAuth: true },
+      props: { kind: 'liked-reviews' },
     },
     {
       path: '/profile',
@@ -91,6 +143,23 @@ const router = createRouter({
       name: 'profile-edit',
       component: () => import('@/pages/profile/ProfileEditView.vue'),
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/preferences',
+      name: 'preferences',
+      component: () => import('@/pages/preferences/PreferenceSettingsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/onboarding/preferences',
+      name: 'onboarding-preferences',
+      component: () => import('@/pages/preferences/PreferenceSettingsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/403',
+      name: 'forbidden',
+      component: () => import('@/pages/system/ForbiddenView.vue'),
     },
     {
       path: '/:pathMatch(.*)*',

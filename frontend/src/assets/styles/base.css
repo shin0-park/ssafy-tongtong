@@ -30,6 +30,35 @@ a {
   padding: var(--space-8) var(--space-6) var(--space-10);
 }
 
+.page-shell-narrow {
+  width: min(820px, 100%);
+}
+
+.page-header {
+  margin-bottom: var(--space-6);
+}
+
+.page-header h1,
+.page-header h2 {
+  margin: 0 0 var(--space-2);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-title);
+  letter-spacing: 0;
+}
+
+.page-description {
+  max-width: 720px;
+  color: var(--color-text-muted);
+}
+
+.eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--color-primary-700);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0;
+}
+
 .page-title {
   margin-bottom: var(--space-2);
   font-size: var(--font-size-32);
@@ -70,6 +99,10 @@ a {
   margin: 6px 0 0;
   color: var(--color-danger);
   font-size: 0.9rem;
+}
+
+.preserve-lines {
+  white-space: pre-line;
 }
 
 @media (max-width: 767px) {

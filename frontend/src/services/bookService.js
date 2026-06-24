@@ -12,12 +12,22 @@ const BOOK_SEARCH_QUERY_KEYS = [
   'publisher',
   'page',
   'page_size',
+  'sort',
+  'order',
 ]
 const BOOK_HOLDING_QUERY_KEYS = ['page', 'page_size']
+const BOOK_POPULAR_QUERY_KEYS = ['limit', 'region']
 
 export async function fetchBooks(params = {}) {
   const { data } = await apiClient.get('/books/', {
     params: cleanParams(params, BOOK_LIST_QUERY_KEYS),
+  })
+  return data
+}
+
+export async function fetchPopularBooks(params = {}) {
+  const { data } = await apiClient.get('/books/popular/', {
+    params: cleanParams(params, BOOK_POPULAR_QUERY_KEYS),
   })
   return data
 }

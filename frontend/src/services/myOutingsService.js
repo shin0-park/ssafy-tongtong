@@ -3,6 +3,11 @@ import { cleanParams } from '@/utils/query'
 
 const PAGINATION_QUERY_KEYS = ['page', 'page_size']
 
+export async function fetchMyOutingsDashboard() {
+  const { data } = await apiClient.get('/my-outings/dashboard/')
+  return data
+}
+
 export async function fetchSavedLibraries(params = {}) {
   const { data } = await apiClient.get('/my-outings/libraries/', {
     params: cleanParams(params, PAGINATION_QUERY_KEYS),

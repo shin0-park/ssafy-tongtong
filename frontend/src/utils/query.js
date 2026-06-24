@@ -10,9 +10,49 @@ export function cleanParams(params = {}, allowedKeys = []) {
       return nextParams
     }
 
+    if (Array.isArray(value)) {
+      const values = value.map((item) => String(item).trim()).filter(Boolean)
+
+      if (!values.length) {
+        return nextParams
+      }
+
+      nextParams[key] = values.join(',')
+      return nextParams
+    }
+
     nextParams[key] = value
     return nextParams
   }, {})
+}
+
+export function readStringQuery(route, key, fallback = '') {
+  const value = route.query[key]
+
+  if (Array.isArray(value)) {
+    return value[0] || fallback
+  }
+
+  return typeof value === 'string' ? value : fallback
+}
+
+export function readCommaQuery(route, key) {
+  return readStringQuery(route, key)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+}
+
+export function toCommaParam(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean).join(',') || undefined
+  }
+
+  return value || undefined
+}
+
+export function normalizeOrdering(value, allowedValues = [], fallback = allowedValues[0]) {
+  return allowedValues.includes(value) ? value : fallback
 }
 
 export function readPageQuery(route) {

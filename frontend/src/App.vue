@@ -44,13 +44,16 @@ async function handleLogout() {
               <RouterLink class="nav-link" to="/programs">문화 프로그램</RouterLink>
             </li>
             <li class="nav-item">
-              <RouterLink class="nav-link" to="/reviews">커뮤니티</RouterLink>
+              <RouterLink class="nav-link" to="/community">커뮤니티</RouterLink>
             </li>
           </ul>
 
           <div class="d-flex align-items-center gap-2">
-            <RouterLink v-if="isAuthenticated" class="btn btn-outline-primary btn-sm" to="/my-outings">
+            <RouterLink v-if="isAuthenticated" class="btn btn-outline-primary btn-sm" to="/my-outings/dashboard">
               나의 나들이
+            </RouterLink>
+            <RouterLink v-if="isAuthenticated" class="btn btn-outline-secondary btn-sm" to="/preferences">
+              선호 설정
             </RouterLink>
             <RouterLink v-if="isAuthenticated" class="btn btn-outline-secondary btn-sm" to="/profile">
               {{ user?.nickname || '프로필' }}
