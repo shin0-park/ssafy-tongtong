@@ -1,9 +1,11 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
+import { searchBooks } from '@/services/bookService'
+import { fetchPrograms } from '@/services/programService'
 import { createReview, fetchReviewDetail, updateReview } from '@/services/reviewService'
 import { extractErrorMessage, normalizeApiError } from '@/utils/apiError'
 import { buildMultipartPayload, hasFiles } from '@/utils/formData'
@@ -18,15 +20,26 @@ const errorMessage = ref('')
 const fieldErrors = ref({})
 const validationMessage = ref('')
 const selectedImages = ref([])
+const imagePreviews = ref([])
+const relatedPrograms = ref([])
+const isLoadingPrograms = ref(false)
+const programErrorMessage = ref('')
+const bookSearchQuery = ref('')
+const bookSearchResults = ref([])
+const isSearchingBooks = ref(false)
+const bookSearchMessage = ref('')
 
 const form = reactive({
-  library_id: '',
+  library_id: typeof route.query.library_id === 'string' ? route.query.library_id : '',
   content: '',
   tag_codes: '',
   book_ids: '',
   program_ids: '',
   replace_images: false,
 })
+
+const selectedProgramIds = computed(() => splitNumericValues(form.program_ids))
+const selectedBookIds = computed(() => splitNumericValues(form.book_ids))
 
 function splitValues(value) {
   return String(value || '')
@@ -82,6 +95,26 @@ function handleImageChange(event) {
   selectedImages.value = Array.from(event.target.files ?? [])
 }
 
+function setNumericSelection(fieldName, id, checked) {
+  const values = new Set(splitNumericValues(form[fieldName]))
+
+  if (checked) {
+    values.add(Number(id))
+  } else {
+    values.delete(Number(id))
+  }
+
+  form[fieldName] = Array.from(values).join(', ')
+}
+
+function syncImagePreviews(files) {
+  imagePreviews.value.forEach((item) => URL.revokeObjectURL(item.url))
+  imagePreviews.value = files.map((file) => ({
+    name: file.name,
+    url: URL.createObjectURL(file),
+  }))
+}
+
 function firstFieldError(fieldName) {
   const fieldError = fieldErrors.value?.[fieldName]
 
@@ -118,6 +151,58 @@ async function loadReview() {
     fieldErrors.value = normalizeApiError(error).fields ?? {}
   } finally {
     isLoading.value = false
+  }
+}
+
+async function loadRelatedPrograms() {
+  if (!form.library_id) {
+    relatedPrograms.value = []
+    return
+  }
+
+  isLoadingPrograms.value = true
+  programErrorMessage.value = ''
+
+  try {
+    const data = await fetchPrograms({
+      library_id: form.library_id,
+      page_size: 6,
+    })
+    relatedPrograms.value = data.results ?? []
+  } catch {
+    relatedPrograms.value = []
+    programErrorMessage.value = '관련 프로그램을 불러오지 못했어요.'
+  } finally {
+    isLoadingPrograms.value = false
+  }
+}
+
+async function searchRelatedBooks() {
+  const query = bookSearchQuery.value.trim()
+  bookSearchMessage.value = ''
+  bookSearchResults.value = []
+
+  if (!query) {
+    bookSearchMessage.value = '검색어를 입력해주세요.'
+    return
+  }
+
+  isSearchingBooks.value = true
+
+  try {
+    const data = await searchBooks({
+      search_type: 'keyword',
+      q: query,
+      page_size: 6,
+    })
+    bookSearchResults.value = data.results ?? []
+    if (!bookSearchResults.value.length) {
+      bookSearchMessage.value = '검색 결과가 없어요.'
+    }
+  } catch (error) {
+    bookSearchMessage.value = extractErrorMessage(error, '책을 검색하지 못했어요.')
+  } finally {
+    isSearchingBooks.value = false
   }
 }
 
@@ -159,7 +244,17 @@ async function handleSubmit() {
   }
 }
 
-onMounted(loadReview)
+watch(selectedImages, syncImagePreviews)
+watch(() => form.library_id, loadRelatedPrograms)
+
+onMounted(async () => {
+  await loadReview()
+  await loadRelatedPrograms()
+})
+
+onBeforeUnmount(() => {
+  imagePreviews.value.forEach((item) => URL.revokeObjectURL(item.url))
+})
 </script>
 
 <template>
@@ -185,10 +280,10 @@ onMounted(loadReview)
 
       <label class="form-field mb-3">
         <span>도서관 ID</span>
-          <input v-model.trim="form.library_id" class="form-control" type="number" min="1" required />
-          <p v-if="firstFieldError('library_id')" class="field-error">
-            {{ firstFieldError('library_id') }}
-          </p>
+        <input v-model.trim="form.library_id" class="form-control" type="number" min="1" required />
+        <p v-if="firstFieldError('library_id')" class="field-error">
+          {{ firstFieldError('library_id') }}
+        </p>
       </label>
 
       <label class="form-field mb-3">
@@ -211,10 +306,44 @@ onMounted(loadReview)
       <label class="form-field mb-3">
         <span>관련 책 ID</span>
         <input v-model.trim="form.book_ids" class="form-control" />
+        <span class="meta-text">책 검색 결과에 내부 numeric id가 있을 때만 선택할 수 있어요.</span>
         <p v-if="firstFieldError('book_ids')" class="field-error">
           {{ firstFieldError('book_ids') }}
         </p>
       </label>
+
+      <section class="content-panel-soft mb-3">
+        <div class="d-flex gap-2">
+          <input
+            v-model.trim="bookSearchQuery"
+            class="form-control"
+            type="search"
+            placeholder="관련 책 검색"
+          />
+          <button class="btn btn-outline-primary" type="button" :disabled="isSearchingBooks" @click="searchRelatedBooks">
+            검색
+          </button>
+        </div>
+        <p v-if="bookSearchMessage" class="meta-text mt-2 mb-0">{{ bookSearchMessage }}</p>
+        <div v-if="bookSearchResults.length" class="selection-list mt-3">
+          <label v-for="book in bookSearchResults" :key="book.id || book.isbn13" class="selection-row">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              :disabled="!book.id"
+              :checked="book.id ? selectedBookIds.includes(Number(book.id)) : false"
+              @change="setNumericSelection('book_ids', book.id, $event.target.checked)"
+            />
+            <span>
+              <strong>{{ book.title || '제목 정보 없음' }}</strong>
+              <span class="meta-text d-block">
+                {{ book.authors_text || '저자 정보 없음' }}
+                <template v-if="!book.id"> · 내부 ID 없음</template>
+              </span>
+            </span>
+          </label>
+        </div>
+      </section>
 
       <label class="form-field mb-3">
         <span>관련 프로그램 ID</span>
@@ -223,6 +352,29 @@ onMounted(loadReview)
           {{ firstFieldError('program_ids') }}
         </p>
       </label>
+
+      <section class="content-panel-soft mb-3">
+        <p v-if="isLoadingPrograms" class="meta-text mb-0">관련 프로그램을 불러오는 중입니다.</p>
+        <p v-else-if="programErrorMessage" class="meta-text mb-0">{{ programErrorMessage }}</p>
+        <p v-else-if="!form.library_id" class="meta-text mb-0">도서관 ID를 입력하면 관련 프로그램을 선택할 수 있어요.</p>
+        <p v-else-if="!relatedPrograms.length" class="meta-text mb-0">선택할 수 있는 관련 프로그램이 없어요.</p>
+        <div v-else class="selection-list">
+          <label v-for="program in relatedPrograms" :key="program.id" class="selection-row">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              :checked="selectedProgramIds.includes(Number(program.id))"
+              @change="setNumericSelection('program_ids', program.id, $event.target.checked)"
+            />
+            <span>
+              <strong>{{ program.title || '프로그램명 정보 없음' }}</strong>
+              <span class="meta-text d-block">
+                {{ program.category_display || '분류 정보 없음' }}
+              </span>
+            </span>
+          </label>
+        </div>
+      </section>
 
       <label class="form-field mb-3">
         <span>이미지</span>
@@ -238,6 +390,16 @@ onMounted(loadReview)
           {{ firstFieldError('images') }}
         </p>
       </label>
+
+      <div v-if="imagePreviews.length" class="review-image-grid mb-3">
+        <img
+          v-for="image in imagePreviews"
+          :key="image.url"
+          class="review-image-preview"
+          :src="image.url"
+          :alt="`${image.name} 미리보기`"
+        />
+      </div>
 
       <label v-if="isEdit" class="form-check mb-4">
         <input v-model="form.replace_images" class="form-check-input" type="checkbox" />

@@ -28,6 +28,13 @@ const images = computed(() => props.review.images ?? [])
 const tags = computed(() => props.review.tags ?? [])
 const books = computed(() => props.review.books ?? props.review.related_books ?? [])
 const programs = computed(() => props.review.programs ?? props.review.related_programs ?? [])
+const updatedDateText = computed(() => {
+  if (!props.detail || !props.review.updated_at || props.review.updated_at === props.review.created_at) {
+    return ''
+  }
+
+  return formatDate(props.review.updated_at)
+})
 
 function formatDate(value) {
   if (!value) {
@@ -95,6 +102,7 @@ function formatDate(value) {
     <footer class="review-card-footer">
       <span>조회 {{ (review.view_count ?? 0).toLocaleString() }}</span>
       <span>작성 {{ formatDate(review.created_at) }}</span>
+      <span v-if="updatedDateText">수정 {{ updatedDateText }}</span>
     </footer>
   </article>
 </template>
