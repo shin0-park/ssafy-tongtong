@@ -22,6 +22,9 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = null
     user.value = null
     authError.value = null
+    import('@/stores/interaction').then(({ useInteractionStore }) => {
+      useInteractionStore().reset()
+    })
   }
 
   async function signup(payload) {
@@ -33,6 +36,9 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(payload) {
     const data = await authService.login(payload)
     setSession(data)
+    import('@/stores/interaction').then(({ useInteractionStore }) => {
+      useInteractionStore().hydrate()
+    })
     return data
   }
 
@@ -52,6 +58,9 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await refreshAccessToken()
       user.value = await accountService.fetchCurrentUser()
+      import('@/stores/interaction').then(({ useInteractionStore }) => {
+        useInteractionStore().hydrate()
+      })
       authError.value = null
     } catch (error) {
       clearSession()

@@ -1,4 +1,4 @@
-import { computed, reactive, ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import * as bookService from '@/services/bookService'
@@ -13,15 +13,8 @@ export const useInteractionStore = defineStore('interaction', () => {
   const savedProgramIds = reactive(new Set())
   const likedReviewIds = reactive(new Set())
   const isHydrating = ref(false)
+  const hasHydrated = ref(false)
   const hydrateError = ref(null)
-
-  const hasHydrated = computed(
-    () =>
-      savedLibraryIds.size > 0 ||
-      savedBookIsbns.size > 0 ||
-      savedProgramIds.size > 0 ||
-      likedReviewIds.size > 0,
-  )
 
   function reset() {
     savedLibraryIds.clear()
@@ -29,9 +22,14 @@ export const useInteractionStore = defineStore('interaction', () => {
     savedProgramIds.clear()
     likedReviewIds.clear()
     hydrateError.value = null
+    hasHydrated.value = false
   }
 
   async function hydrate() {
+    if (isHydrating.value) {
+      return
+    }
+
     isHydrating.value = true
     hydrateError.value = null
 
@@ -62,6 +60,7 @@ export const useInteractionStore = defineStore('interaction', () => {
       ;(likedReviews.results ?? []).forEach((item) => {
         if (item.review?.id) likedReviewIds.add(item.review.id)
       })
+      hasHydrated.value = true
     } catch (error) {
       hydrateError.value = error
     } finally {
@@ -70,6 +69,10 @@ export const useInteractionStore = defineStore('interaction', () => {
   }
 
   async function toggleLibrarySave(libraryId) {
+    if (!hasHydrated.value) {
+      await hydrate()
+    }
+
     if (savedLibraryIds.has(libraryId)) {
       await libraryService.unsaveLibrary(libraryId)
       savedLibraryIds.delete(libraryId)
@@ -82,6 +85,10 @@ export const useInteractionStore = defineStore('interaction', () => {
   }
 
   async function toggleBookSave(isbn13) {
+    if (!hasHydrated.value) {
+      await hydrate()
+    }
+
     if (savedBookIsbns.has(isbn13)) {
       await bookService.unsaveBook(isbn13)
       savedBookIsbns.delete(isbn13)
@@ -94,6 +101,10 @@ export const useInteractionStore = defineStore('interaction', () => {
   }
 
   async function toggleProgramSave(programId) {
+    if (!hasHydrated.value) {
+      await hydrate()
+    }
+
     if (savedProgramIds.has(programId)) {
       await programService.unsaveProgram(programId)
       savedProgramIds.delete(programId)
@@ -106,6 +117,10 @@ export const useInteractionStore = defineStore('interaction', () => {
   }
 
   async function toggleReviewLike(reviewId) {
+    if (!hasHydrated.value) {
+      await hydrate()
+    }
+
     if (likedReviewIds.has(reviewId)) {
       const data = await reviewService.unlikeReview(reviewId)
       likedReviewIds.delete(reviewId)

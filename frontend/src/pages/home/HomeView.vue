@@ -13,8 +13,12 @@ const error = ref(null)
 
 const todayItems = computed(() => homeData.value?.today_recommendations?.items ?? [])
 const themeGroups = computed(() => homeData.value?.theme_recommendations ?? [])
+const personalItems = computed(() => homeData.value?.personal_recommendations?.items ?? [])
 const hasContent = computed(
-  () => todayItems.value.length > 0 || themeGroups.value.some((group) => group.items?.length),
+  () =>
+    todayItems.value.length > 0 ||
+    personalItems.value.length > 0 ||
+    themeGroups.value.some((group) => group.items?.length),
 )
 
 async function loadHome() {
@@ -35,9 +39,9 @@ onMounted(loadHome)
 
 <template>
   <section class="page-shell">
-    <div class="mb-4">
+    <div class="page-header">
       <h1 class="page-title">오늘의 도서관 나들이</h1>
-      <p class="page-subtitle">부산 지역 도서관을 추천과 테마별 목록으로 둘러보세요.</p>
+      <p class="page-subtitle">오늘의 추천, 테마 추천, 개인 추천으로 부산 도서관을 둘러보세요.</p>
     </div>
 
     <LoadingState v-if="isLoading" title="추천을 불러오는 중입니다." />
@@ -58,10 +62,24 @@ onMounted(loadHome)
         <h2 class="section-title">
           {{ homeData.today_recommendations.theme?.title || '오늘의 추천' }}
         </h2>
-        <div class="row g-3">
-          <div v-for="library in todayItems" :key="library.id" class="col-md-6 col-lg-4">
-            <LibraryCard :library="library" />
+        <div class="responsive-card-grid">
+          <LibraryCard v-for="library in todayItems" :key="library.id" :library="library" />
+        </div>
+      </section>
+
+      <section v-if="personalItems.length">
+        <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+          <div>
+            <h2 class="section-title mb-1">
+              {{ homeData.personal_recommendations.title || '나에게 맞는 추천' }}
+            </h2>
+            <p v-if="homeData.personal_recommendations.summary_sentence" class="meta-text mb-0">
+              {{ homeData.personal_recommendations.summary_sentence }}
+            </p>
           </div>
+        </div>
+        <div class="responsive-card-grid">
+          <LibraryCard v-for="library in personalItems" :key="library.id" :library="library" />
         </div>
       </section>
 
@@ -72,10 +90,8 @@ onMounted(loadHome)
           title="이 테마의 추천이 아직 없습니다."
           description="추천 데이터가 준비되면 자동으로 표시됩니다."
         />
-        <div v-else class="row g-3">
-          <div v-for="library in group.items" :key="library.id" class="col-md-6 col-lg-4">
-            <LibraryCard :library="library" />
-          </div>
+        <div v-else class="responsive-card-grid">
+          <LibraryCard v-for="library in group.items" :key="library.id" :library="library" />
         </div>
       </section>
     </div>
