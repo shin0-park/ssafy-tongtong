@@ -6,6 +6,7 @@ import SaveButton from '@/components/actions/SaveButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
+import BackLink from '@/components/navigation/BackLink.vue'
 import { fetchProgramDetail } from '@/services/programService'
 import {
   APPLICATION_STATUS_LABELS,
@@ -82,6 +83,8 @@ onMounted(loadProgram)
 
 <template>
   <section class="page-shell">
+    <BackLink to="/programs" label="문화 프로그램 목록으로 돌아가기" />
+
     <LoadingState v-if="isLoading" title="프로그램 정보를 불러오는 중입니다." />
     <ErrorState v-else-if="error" :title="errorTitle" :message="errorMessage" @retry="loadProgram" />
     <EmptyState v-else-if="!program" title="프로그램 정보가 없습니다." />

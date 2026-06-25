@@ -8,6 +8,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
 import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
+import BackLink from '@/components/navigation/BackLink.vue'
 import PaginationBar from '@/components/navigation/PaginationBar.vue'
 import { fetchBookDetail, fetchBookLibraries } from '@/services/bookService'
 import { formatNumber } from '@/utils/display'
@@ -108,6 +109,8 @@ onMounted(loadPage)
 
 <template>
   <section class="page-shell">
+    <BackLink to="/books" label="책 둘러보기로 돌아가기" />
+
     <LoadingState v-if="isBookLoading" title="책 상세 정보를 불러오는 중입니다." />
     <ErrorState
       v-else-if="bookError"

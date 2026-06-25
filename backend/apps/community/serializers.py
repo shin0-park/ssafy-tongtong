@@ -16,6 +16,7 @@ from .models import (
     ReviewProgramReference,
     ReviewTag,
     UserReview,
+    UserReviewComment,
     UserReviewImage,
 )
 
@@ -75,6 +76,7 @@ class ReviewProgramSummarySerializer(serializers.Serializer):
 class UserReviewSerializer(serializers.ModelSerializer):
     library = ReviewLibrarySummarySerializer(read_only=True)
     user = ReviewUserSummarySerializer(read_only=True)
+    comment_count = serializers.SerializerMethodField()
     tags = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
     related_books = serializers.SerializerMethodField()
@@ -89,6 +91,7 @@ class UserReviewSerializer(serializers.ModelSerializer):
             "content",
             "view_count",
             "like_count",
+            "comment_count",
             "created_at",
             "updated_at",
             "tags",
@@ -96,6 +99,12 @@ class UserReviewSerializer(serializers.ModelSerializer):
             "related_books",
             "related_programs",
         )
+
+    def get_comment_count(self, obj):
+        annotated_count = getattr(obj, "comment_count", None)
+        if annotated_count is not None:
+            return annotated_count
+        return obj.comments.count()
 
     def get_tags(self, obj):
         tag_links = getattr(obj, "prefetched_tag_links", None)
@@ -377,3 +386,30 @@ class UserReviewWriteSerializer(serializers.Serializer):
                 logger.warning("Failed to delete review image file.", exc_info=True)
         UserReviewImage.objects.filter(pk__in=[image.pk for image in existing_images]).delete()
         UserReviewWriteSerializer.create_review_images(review, images)
+
+
+class UserReviewCommentSerializer(serializers.ModelSerializer):
+    user = ReviewUserSummarySerializer(read_only=True)
+    review_id = serializers.IntegerField(source="review.id", read_only=True)
+
+    class Meta:
+        model = UserReviewComment
+        fields = ("id", "review_id", "user", "content", "created_at", "updated_at")
+        read_only_fields = ("id", "review_id", "user", "created_at", "updated_at")
+
+    def validate_content(self, value):
+        content = value.strip()
+        if not content:
+            raise serializers.ValidationError("Comment content is required.")
+        if len(content) > 200:
+            raise serializers.ValidationError("Comment content must be 200 characters or fewer.")
+        return content
+
+
+class MyReviewCommentSerializer(serializers.ModelSerializer):
+    user = ReviewUserSummarySerializer(read_only=True)
+    review = UserReviewSerializer(read_only=True)
+
+    class Meta:
+        model = UserReviewComment
+        fields = ("id", "user", "content", "created_at", "updated_at", "review")

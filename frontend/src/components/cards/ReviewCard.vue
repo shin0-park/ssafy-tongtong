@@ -97,6 +97,7 @@ function tagLabel(tag) {
 
     <footer class="review-card-footer">
       <span>조회 {{ (review.view_count ?? 0).toLocaleString('ko-KR') }}</span>
+      <span>댓글 {{ (review.comment_count ?? 0).toLocaleString('ko-KR') }}</span>
       <span>작성 {{ formatDate(review.created_at) }}</span>
       <span v-if="updatedDateText">수정 {{ updatedDateText }}</span>
     </footer>

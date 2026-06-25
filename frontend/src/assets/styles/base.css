@@ -104,6 +104,28 @@ a {
   margin-bottom: var(--space-6);
 }
 
+.page-back-row {
+  display: flex;
+  margin-bottom: var(--space-3);
+}
+
+.page-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary-700);
+  font-size: 2rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+.page-back-button:hover,
+.page-back-button:focus-visible {
+  color: var(--color-primary-900);
+}
+
 .page-header h1,
 .page-header h2 {
   margin: 0 0 var(--space-2);

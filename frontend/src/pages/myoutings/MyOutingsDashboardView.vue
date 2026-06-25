@@ -70,8 +70,8 @@ const outingListCards = computed(() => [
     to: '/my-outings/liked-reviews',
   },
   {
-    label: '내가 쓴 후기',
-    description: '작성한 후기 목록',
+    label: '내가 쓴 후기/댓글',
+    description: '작성한 후기와 댓글',
     value: profileSummary.value.review_count,
     to: '/my-outings/reviews',
   },

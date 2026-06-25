@@ -12,6 +12,7 @@ import LoadingState from '@/components/feedback/LoadingState.vue'
 import AttributionOverlay from '@/components/media/AttributionOverlay.vue'
 import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
 import KakaoMapPanel from '@/components/maps/KakaoMapPanel.vue'
+import BackLink from '@/components/navigation/BackLink.vue'
 import { fetchLibraryDetail, fetchSimilarLibraries } from '@/services/libraryService'
 import { fetchPrograms } from '@/services/programService'
 import { fetchReviews } from '@/services/reviewService'
@@ -205,6 +206,8 @@ onMounted(loadLibrary)
 
 <template>
   <section class="page-shell">
+    <BackLink to="/libraries" label="도서관 찾기로 돌아가기" />
+
     <LoadingState v-if="isLoading" title="도서관 정보를 불러오는 중입니다." />
     <ErrorState
       v-else-if="error"
