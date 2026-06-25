@@ -48,6 +48,7 @@ async function submitSignup() {
 <template>
   <section class="page-shell auth-page">
     <div class="auth-card content-panel p-4">
+      <img class="auth-brand-mark" src="/brand/logo-wordmark-clean.png" alt="도서관 나들이" />
       <div class="mb-4">
         <h1 class="page-title">회원가입</h1>
         <p class="page-subtitle">이메일, 닉네임, 비밀번호로 계정을 만듭니다.</p>

@@ -50,7 +50,7 @@ onMounted(loadProfile)
             fallback-label="기본 프로필 이미지"
           />
           <div>
-          <h1 class="page-title">프로필</h1>
+            <h1 class="page-title">프로필</h1>
             <p class="page-subtitle">계정 정보와 공개 프로필을 확인합니다.</p>
           </div>
         </div>

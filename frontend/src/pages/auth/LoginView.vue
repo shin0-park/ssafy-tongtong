@@ -46,6 +46,7 @@ async function submitLogin() {
 <template>
   <section class="page-shell auth-page">
     <div class="auth-card content-panel p-4">
+      <img class="auth-brand-mark" src="/brand/logo-wordmark-clean.png" alt="도서관 나들이" />
       <div class="mb-4">
         <h1 class="page-title">로그인</h1>
         <p class="page-subtitle">이메일과 비밀번호로 도서관 나들이에 들어갑니다.</p>

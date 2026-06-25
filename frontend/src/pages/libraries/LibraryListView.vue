@@ -43,7 +43,7 @@ const LIBRARY_TYPE_OPTIONS = [
 const PURPOSE_OPTIONS = Object.entries(PURPOSE_LABELS).map(([value, label]) => ({ value, label }))
 const FACILITY_OPTIONS = Object.entries(FACILITY_LABELS).map(([value, label]) => ({ value, label }))
 const ORDERING_OPTIONS = [
-  { value: '', label: '이름순' },
+  { value: 'name', label: '이름순' },
   { value: '-book_count', label: '장서 많은 순' },
   { value: '-reading_seat_count', label: '좌석 많은 순' },
   { value: 'purpose_score', label: '테마 적합순' },
@@ -58,19 +58,20 @@ const pagination = ref({ count: 0, next: null, previous: null })
 const isLoading = ref(false)
 const error = ref(null)
 const locationMessage = ref('')
+const sigunguMessage = ref('')
 const currentLocation = ref(readStoredLocation())
 const showLocationPanel = ref(false)
 const isLocationLoading = ref(false)
 const filters = reactive({
   q: '',
-  sigungu: '',
+  sigungu: [],
   library_type: '',
   purpose: '',
   lat: '',
   lng: '',
   min_book_count: '',
   min_reading_seat_count: '',
-  ordering: '',
+  ordering: 'name',
   open_today: false,
   weekend_open: false,
   holiday_status: '',
@@ -85,7 +86,7 @@ const needsLocation = computed(() => filters.purpose === 'nearby' && (!filters.l
 const hasFilter = computed(() =>
   Boolean(
     filters.q ||
-      filters.sigungu ||
+      filters.sigungu.length ||
       filters.library_type ||
       filters.purpose ||
       filters.min_book_count ||
@@ -114,7 +115,8 @@ function readSingleQueryValue(name, allowedValues) {
 
 function syncFromRoute() {
   filters.q = readStringQuery(route, 'q')
-  filters.sigungu = readSingleQueryValue('sigungu', SIGUNGU_OPTIONS)
+  filters.sigungu = readMultiQuery('sigungu', SIGUNGU_OPTIONS).slice(0, 3)
+  sigunguMessage.value = ''
   filters.library_type = readSingleQueryValue(
     'library_type',
     LIBRARY_TYPE_OPTIONS.map((item) => item.value),
@@ -124,9 +126,10 @@ function syncFromRoute() {
   filters.lng = readStringQuery(route, 'lng')
   filters.min_book_count = readStringQuery(route, 'min_book_count')
   filters.min_reading_seat_count = readStringQuery(route, 'min_reading_seat_count')
-  filters.ordering = ORDERING_OPTIONS.some((item) => item.value === route.query.ordering)
+  const routeOrdering = ORDERING_OPTIONS.some((item) => item.value === route.query.ordering)
     ? readStringQuery(route, 'ordering')
-    : ''
+    : 'name'
+  filters.ordering = routeOrdering === 'purpose_score' && !filters.purpose ? 'name' : routeOrdering
   filters.holiday_status = HOLIDAY_STATUS_OPTIONS.some((item) => item.value === route.query.holiday_status)
     ? readStringQuery(route, 'holiday_status')
     : ''
@@ -201,14 +204,14 @@ function applyFilters() {
     name: 'library-list',
     query: {
       q: filters.q || undefined,
-      sigungu: filters.sigungu || undefined,
+      sigungu: filters.sigungu.length ? filters.sigungu.join(',') : undefined,
       library_type: filters.library_type || undefined,
       purpose: purpose || undefined,
       lat: purpose ? filters.lat || undefined : undefined,
       lng: purpose ? filters.lng || undefined : undefined,
       min_book_count: filters.min_book_count || undefined,
       min_reading_seat_count: filters.min_reading_seat_count || undefined,
-      ordering: ordering || undefined,
+      ordering: ordering === 'name' ? undefined : ordering,
       open_today: filters.open_today ? 'true' : undefined,
       weekend_open: filters.weekend_open ? 'true' : undefined,
       holiday_status: filters.holiday_status || undefined,
@@ -225,12 +228,29 @@ function resetFilters() {
   router.push({ name: 'library-list' })
 }
 
+function applySort() {
+  const ordering = filters.ordering === 'purpose_score' && !filters.purpose ? 'name' : filters.ordering
+  filters.ordering = ordering
+
+  router.push({
+    name: 'library-list',
+    query: {
+      ...route.query,
+      ordering: ordering === 'name' ? undefined : ordering,
+      page: 1,
+    },
+  })
+}
+
 function togglePurpose(value) {
   locationMessage.value = ''
   if (filters.purpose === value) {
     filters.purpose = ''
     filters.lat = ''
     filters.lng = ''
+    if (filters.ordering === 'purpose_score') {
+      filters.ordering = 'name'
+    }
     return
   }
   filters.purpose = value
@@ -254,6 +274,19 @@ function togglePurpose(value) {
 
 function toggleSingleFilter(field, value) {
   filters[field] = filters[field] === value ? '' : value
+}
+
+function toggleSigungu(sigungu) {
+  sigunguMessage.value = ''
+  if (filters.sigungu.includes(sigungu)) {
+    filters.sigungu = filters.sigungu.filter((item) => item !== sigungu)
+    return
+  }
+  if (filters.sigungu.length >= 3) {
+    sigunguMessage.value = '지역은 최대 3개까지 선택할 수 있습니다.'
+    return
+  }
+  filters.sigungu = [...filters.sigungu, sigungu]
 }
 
 function toggleHolidayStatus(value) {
@@ -323,22 +356,15 @@ onMounted(() => {
   <section class="page-shell">
     <div class="page-hero page-hero-banner page-hero-libraries">
       <h1>도서관 찾기</h1>
-      <p>지역, 테마, 운영 조건, 시설 정보를 조합해 오늘 가기 좋은 부산 도서관을 찾아보세요.</p>
+      <p>지역, 테마, 운영 조건, 시설 정보를 조합해 오늘 가기 좋은 도서관을 찾아보세요.</p>
     </div>
 
-    <form class="content-panel p-4 mb-4 filter-panel" @submit.prevent="applyFilters">
+    <div class="explore-layout">
+    <form class="content-panel p-4 filter-panel explore-filter-panel" @submit.prevent="applyFilters">
       <div class="filter-grid">
         <label class="form-field">
           <span>검색</span>
           <input v-model.trim="filters.q" class="form-control" type="search" placeholder="도서관명, 지역, 주소 검색" />
-        </label>
-        <label class="form-field">
-          <span>정렬</span>
-          <select v-model="filters.ordering" class="form-select">
-            <option v-for="option in ORDERING_OPTIONS" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
         </label>
         <label class="form-field">
           <span>최소 장서 수</span>
@@ -351,20 +377,24 @@ onMounted(() => {
       </div>
 
       <div class="filter-group">
-        <p class="filter-group-title">지역</p>
+        <p class="filter-group-title">
+          지역
+          <span class="filter-group-note">최대 3개</span>
+        </p>
         <div class="filter-chip-grid">
           <button
             v-for="sigungu in SIGUNGU_OPTIONS"
             :key="sigungu"
             class="filter-chip"
-            :class="{ active: filters.sigungu === sigungu }"
+            :class="{ active: filters.sigungu.includes(sigungu) }"
             type="button"
-            :aria-pressed="filters.sigungu === sigungu"
-            @click="toggleSingleFilter('sigungu', sigungu)"
+            :aria-pressed="filters.sigungu.includes(sigungu)"
+            @click="toggleSigungu(sigungu)"
           >
             <span>{{ sigungu }}</span>
           </button>
         </div>
+        <p v-if="sigunguMessage" class="field-error mb-0">{{ sigunguMessage }}</p>
       </div>
 
       <div class="filter-group">
@@ -451,33 +481,53 @@ onMounted(() => {
       </div>
     </form>
 
-    <LoadingState v-if="isLoading" title="도서관 목록을 불러오는 중입니다." />
-    <ErrorState
-      v-else-if="error"
-      title="도서관 목록을 불러오지 못했습니다."
-      :message="error.message"
-      @retry="loadLibraries"
-    />
-    <EmptyState
-      v-else-if="!hasLibraries"
-      title="조건에 맞는 도서관이 없습니다."
-      description="검색어나 필터를 조정해 보세요."
-    />
-
-    <template v-else>
-      <div class="section-header-row">
-        <ResultCount :count="pagination.count" label="곳" />
-        <p class="meta-text mb-0">{{ hasFilter ? '검색 필터 결과입니다.' : '전체 도서관 목록입니다.' }}</p>
-      </div>
-      <div class="library-result-grid">
-        <LibraryCard v-for="library in libraries" :key="library.id" :library="library" />
-      </div>
-      <PaginationBar
-        :current-page="page"
-        :has-previous="Boolean(pagination.previous)"
-        :has-next="Boolean(pagination.next)"
-        @change="goToPage"
+    <div class="explore-results">
+      <LoadingState v-if="isLoading" title="도서관 목록을 불러오는 중입니다." />
+      <ErrorState
+        v-else-if="error"
+        title="도서관 목록을 불러오지 못했습니다."
+        :message="error.message"
+        @retry="loadLibraries"
       />
-    </template>
+      <EmptyState
+        v-else-if="!hasLibraries"
+        title="조건에 맞는 도서관이 없습니다."
+        description="검색어나 필터를 조정해 보세요."
+      />
+
+      <template v-else>
+        <div class="result-toolbar mb-3">
+          <div>
+            <ResultCount :count="pagination.count" label="곳" />
+            <p class="meta-text mb-0">{{ hasFilter ? '검색 필터 결과입니다.' : '전체 도서관 목록입니다.' }}</p>
+          </div>
+          <div class="result-sort-controls" aria-label="도서관 목록 정렬">
+            <label class="result-sort-select">
+              <span>정렬</span>
+              <select v-model="filters.ordering" class="form-select form-select-sm" @change="applySort">
+                <option
+                  v-for="option in ORDERING_OPTIONS"
+                  :key="option.value"
+                  :value="option.value"
+                  :disabled="option.value === 'purpose_score' && !filters.purpose"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="library-result-grid">
+          <LibraryCard v-for="library in libraries" :key="library.id" :library="library" />
+        </div>
+        <PaginationBar
+          :current-page="page"
+          :has-previous="Boolean(pagination.previous)"
+          :has-next="Boolean(pagination.next)"
+          @change="goToPage"
+        />
+      </template>
+    </div>
+    </div>
   </section>
 </template>

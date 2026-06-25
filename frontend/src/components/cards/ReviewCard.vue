@@ -38,6 +38,10 @@ const updatedDateText = computed(() => {
 
   return formatDate(props.review.updated_at)
 })
+const contentPreview = computed(() => {
+  const content = (props.review.content || '후기 내용이 없습니다.').replace(/\s+/g, ' ').trim()
+  return content.length > 96 ? `${content.slice(0, 96)}...` : content
+})
 
 function tagLabel(tag) {
   return tag.review_label || tag.label || tag.name || labelFromMap(REVIEW_TAG_LABELS, tag.review_group || tag.code, tag.code)
@@ -48,28 +52,24 @@ function tagLabel(tag) {
   <article class="review-card">
     <div class="review-card-header">
       <div>
-        <p class="meta-text mb-1">
+        <p class="review-card-context mb-1">
           <RouterLink v-if="libraryTo" class="text-decoration-none" :to="libraryTo">
             {{ review.library.name }}
           </RouterLink>
           <span v-else>{{ review.library?.name || '도서관 정보 없음' }}</span>
+          <span>{{ authorName }}</span>
+          <span>작성 {{ formatDate(review.created_at) }}</span>
         </p>
         <h3 class="review-card-title">
           <RouterLink v-if="!detail" class="text-decoration-none" :to="`/reviews/${review.id}`">
-            {{ authorName }}님의 후기
+            {{ contentPreview }}
           </RouterLink>
-          <span v-else>{{ authorName }}님의 후기</span>
+          <span v-else>{{ contentPreview }}</span>
         </h3>
       </div>
-      <LikeButton
-        v-if="review.id"
-        :review-id="review.id"
-        :like-count="review.like_count ?? 0"
-        @updated="emit('liked', $event)"
-      />
     </div>
 
-    <p :class="detail ? 'review-content' : 'review-content review-content-clamp'">
+    <p v-if="detail" class="review-content">
       {{ review.content || '후기 내용이 없습니다.' }}
     </p>
 
@@ -90,15 +90,23 @@ function tagLabel(tag) {
       </span>
     </div>
 
-    <div v-if="books.length || programs.length" class="related-mini-grid">
+    <div v-if="books.length || programs.length" class="review-card-related">
       <RelatedBookMiniCard v-for="book in books" :key="book.isbn13 || book.id" :book="book" />
       <RelatedProgramMiniCard v-for="program in programs" :key="program.id" :program="program" />
     </div>
 
     <footer class="review-card-footer">
-      <span>조회 {{ (review.view_count ?? 0).toLocaleString('ko-KR') }}</span>
-      <span>작성 {{ formatDate(review.created_at) }}</span>
-      <span v-if="updatedDateText">수정 {{ updatedDateText }}</span>
+      <div class="review-card-stats">
+        <span>조회 {{ (review.view_count ?? 0).toLocaleString('ko-KR') }}</span>
+        <span>댓글 {{ (review.comment_count ?? 0).toLocaleString('ko-KR') }}</span>
+        <span v-if="updatedDateText">수정 {{ updatedDateText }}</span>
+      </div>
+      <LikeButton
+        v-if="review.id"
+        :review-id="review.id"
+        :like-count="review.like_count ?? 0"
+        @updated="emit('liked', $event)"
+      />
     </footer>
   </article>
 </template>

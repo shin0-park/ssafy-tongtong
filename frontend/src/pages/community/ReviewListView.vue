@@ -108,6 +108,17 @@ function resetFilters() {
   router.push({ path: '/community' })
 }
 
+function applySort() {
+  router.push({
+    path: '/community',
+    query: {
+      ...route.query,
+      ordering: filters.ordering !== '-created_at' ? filters.ordering : undefined,
+      page: 1,
+    },
+  })
+}
+
 function goToPage(nextPage) {
   router.push({
     path: '/community',
@@ -137,7 +148,8 @@ onMounted(async () => {
       <RouterLink class="btn btn-primary mt-4" to="/reviews/new">후기 작성</RouterLink>
     </div>
 
-    <form class="content-panel p-4 mb-4 filter-panel" @submit.prevent="applyFilters">
+    <div class="explore-layout community-layout">
+    <form class="content-panel p-4 filter-panel explore-filter-panel" @submit.prevent="applyFilters">
       <div class="filter-grid">
         <label class="form-field">
           <span>도서관명 또는 후기 내용</span>
@@ -146,14 +158,6 @@ onMounted(async () => {
         <label class="form-field">
           <span>도서관 ID</span>
           <input v-model.trim="filters.library_id" class="form-control" inputmode="numeric" />
-        </label>
-        <label class="form-field">
-          <span>정렬</span>
-          <select v-model="filters.ordering" class="form-select">
-            <option v-for="option in ORDERING_OPTIONS" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
         </label>
       </div>
 
@@ -173,25 +177,40 @@ onMounted(async () => {
       </div>
     </form>
 
-    <LoadingState v-if="isLoading" title="후기를 불러오는 중입니다." />
-    <ErrorState v-else-if="errorMessage" :message="errorMessage" @retry="loadReviews" />
-    <EmptyState
-      v-else-if="!reviews.length"
-      :title="hasSearched ? '조건에 맞는 후기가 없어요.' : '아직 등록된 후기가 없어요.'"
-      description="첫 후기를 남기거나 검색 조건을 바꿔보세요."
-    />
-    <template v-else>
-      <ResultCount class="mb-3" :count="count" label="개" />
-      <div class="stack-list">
-        <ReviewCard v-for="review in reviews" :key="review.id" :review="review" />
-      </div>
-      <PaginationBar
-        class="mt-4"
-        :page="page"
-        :page-size="pageSize"
-        :total-count="count"
-        @change="goToPage"
+    <div class="explore-results">
+      <LoadingState v-if="isLoading" title="후기를 불러오는 중입니다." />
+      <ErrorState v-else-if="errorMessage" :message="errorMessage" @retry="loadReviews" />
+      <EmptyState
+        v-else-if="!reviews.length"
+        :title="hasSearched ? '조건에 맞는 후기가 없어요.' : '아직 등록된 후기가 없어요.'"
+        description="첫 후기를 남기거나 검색 조건을 바꿔보세요."
       />
-    </template>
+      <template v-else>
+        <div class="result-toolbar mb-3">
+          <ResultCount :count="count" label="개" />
+          <div class="result-sort-controls" aria-label="후기 목록 정렬">
+            <label class="result-sort-select">
+              <span>정렬</span>
+              <select v-model="filters.ordering" class="form-select form-select-sm" @change="applySort">
+                <option v-for="option in ORDERING_OPTIONS" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="stack-list community-review-list">
+          <ReviewCard v-for="review in reviews" :key="review.id" :review="review" />
+        </div>
+        <PaginationBar
+          class="mt-4"
+          :page="page"
+          :page-size="pageSize"
+          :total-count="count"
+          @change="goToPage"
+        />
+      </template>
+    </div>
+    </div>
   </section>
 </template>

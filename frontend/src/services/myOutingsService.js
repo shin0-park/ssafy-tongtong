@@ -36,6 +36,13 @@ export async function fetchMyReviews(params = {}) {
   return data
 }
 
+export async function fetchMyComments(params = {}) {
+  const { data } = await apiClient.get('/my-outings/comments/', {
+    params: cleanParams(params, PAGINATION_QUERY_KEYS),
+  })
+  return data
+}
+
 export async function fetchLikedReviews(params = {}) {
   const { data } = await apiClient.get('/my-outings/liked-reviews/', {
     params: cleanParams(params, PAGINATION_QUERY_KEYS),

@@ -1,10 +1,17 @@
 from django.db.models import Q
 from rest_framework import generics
+from rest_framework.exceptions import ValidationError
 
 from apps.common.pagination import StandardPageNumberPagination
 
 from .models import Program
 from .serializers import ProgramDetailSerializer, ProgramListSerializer
+
+ALLOWED_PROGRAM_ORDERING = {
+    "title": ("title", "id"),
+    "library__name": ("library__name", "title", "id"),
+    "-post_date": ("-post_date", "title", "id"),
+}
 
 
 class ProgramQueryMixin:
@@ -17,7 +24,7 @@ class ProgramQueryMixin:
             .prefetch_related("tag_links__tag")
             .order_by("-operation_start_date", "title", "id")
         )
-        return self.apply_filters(queryset)
+        return self.apply_ordering(self.apply_filters(queryset))
 
     def apply_filters(self, queryset):
         params = self.request.query_params
@@ -58,6 +65,14 @@ class ProgramQueryMixin:
             queryset = queryset.filter(operation_status__in=operation_status_values)
 
         return queryset
+
+    def apply_ordering(self, queryset):
+        ordering = self.request.query_params.get("ordering", "").strip()
+        if not ordering:
+            return queryset
+        if ordering not in ALLOWED_PROGRAM_ORDERING:
+            raise ValidationError({"ordering": "Unsupported ordering value."})
+        return queryset.order_by(*ALLOWED_PROGRAM_ORDERING[ordering])
 
     @staticmethod
     def split_query_values(value):

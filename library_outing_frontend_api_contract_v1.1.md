@@ -899,6 +899,7 @@ ordering
       "content": "조용하고 좋았어요.",
       "view_count": 0,
       "like_count": 0,
+      "comment_count": 0,
       "created_at": "2026-06-24T00:00:00+09:00",
       "updated_at": "2026-06-24T00:00:00+09:00",
       "tags": [],
@@ -935,6 +936,7 @@ GET /api/v1/reviews/{review_id}/
   "content": "조용하고 좋았어요.",
   "view_count": 0,
   "like_count": 0,
+  "comment_count": 0,
   "created_at": "2026-06-24T00:00:00+09:00",
   "updated_at": "2026-06-24T00:00:00+09:00",
   "tags": [],
@@ -976,6 +978,7 @@ POST /api/v1/reviews/
   "content": "조용하고 좋았어요.",
   "view_count": 0,
   "like_count": 0,
+  "comment_count": 0,
   "created_at": "2026-06-24T00:00:00+09:00",
   "updated_at": "2026-06-24T00:00:00+09:00",
   "tags": [],
@@ -1041,7 +1044,91 @@ body 없음.
 
 ---
 
-## 6.6 후기 좋아요
+## 6.6 후기 댓글 목록
+
+```http
+GET /api/v1/reviews/{review_id}/comments/
+```
+
+공개 조회 가능. 후기 댓글은 추천, 취향, 태그, 좋아요와 연결하지 않는다.
+
+### Response `200`
+
+```json
+{
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "review_id": 10,
+      "user": {
+        "id": 1,
+        "nickname": "김나들이"
+      },
+      "content": "저도 여기 좋았어요.",
+      "created_at": "2026-06-25T00:00:00+09:00",
+      "updated_at": "2026-06-25T00:00:00+09:00"
+    }
+  ]
+}
+```
+
+---
+
+## 6.7 후기 댓글 작성
+
+```http
+POST /api/v1/reviews/{review_id}/comments/
+```
+
+인증 필요.
+
+### Request
+
+```json
+{
+  "content": "저도 여기 좋았어요."
+}
+```
+
+### Response `201`
+
+댓글 상세 구조와 동일하다.
+
+### 작성 제한
+
+* `content` 1~200자
+* 공백만 있는 댓글은 허용하지 않는다.
+
+---
+
+## 6.8 후기 댓글 상세·수정·삭제
+
+```http
+GET /api/v1/reviews/{review_id}/comments/{comment_id}/
+PATCH /api/v1/reviews/{review_id}/comments/{comment_id}/
+DELETE /api/v1/reviews/{review_id}/comments/{comment_id}/
+```
+
+상세 조회는 공개 가능. 수정·삭제는 인증 필요하며 작성자만 가능하다. 삭제는 물리 삭제한다.
+
+### PATCH Request
+
+```json
+{
+  "content": "수정한 댓글입니다."
+}
+```
+
+### DELETE Response `204`
+
+body 없음.
+
+---
+
+## 6.9 후기 좋아요
 
 ```http
 POST /api/v1/reviews/{review_id}/like/
@@ -1063,7 +1150,7 @@ POST /api/v1/reviews/{review_id}/like/
 
 ---
 
-## 6.7 후기 좋아요 취소
+## 6.10 후기 좋아요 취소
 
 ```http
 DELETE /api/v1/reviews/{review_id}/like/
@@ -1352,6 +1439,7 @@ GET /api/v1/my-outings/reviews/
       "content": "내가 쓴 후기",
       "view_count": 0,
       "like_count": 0,
+      "comment_count": 0,
       "created_at": "2026-06-24T00:00:00+09:00",
       "updated_at": "2026-06-24T00:00:00+09:00",
       "tags": [],
@@ -1365,7 +1453,54 @@ GET /api/v1/my-outings/reviews/
 
 ---
 
-## 8.5 좋아요한 후기 목록
+## 8.5 내가 쓴 댓글 목록
+
+```http
+GET /api/v1/my-outings/comments/
+```
+
+인증 필요. 사용자가 작성한 댓글을 최신순 pagination으로 반환한다.
+
+### Response `200`
+
+```json
+{
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "user": {
+        "id": 1,
+        "nickname": "김나들이"
+      },
+      "content": "저도 좋았어요.",
+      "created_at": "2026-06-25T00:00:00+09:00",
+      "updated_at": "2026-06-25T00:00:00+09:00",
+      "review": {
+        "id": 10,
+        "library": {},
+        "user": {},
+        "content": "댓글을 단 후기",
+        "view_count": 0,
+        "like_count": 0,
+        "comment_count": 1,
+        "created_at": "2026-06-24T00:00:00+09:00",
+        "updated_at": "2026-06-24T00:00:00+09:00",
+        "tags": [],
+        "images": [],
+        "related_books": [],
+        "related_programs": []
+      }
+    }
+  ]
+}
+```
+
+---
+
+## 8.6 좋아요한 후기 목록
 
 ```http
 GET /api/v1/my-outings/liked-reviews/
@@ -1389,6 +1524,7 @@ GET /api/v1/my-outings/liked-reviews/
         "content": "좋아요한 후기",
         "view_count": 0,
         "like_count": 1,
+        "comment_count": 0,
         "created_at": "2026-06-24T00:00:00+09:00",
         "updated_at": "2026-06-24T00:00:00+09:00",
         "tags": [],

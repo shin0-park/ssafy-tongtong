@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
+import BackLink from '@/components/navigation/BackLink.vue'
 import { searchBooks } from '@/services/bookService'
 import { fetchLibraries } from '@/services/libraryService'
 import { fetchPrograms } from '@/services/programService'
@@ -250,6 +251,11 @@ onMounted(async () => {
 
 <template>
   <section class="page-shell review-form-shell">
+    <BackLink
+      :to="isEdit ? `/reviews/${route.params.id}` : '/community'"
+      :label="isEdit ? '후기 상세로 돌아가기' : '커뮤니티로 돌아가기'"
+    />
+
     <div class="page-header">
       <p class="eyebrow">커뮤니티</p>
       <h1 class="page-title">{{ isEdit ? '후기 수정' : '후기 작성' }}</h1>
@@ -356,6 +362,7 @@ onMounted(async () => {
           </section>
 
           <section class="content-panel-soft review-form-side-panel review-form-book">
+            <p class="filter-group-title mb-2">관련 책</p>
             <div class="d-flex gap-2">
               <input
                 v-model.trim="bookSearchQuery"

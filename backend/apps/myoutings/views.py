@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.generics import ListAPIView
@@ -15,10 +15,11 @@ from apps.community.models import (
     ReviewProgramReference,
     ReviewTag,
     UserReview,
+    UserReviewComment,
     UserReviewImage,
     UserReviewLike,
 )
-from apps.community.serializers import UserReviewSerializer
+from apps.community.serializers import MyReviewCommentSerializer, UserReviewSerializer
 from apps.libraries.models import Library
 from apps.myoutings.models import UserBookSave, UserLibrarySave, UserProgramSave
 from apps.myoutings.serializers import (
@@ -207,6 +208,7 @@ class MyReviewListAPIView(ListAPIView):
         return (
             UserReview.objects.filter(user=self.request.user)
             .select_related("user", "library")
+            .annotate(comment_count=Count("comments", distinct=True))
             .prefetch_related(*review_prefetches())
             .order_by("-created_at", "-id")
         )
@@ -224,6 +226,23 @@ class LikedReviewListAPIView(ListAPIView):
                 review__moderation_status=ReviewModerationStatus.VISIBLE,
             )
             .select_related("review", "review__user", "review__library")
+            .prefetch_related(*review_prefetches("review__"))
+            .order_by("-created_at", "-id")
+        )
+
+
+class MyCommentListAPIView(ListAPIView):
+    serializer_class = MyReviewCommentSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = StandardPageNumberPagination
+
+    def get_queryset(self):
+        return (
+            UserReviewComment.objects.filter(
+                user=self.request.user,
+                review__moderation_status=ReviewModerationStatus.VISIBLE,
+            )
+            .select_related("user", "review", "review__user", "review__library")
             .prefetch_related(*review_prefetches("review__"))
             .order_by("-created_at", "-id")
         )
