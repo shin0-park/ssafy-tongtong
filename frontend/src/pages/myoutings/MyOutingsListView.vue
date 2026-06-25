@@ -19,6 +19,7 @@ import {
   fetchSavedPrograms,
 } from '@/services/myOutingsService'
 import { extractErrorMessage } from '@/utils/apiError'
+import { formatDate } from '@/utils/display'
 import { readPageQuery } from '@/utils/query'
 
 const props = defineProps({
@@ -44,33 +45,38 @@ const meta = computed(() => {
   const map = {
     libraries: {
       title: '저장한 도서관',
-      label: '도서관',
+      label: '곳',
       fetcher: fetchSavedLibraries,
       empty: '저장한 도서관이 없어요.',
+      description: '마음에 드는 도서관을 저장하면 이곳에서 다시 볼 수 있어요.',
     },
     books: {
       title: '저장한 책',
-      label: '책',
+      label: '권',
       fetcher: fetchSavedBooks,
       empty: '저장한 책이 없어요.',
+      description: '관심 있는 책을 저장하면 이곳에서 다시 볼 수 있어요.',
     },
     programs: {
-      title: '저장한 프로그램',
-      label: '프로그램',
+      title: '저장한 문화 프로그램',
+      label: '개',
       fetcher: fetchSavedPrograms,
-      empty: '저장한 프로그램이 없어요.',
+      empty: '저장한 문화 프로그램이 없어요.',
+      description: '관심 있는 프로그램을 저장하면 이곳에서 다시 볼 수 있어요.',
     },
     reviews: {
       title: '내가 쓴 후기',
-      label: '후기',
+      label: '개',
       fetcher: fetchMyReviews,
       empty: '작성한 후기가 없어요.',
+      description: '도서관 이용 경험을 남기면 이곳에 모입니다.',
     },
     'liked-reviews': {
       title: '좋아요한 후기',
-      label: '후기',
+      label: '개',
       fetcher: fetchLikedReviews,
       empty: '좋아요한 후기가 없어요.',
+      description: '공감한 후기를 다시 볼 수 있어요.',
     },
   }
 
@@ -87,17 +93,11 @@ function itemKey(item, index) {
 }
 
 function itemMetaText(item) {
-  const dateValue = item.liked_at || item.created_at
+  const dateValue = item.saved_at || item.liked_at || item.created_at
   const parts = []
 
-  if (item.memo) {
-    parts.push(item.memo)
-  }
-
-  if (dateValue) {
-    parts.push(new Date(dateValue).toLocaleDateString('ko-KR'))
-  }
-
+  if (item.memo) parts.push(item.memo)
+  if (dateValue) parts.push(formatDate(dateValue))
   return parts.join(' · ')
 }
 
@@ -143,22 +143,22 @@ onMounted(loadItems)
   <section class="page-shell">
     <div class="page-header">
       <p class="eyebrow">나의 나들이</p>
-      <h1>{{ meta.title }}</h1>
-      <p class="page-description mb-0">저장과 활동 내역을 한곳에서 확인합니다.</p>
+      <h1 class="page-title">{{ meta.title }}</h1>
+      <p class="page-description mb-0">{{ meta.description }}</p>
     </div>
 
     <div class="myoutings-nav mb-4">
-      <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/dashboard">Dashboard</RouterLink>
+      <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/dashboard">요약</RouterLink>
       <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/libraries">도서관</RouterLink>
       <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/books">책</RouterLink>
       <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/programs">프로그램</RouterLink>
+      <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/liked-reviews">좋아요 후기</RouterLink>
       <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/reviews">내 후기</RouterLink>
-      <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/liked-reviews">좋아요한 후기</RouterLink>
     </div>
 
     <LoadingState v-if="isLoading" :title="`${meta.title}을 불러오는 중입니다.`" />
     <ErrorState v-else-if="errorMessage" :message="errorMessage" @retry="loadItems" />
-    <EmptyState v-else-if="!items.length" :title="meta.empty" description="저장하거나 활동한 항목이 생기면 표시됩니다." />
+    <EmptyState v-else-if="!items.length" :title="meta.empty" :description="meta.description" />
     <template v-else>
       <ResultCount class="mb-3" :count="count" :label="meta.label" />
       <div v-if="kind === 'libraries'" class="responsive-card-grid">
@@ -173,7 +173,7 @@ onMounted(loadItems)
           <BookCard :book="targetItem(item)" />
         </div>
       </div>
-      <div v-else-if="kind === 'programs'" class="stack-list">
+      <div v-else-if="kind === 'programs'" class="responsive-card-grid">
         <div v-for="(item, index) in items" :key="itemKey(item, index)" class="saved-item-shell">
           <p v-if="itemMetaText(item)" class="meta-text mb-2">{{ itemMetaText(item) }}</p>
           <ProgramCard :program="targetItem(item)" />

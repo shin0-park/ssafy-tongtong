@@ -26,9 +26,7 @@ export const useInteractionStore = defineStore('interaction', () => {
   }
 
   async function hydrate() {
-    if (isHydrating.value) {
-      return
-    }
+    if (isHydrating.value) return
 
     isHydrating.value = true
     hydrateError.value = null
@@ -68,14 +66,13 @@ export const useInteractionStore = defineStore('interaction', () => {
     }
   }
 
-  async function toggleLibrarySave(libraryId) {
-    if (!hasHydrated.value) {
-      await hydrate()
-    }
+  async function ensureHydrated(message) {
+    if (!hasHydrated.value) await hydrate()
+    if (!hasHydrated.value) throw hydrateError.value || new Error(message)
+  }
 
-    if (!hasHydrated.value) {
-      throw hydrateError.value || new Error('저장 상태를 확인하지 못했습니다.')
-    }
+  async function toggleLibrarySave(libraryId) {
+    await ensureHydrated('저장 상태를 확인하지 못했습니다.')
 
     if (savedLibraryIds.has(libraryId)) {
       await libraryService.unsaveLibrary(libraryId)
@@ -89,13 +86,7 @@ export const useInteractionStore = defineStore('interaction', () => {
   }
 
   async function toggleBookSave(isbn13) {
-    if (!hasHydrated.value) {
-      await hydrate()
-    }
-
-    if (!hasHydrated.value) {
-      throw hydrateError.value || new Error('저장 상태를 확인하지 못했습니다.')
-    }
+    await ensureHydrated('저장 상태를 확인하지 못했습니다.')
 
     if (savedBookIsbns.has(isbn13)) {
       await bookService.unsaveBook(isbn13)
@@ -109,13 +100,7 @@ export const useInteractionStore = defineStore('interaction', () => {
   }
 
   async function toggleProgramSave(programId) {
-    if (!hasHydrated.value) {
-      await hydrate()
-    }
-
-    if (!hasHydrated.value) {
-      throw hydrateError.value || new Error('저장 상태를 확인하지 못했습니다.')
-    }
+    await ensureHydrated('저장 상태를 확인하지 못했습니다.')
 
     if (savedProgramIds.has(programId)) {
       await programService.unsaveProgram(programId)
@@ -129,13 +114,7 @@ export const useInteractionStore = defineStore('interaction', () => {
   }
 
   async function toggleReviewLike(reviewId) {
-    if (!hasHydrated.value) {
-      await hydrate()
-    }
-
-    if (!hasHydrated.value) {
-      throw hydrateError.value || new Error('좋아요 상태를 확인하지 못했습니다.')
-    }
+    await ensureHydrated('좋아요 상태를 확인하지 못했습니다.')
 
     if (likedReviewIds.has(reviewId)) {
       const data = await reviewService.unlikeReview(reviewId)

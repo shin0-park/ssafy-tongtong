@@ -18,11 +18,9 @@ const SEARCH_TYPES = [
   { value: 'title', label: '도서명' },
   { value: 'author', label: '저자' },
   { value: 'isbn', label: 'ISBN' },
-  { value: 'keyword', label: '키워드' },
-  { value: 'publisher', label: '출판사' },
 ]
 const SEARCH_TYPE_VALUES = new Set(SEARCH_TYPES.map((type) => type.value))
-const DEFAULT_PAGE_SIZE = 20
+const DEFAULT_PAGE_SIZE = 12
 
 const books = ref([])
 const popularBooks = ref([])
@@ -45,22 +43,16 @@ const currentPage = computed(() => responseMeta.value.page || 1)
 const pageSize = computed(() => responseMeta.value.page_size || DEFAULT_PAGE_SIZE)
 const hasPreviousPage = computed(() => currentPage.value > 1)
 const hasNextPage = computed(() => currentPage.value * pageSize.value < responseMeta.value.num_found)
-
-const errorTitle = computed(() => {
-  if (isData4LibraryConfigError(error.value)) {
-    return '외부 도서 검색 설정이 아직 완료되지 않았어요.'
-  }
-
-  return '책 검색 결과를 불러오지 못했습니다.'
-})
-
-const errorMessage = computed(() => {
-  if (isData4LibraryConfigError(error.value)) {
-    return '정보나루 API Key 설정이 끝나면 책 검색을 사용할 수 있습니다.'
-  }
-
-  return error.value?.message || '네트워크 상태를 확인한 뒤 다시 시도해주세요.'
-})
+const errorTitle = computed(() =>
+  isData4LibraryConfigError(error.value)
+    ? '정보나루 검색 설정이 필요합니다.'
+    : '책 검색 결과를 불러오지 못했습니다.',
+)
+const errorMessage = computed(() =>
+  isData4LibraryConfigError(error.value)
+    ? '정보나루 API Key 설정이 완료되면 책 검색을 사용할 수 있습니다.'
+    : error.value?.message || '네트워크 상태를 확인한 뒤 다시 시도해주세요.',
+)
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -110,7 +102,7 @@ async function loadBooks() {
     const data = await searchBooks(buildRequestParams())
     books.value = data.results ?? []
     responseMeta.value = {
-      num_found: data.num_found ?? 0,
+      num_found: data.num_found ?? data.count ?? 0,
       page: data.page ?? Number(route.query.page || 1),
       page_size: data.page_size ?? DEFAULT_PAGE_SIZE,
     }
@@ -159,6 +151,14 @@ function applySearch() {
   })
 }
 
+function resetSearch() {
+  filters.search_type = 'title'
+  filters.q = ''
+  filters.sort = ''
+  filters.order = ''
+  router.push({ name: 'book-list' })
+}
+
 function goToPage(page) {
   router.push({
     name: 'book-list',
@@ -188,19 +188,22 @@ onMounted(() => {
 
 <template>
   <section class="page-shell">
-    <div class="page-header">
-      <h1 class="page-title">책 둘러보기</h1>
-      <p class="page-subtitle">
-        정보나루 책 검색과 주간 인기 도서를 함께 살펴봅니다.
-      </p>
+    <div class="page-hero">
+      <h1>책 둘러보기</h1>
+      <p>읽고 싶은 책을 찾고, 부산에서 그 책을 소장한 도서관을 함께 확인해보세요.</p>
+      <div class="page-hero-visual" aria-hidden="true">▤</div>
     </div>
 
     <section class="mb-5">
-      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+      <div class="section-header-row">
         <div>
-          <h2 class="section-title mb-1">주간 인기 도서</h2>
-          <p v-if="popularSnapshot" class="meta-text mb-0">
-            {{ popularSnapshot.period_start }} ~ {{ popularSnapshot.period_end }}
+          <h2 class="section-title mb-1">이번 주 인기 도서</h2>
+          <p class="meta-text mb-0">
+            {{
+              popularSnapshot
+                ? `${popularSnapshot.period_start} ~ ${popularSnapshot.period_end}`
+                : '정보나루 인기대출도서 기반으로 보여드립니다.'
+            }}
           </p>
         </div>
       </div>
@@ -208,31 +211,34 @@ onMounted(() => {
       <p v-else-if="popularError" class="meta-text">인기 도서를 불러오지 못했어요.</p>
       <EmptyState
         v-else-if="!popularBooks.length"
-        title="인기 도서가 아직 없어요."
+        title="인기 도서가 아직 없습니다."
         description="집계 데이터가 준비되면 이곳에 표시됩니다."
       />
       <div v-else class="responsive-card-grid">
-        <BookCard v-for="book in popularBooks" :key="book.isbn13" :book="book" />
+        <BookCard
+          v-for="(book, index) in popularBooks.slice(0, 6)"
+          :key="book.isbn13 || index"
+          :book="book"
+          :rank="index + 1"
+        />
       </div>
     </section>
 
     <form class="content-panel p-4 mb-4" @submit.prevent="applySearch">
-      <div class="filter-grid">
-        <label class="form-field">
-          <span>검색 기준</span>
-          <select v-model="filters.search_type" class="form-select">
-            <option v-for="type in SEARCH_TYPES" :key="type.value" :value="type.value">
-              {{ type.label }}
-            </option>
-          </select>
+      <div class="filter-chip-grid mb-3" role="tablist" aria-label="검색 기준">
+        <label v-for="type in SEARCH_TYPES" :key="type.value" class="filter-chip">
+          <input v-model="filters.search_type" type="radio" :value="type.value" />
+          <span>{{ type.label }}</span>
         </label>
+      </div>
+      <div class="filter-grid">
         <label class="form-field">
           <span>검색어</span>
           <input
             v-model.trim="filters.q"
             class="form-control"
             type="search"
-            placeholder="도서명, 저자, ISBN, 키워드, 출판사"
+            placeholder="도서명, 저자, ISBN을 입력해주세요"
           />
         </label>
         <label class="form-field">
@@ -257,6 +263,7 @@ onMounted(() => {
         </label>
       </div>
       <div class="d-flex justify-content-end gap-2 mt-3">
+        <button class="btn btn-outline-secondary" type="button" @click="resetSearch">초기화</button>
         <button class="btn btn-primary" type="submit">검색</button>
       </div>
     </form>
@@ -280,7 +287,7 @@ onMounted(() => {
     />
 
     <template v-else>
-      <ResultCount :count="responseMeta.num_found" label="권" />
+      <ResultCount class="mb-3" :count="responseMeta.num_found" label="권" />
       <div class="responsive-card-grid">
         <BookCard v-for="book in books" :key="book.isbn13" :book="book" />
       </div>

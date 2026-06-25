@@ -6,7 +6,7 @@ defineProps({
   },
   message: {
     type: String,
-    default: '요청을 처리하지 못했습니다.',
+    default: '요청을 처리하지 못했어요.',
   },
   retryLabel: {
     type: String,

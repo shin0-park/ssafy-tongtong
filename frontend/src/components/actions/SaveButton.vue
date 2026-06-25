@@ -15,6 +15,10 @@ const props = defineProps({
     type: [Number, String],
     required: true,
   },
+  compact: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['success', 'error'])
@@ -36,7 +40,8 @@ const label = computed(() => {
   return isSaved.value ? '저장됨' : '저장'
 })
 
-async function handleClick() {
+async function handleClick(event) {
+  event?.stopPropagation()
   errorMessage.value = ''
 
   if (!authStore.isAuthenticated) {
@@ -59,7 +64,7 @@ async function handleClick() {
     }
     emit('success', isSaved.value)
   } catch (error) {
-    errorMessage.value = error.message || '저장 상태를 변경하지 못했습니다.'
+    errorMessage.value = error.message || '저장 상태를 변경하지 못했어요.'
     emit('error', error)
   } finally {
     isSubmitting.value = false
@@ -68,15 +73,17 @@ async function handleClick() {
 </script>
 
 <template>
-  <span class="d-inline-flex flex-column gap-1">
+  <span class="d-inline-flex flex-column gap-1 save-button-wrap">
     <button
-      class="btn btn-outline-primary btn-sm"
+      class="btn btn-outline-primary btn-sm save-button"
+      :class="{ 'save-button-compact': compact, 'is-saved': isSaved }"
       type="button"
       :aria-pressed="isSaved"
       :disabled="isSubmitting"
       @click="handleClick"
     >
-      {{ label }}
+      <span aria-hidden="true">{{ isSaved ? '▣' : '▢' }}</span>
+      <span>{{ label }}</span>
     </button>
     <span v-if="errorMessage" class="field-error">{{ errorMessage }}</span>
   </span>

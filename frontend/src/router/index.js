@@ -8,53 +8,30 @@ const PlaceholderView = () => import('@/pages/system/PlaceholderView.vue')
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: () => import('@/pages/home/HomeView.vue'),
-    },
-    {
-      path: '/libraries',
-      name: 'library-list',
-      component: () => import('@/pages/libraries/LibraryListView.vue'),
-    },
+    { path: '/', name: 'home', component: () => import('@/pages/home/HomeView.vue') },
+    { path: '/libraries', name: 'library-list', component: () => import('@/pages/libraries/LibraryListView.vue') },
     {
       path: '/libraries/:id',
       name: 'library-detail',
       component: () => import('@/pages/libraries/LibraryDetailView.vue'),
       props: true,
     },
-    {
-      path: '/books',
-      name: 'book-list',
-      component: () => import('@/pages/books/BookExploreView.vue'),
-    },
+    { path: '/books', name: 'book-list', component: () => import('@/pages/books/BookExploreView.vue') },
     {
       path: '/books/:isbn13',
       name: 'book-detail',
       component: () => import('@/pages/books/BookDetailView.vue'),
       props: true,
     },
-    {
-      path: '/programs',
-      name: 'program-list',
-      component: () => import('@/pages/programs/ProgramListView.vue'),
-    },
+    { path: '/programs', name: 'program-list', component: () => import('@/pages/programs/ProgramListView.vue') },
     {
       path: '/programs/:id',
       name: 'program-detail',
       component: () => import('@/pages/programs/ProgramDetailView.vue'),
       props: true,
     },
-    {
-      path: '/reviews',
-      redirect: '/community',
-    },
-    {
-      path: '/community',
-      name: 'review-list',
-      component: () => import('@/pages/community/ReviewListView.vue'),
-    },
+    { path: '/reviews', redirect: '/community' },
+    { path: '/community', name: 'review-list', component: () => import('@/pages/community/ReviewListView.vue') },
     {
       path: '/reviews/new',
       name: 'review-create',
@@ -68,29 +45,10 @@ const router = createRouter({
       props: true,
       meta: { requiresAuth: true },
     },
-    {
-      path: '/reviews/:id',
-      name: 'review-detail',
-      component: () => import('@/pages/community/ReviewDetailView.vue'),
-      props: true,
-    },
-    {
-      path: '/auth/login',
-      name: 'login',
-      component: () => import('@/pages/auth/LoginView.vue'),
-      meta: { guestOnly: true },
-    },
-    {
-      path: '/auth/signup',
-      name: 'signup',
-      component: () => import('@/pages/auth/SignupView.vue'),
-      meta: { guestOnly: true },
-    },
-    {
-      path: '/my-outings',
-      redirect: '/my-outings/dashboard',
-      meta: { requiresAuth: true },
-    },
+    { path: '/reviews/:id', name: 'review-detail', component: () => import('@/pages/community/ReviewDetailView.vue'), props: true },
+    { path: '/auth/login', name: 'login', component: () => import('@/pages/auth/LoginView.vue'), meta: { guestOnly: true } },
+    { path: '/auth/signup', name: 'signup', component: () => import('@/pages/auth/SignupView.vue'), meta: { guestOnly: true } },
+    { path: '/my-outings', redirect: '/my-outings/dashboard', meta: { requiresAuth: true } },
     {
       path: '/my-outings/dashboard',
       name: 'my-outings-dashboard',
@@ -132,12 +90,7 @@ const router = createRouter({
       meta: { requiresAuth: true },
       props: { kind: 'liked-reviews' },
     },
-    {
-      path: '/profile',
-      name: 'profile',
-      component: () => import('@/pages/profile/ProfileView.vue'),
-      meta: { requiresAuth: true },
-    },
+    { path: '/profile', name: 'profile', component: () => import('@/pages/profile/ProfileView.vue'), meta: { requiresAuth: true } },
     {
       path: '/profile/edit',
       name: 'profile-edit',
@@ -156,11 +109,7 @@ const router = createRouter({
       component: () => import('@/pages/preferences/PreferenceSettingsView.vue'),
       meta: { requiresAuth: true },
     },
-    {
-      path: '/403',
-      name: 'forbidden',
-      component: () => import('@/pages/system/ForbiddenView.vue'),
-    },
+    { path: '/403', name: 'forbidden', component: () => import('@/pages/system/ForbiddenView.vue') },
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',

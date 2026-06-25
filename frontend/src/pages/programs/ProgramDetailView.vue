@@ -7,6 +7,14 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
 import { fetchProgramDetail } from '@/services/programService'
+import {
+  APPLICATION_STATUS_LABELS,
+  OPERATION_STATUS_LABELS,
+  PROGRAM_CATEGORY_LABELS,
+  PROGRAM_TARGET_LABELS,
+  labelFromMap,
+  normalizeList,
+} from '@/utils/display'
 
 const route = useRoute()
 
@@ -14,101 +22,44 @@ const program = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
 
-const libraryTo = computed(() =>
-  program.value?.library?.id ? `/libraries/${program.value.library.id}` : null,
-)
+const libraryTo = computed(() => (program.value?.library?.id ? `/libraries/${program.value.library.id}` : null))
 const regionText = computed(() =>
-  [program.value?.source_sido, program.value?.source_sigungu || program.value?.library?.sigungu]
-    .filter(Boolean)
-    .join(' '),
+  [program.value?.source_sido, program.value?.source_sigungu || program.value?.library?.sigungu].filter(Boolean).join(' '),
+)
+const categoryText = computed(() =>
+  program.value?.category_display || labelFromMap(PROGRAM_CATEGORY_LABELS, program.value?.category_code, '프로그램'),
 )
 const targetText = computed(() => {
-  const targets = program.value?.target_display ?? program.value?.target ?? []
-
-  if (Array.isArray(targets)) {
-    return targets.length ? targets.join(', ') : '정보 없음'
-  }
-
-  return targets || '정보 없음'
+  const targets = program.value?.target_display ?? program.value?.target
+  if (Array.isArray(targets) && targets.length) return targets.join(', ')
+  if (typeof targets === 'string' && targets) return targets
+  const labels = normalizeList(program.value?.target_codes).map((code) => labelFromMap(PROGRAM_TARGET_LABELS, code, code))
+  return labels.length ? labels.join(', ') : '대상 정보 없음'
 })
-
-const errorTitle = computed(() => {
-  if (error.value?.status === 404) {
-    return '프로그램을 찾을 수 없어요.'
-  }
-
-  return '프로그램 정보를 불러오지 못했습니다.'
-})
-
-const errorMessage = computed(() => {
-  if (error.value?.status === 404) {
-    return '주소를 확인하거나 문화 프로그램 목록에서 다시 찾아보세요.'
-  }
-
-  return error.value?.message || '네트워크 상태를 확인한 뒤 다시 시도해주세요.'
-})
+const applicationText = computed(() =>
+  program.value?.application_status_display ||
+  labelFromMap(APPLICATION_STATUS_LABELS, program.value?.application_status, '신청 정보 없음'),
+)
+const operationText = computed(() =>
+  program.value?.operation_status_display ||
+  labelFromMap(OPERATION_STATUS_LABELS, program.value?.operation_status, '운영 정보 없음'),
+)
+const errorTitle = computed(() =>
+  error.value?.status === 404 ? '프로그램을 찾을 수 없어요.' : '프로그램 정보를 불러오지 못했습니다.',
+)
+const errorMessage = computed(() =>
+  error.value?.status === 404
+    ? '주소를 확인하거나 문화 프로그램 목록에서 다시 찾아보세요.'
+    : error.value?.message || '네트워크 상태를 확인한 뒤 다시 시도해주세요.',
+)
 
 function formatDate(value) {
   return value || '정보 없음'
 }
 
 function formatPeriod(startDate, endDate) {
-  const startText = formatDate(startDate)
-  const endText = formatDate(endDate)
-
-  if (startText === '정보 없음' && endText === '정보 없음') {
-    return '정보 없음'
-  }
-
-  return `${startText} ~ ${endText}`
-}
-
-function statusText(type, status) {
-  const displayField =
-    type === 'application'
-      ? program.value?.application_status_display
-      : program.value?.operation_status_display
-
-  if (displayField) {
-    return displayField
-  }
-
-  if (!status) {
-    return '정보 없음'
-  }
-
-  const labels = {
-    application: {
-      available: '신청 가능',
-      open: '신청 가능',
-      closed: '신청 종료',
-      scheduled: '신청 예정',
-    },
-    operation: {
-      upcoming: '운영 예정',
-      scheduled: '운영 예정',
-      ongoing: '운영 중',
-      ended: '운영 종료',
-    },
-  }
-
-  return labels[type]?.[status] || '상태 확인 필요'
-}
-
-function statusClass(type, status) {
-  if (!status) {
-    return 'status-badge status-badge-muted'
-  }
-
-  if (type === 'application' && ['available', 'open'].includes(status)) {
-    return 'status-badge status-badge-positive'
-  }
-
-  if (type === 'operation' && ['upcoming', 'scheduled', 'ongoing'].includes(status)) {
-    return 'status-badge status-badge-info'
-  }
-
-  return 'status-badge status-badge-muted'
+  if (!startDate && !endDate) return '기간 정보 없음'
+  return `${formatDate(startDate)} ~ ${formatDate(endDate)}`
 }
 
 async function loadProgram() {
@@ -132,17 +83,12 @@ onMounted(loadProgram)
 <template>
   <section class="page-shell">
     <LoadingState v-if="isLoading" title="프로그램 정보를 불러오는 중입니다." />
-    <ErrorState
-      v-else-if="error"
-      :title="errorTitle"
-      :message="errorMessage"
-      @retry="loadProgram"
-    />
+    <ErrorState v-else-if="error" :title="errorTitle" :message="errorMessage" @retry="loadProgram" />
     <EmptyState v-else-if="!program" title="프로그램 정보가 없습니다." />
 
     <template v-else>
-      <div class="content-panel p-4 mb-4">
-        <p class="meta-text mb-1">{{ program.category_display || '분류 정보 없음' }}</p>
+      <section class="content-panel p-4 mb-4">
+        <p class="meta-text mb-1">{{ categoryText }}</p>
         <h1 class="page-title">{{ program.title || '프로그램명 정보 없음' }}</h1>
         <p class="page-subtitle mb-3">
           <RouterLink v-if="libraryTo" class="text-decoration-none" :to="libraryTo">
@@ -152,17 +98,11 @@ onMounted(loadProgram)
           <span v-if="regionText"> · {{ regionText }}</span>
         </p>
 
-        <div class="d-flex flex-wrap gap-2 mb-3">
+        <div class="chip-row mb-3">
+          <span class="status-badge status-badge-info">{{ categoryText }}</span>
+          <span class="status-badge status-badge-positive">{{ applicationText }}</span>
+          <span class="status-badge status-badge-muted">{{ operationText }}</span>
           <span class="book-chip">대상 {{ targetText }}</span>
-          <span :class="statusClass('application', program.application_status)">
-            {{ statusText('application', program.application_status) }}
-          </span>
-          <span :class="statusClass('operation', program.operation_status)">
-            {{ statusText('operation', program.operation_status) }}
-          </span>
-          <span v-if="program.application_required !== null && program.application_required !== undefined" class="status-badge status-badge-muted">
-            {{ program.application_required ? '신청 필요' : '신청 불필요' }}
-          </span>
         </div>
 
         <div class="d-flex flex-wrap gap-2">
@@ -173,29 +113,28 @@ onMounted(loadProgram)
             target="_blank"
             rel="noopener noreferrer"
           >
-            원문에서 확인
+            원문 게시글 보기
           </a>
+          <RouterLink v-if="libraryTo" class="btn btn-outline-secondary btn-sm" :to="libraryTo">
+            도서관 상세 보기
+          </RouterLink>
           <SaveButton resource-type="program" :resource-id="program.id" />
         </div>
-      </div>
+      </section>
 
       <div class="row g-4">
         <div class="col-lg-7">
-          <section class="content-panel p-4">
-            <h2 class="section-title">일정</h2>
+          <section class="content-panel p-4 h-100">
+            <h2 class="section-title">운영/신청 정보</h2>
             <dl class="row mb-0">
               <dt class="col-sm-4">신청 기간</dt>
-              <dd class="col-sm-8">
-                {{ formatPeriod(program.application_start_date, program.application_end_date) }}
-              </dd>
+              <dd class="col-sm-8">{{ formatPeriod(program.application_start_date, program.application_end_date) }}</dd>
               <dt class="col-sm-4">운영 기간</dt>
-              <dd class="col-sm-8">
-                {{ formatPeriod(program.operation_start_date, program.operation_end_date) }}
-              </dd>
+              <dd class="col-sm-8">{{ formatPeriod(program.operation_start_date, program.operation_end_date) }}</dd>
               <dt class="col-sm-4">신청 상태</dt>
-              <dd class="col-sm-8">{{ statusText('application', program.application_status) }}</dd>
+              <dd class="col-sm-8">{{ applicationText }}</dd>
               <dt class="col-sm-4">운영 상태</dt>
-              <dd class="col-sm-8">{{ statusText('operation', program.operation_status) }}</dd>
+              <dd class="col-sm-8">{{ operationText }}</dd>
               <dt class="col-sm-4">신청 필요</dt>
               <dd class="col-sm-8">
                 {{
@@ -211,8 +150,8 @@ onMounted(loadProgram)
         </div>
 
         <div class="col-lg-5">
-          <section class="content-panel p-4">
-            <h2 class="section-title">원천 정보</h2>
+          <section class="content-panel p-4 h-100">
+            <h2 class="section-title">원문 정보</h2>
             <dl class="row mb-0">
               <dt class="col-sm-4">게시판</dt>
               <dd class="col-sm-8">{{ program.source_board || '정보 없음' }}</dd>
@@ -220,7 +159,7 @@ onMounted(loadProgram)
               <dd class="col-sm-8">{{ formatDate(program.post_date) }}</dd>
               <dt class="col-sm-4">수집일</dt>
               <dd class="col-sm-8">{{ formatDate(program.collected_at) }}</dd>
-              <dt class="col-sm-4">외부 키</dt>
+              <dt class="col-sm-4">외부 ID</dt>
               <dd class="col-sm-8">{{ program.external_program_key || '정보 없음' }}</dd>
             </dl>
           </section>

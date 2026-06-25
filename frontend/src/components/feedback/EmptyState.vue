@@ -12,7 +12,7 @@ defineProps({
 </script>
 
 <template>
-  <div class="content-panel p-4 text-center">
+  <div class="content-panel p-4 text-center empty-state">
     <h2 class="h5 mb-2">{{ title }}</h2>
     <p class="mb-0 meta-text">{{ description }}</p>
   </div>

@@ -15,10 +15,13 @@ async function handleLogout() {
 </script>
 
 <template>
-  <header class="app-header border-bottom bg-white">
+  <header class="app-header">
     <nav class="navbar navbar-expand-lg">
-      <div class="container">
-        <RouterLink class="navbar-brand fw-bold" to="/">도서관 나들이</RouterLink>
+      <div class="container-fluid app-nav-container">
+        <RouterLink class="navbar-brand app-brand" to="/">
+          <span class="brand-mark" aria-hidden="true">▰</span>
+          <span>도서관 나들이</span>
+        </RouterLink>
 
         <button
           class="navbar-toggler"
@@ -33,7 +36,10 @@ async function handleLogout() {
         </button>
 
         <div id="main-navigation" class="collapse navbar-collapse">
-          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <ul class="navbar-nav mx-auto mb-2 mb-lg-0 app-main-nav">
+            <li class="nav-item">
+              <RouterLink class="nav-link" to="/">홈</RouterLink>
+            </li>
             <li class="nav-item">
               <RouterLink class="nav-link" to="/libraries">도서관 찾기</RouterLink>
             </li>
@@ -46,25 +52,23 @@ async function handleLogout() {
             <li class="nav-item">
               <RouterLink class="nav-link" to="/community">커뮤니티</RouterLink>
             </li>
+            <li class="nav-item">
+              <RouterLink class="nav-link" to="/my-outings/dashboard">나의 나들이</RouterLink>
+            </li>
           </ul>
 
-          <div class="d-flex align-items-center gap-2">
-            <RouterLink v-if="isAuthenticated" class="btn btn-outline-primary btn-sm" to="/my-outings/dashboard">
-              나의 나들이
-            </RouterLink>
-            <RouterLink v-if="isAuthenticated" class="btn btn-outline-secondary btn-sm" to="/preferences">
-              선호 설정
-            </RouterLink>
-            <RouterLink v-if="isAuthenticated" class="btn btn-outline-secondary btn-sm" to="/profile">
-              {{ user?.nickname || '프로필' }}
-            </RouterLink>
-            <button v-if="isAuthenticated" class="btn btn-link btn-sm" type="button" @click="handleLogout">
-              로그아웃
-            </button>
-            <RouterLink v-else class="btn btn-primary btn-sm" to="/auth/login">로그인</RouterLink>
-            <RouterLink v-if="!isAuthenticated" class="btn btn-outline-secondary btn-sm" to="/auth/signup">
-              회원가입
-            </RouterLink>
+          <div class="d-flex align-items-center gap-2 app-user-actions">
+            <template v-if="isAuthenticated">
+              <RouterLink class="btn btn-outline-primary btn-sm" to="/preferences">선호 설정</RouterLink>
+              <RouterLink class="btn btn-outline-secondary btn-sm" to="/profile">
+                {{ user?.nickname || '프로필' }}
+              </RouterLink>
+              <button class="btn btn-link btn-sm" type="button" @click="handleLogout">로그아웃</button>
+            </template>
+            <template v-else>
+              <RouterLink class="btn btn-primary btn-sm" to="/auth/login">로그인</RouterLink>
+              <RouterLink class="btn btn-outline-secondary btn-sm" to="/auth/signup">회원가입</RouterLink>
+            </template>
           </div>
         </div>
       </div>

@@ -10,11 +10,11 @@ import LoadingState from '@/components/feedback/LoadingState.vue'
 import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
 import PaginationBar from '@/components/navigation/PaginationBar.vue'
 import { fetchBookDetail, fetchBookLibraries } from '@/services/bookService'
+import { formatNumber } from '@/utils/display'
 import { readPageQuery } from '@/utils/query'
 
 const route = useRoute()
 const router = useRouter()
-
 const DEFAULT_PAGE_SIZE = 20
 
 const book = ref(null)
@@ -27,72 +27,32 @@ const holdingsError = ref(null)
 
 const isbn13 = computed(() => route.params.isbn13)
 const publicationText = computed(() =>
-  [book.value?.publisher, book.value?.publication_year || book.value?.publication_date]
-    .filter(Boolean)
-    .join(' · '),
+  [book.value?.publisher, book.value?.publication_year || book.value?.publication_date].filter(Boolean).join(' · '),
 )
-const kdcText = computed(() =>
-  [book.value?.kdc_class_name, book.value?.kdc_class_no].filter(Boolean).join(' '),
-)
+const kdcText = computed(() => [book.value?.kdc_class_name, book.value?.kdc_class_no].filter(Boolean).join(' '))
 const hasHoldings = computed(() => holdings.value.length > 0)
 const matchedHoldings = computed(() => holdings.value.filter((holding) => holding.matched))
 const unmatchedHoldings = computed(() => holdings.value.filter((holding) => !holding.matched))
 const holdingsPage = computed(() => holdingsMeta.value.page || 1)
 const holdingsPageSize = computed(() => holdingsMeta.value.page_size || DEFAULT_PAGE_SIZE)
 const hasPreviousHoldingsPage = computed(() => holdingsPage.value > 1)
-const hasNextHoldingsPage = computed(
-  () => holdingsPage.value * holdingsPageSize.value < holdingsMeta.value.count,
+const hasNextHoldingsPage = computed(() => holdingsPage.value * holdingsPageSize.value < holdingsMeta.value.count)
+const bookErrorTitle = computed(() =>
+  bookError.value?.status === 404 ? '상세 정보가 아직 등록되지 않았습니다.' : '책 상세 정보를 불러오지 못했습니다.',
+)
+const bookErrorMessage = computed(() =>
+  bookError.value?.status === 404
+    ? '검색 결과로 돌아가 다른 책을 확인해보세요.'
+    : bookError.value?.message || '네트워크 상태를 확인한 뒤 다시 시도해주세요.',
 )
 
-const bookErrorTitle = computed(() => {
-  if (bookError.value?.status === 404) {
-    return '상세 정보가 아직 등록되지 않았습니다.'
-  }
-
-  return '책 상세 정보를 불러오지 못했습니다.'
-})
-
-const bookErrorMessage = computed(() => {
-  if (bookError.value?.status === 404) {
-    return '검색 결과로 돌아가 다른 책을 확인해보세요.'
-  }
-
-  return bookError.value?.message || '네트워크 상태를 확인한 뒤 다시 시도해주세요.'
-})
-
-const holdingsErrorTitle = computed(() => {
-  if (isData4LibraryConfigError(holdingsError.value)) {
-    return '외부 도서 검색 설정이 아직 완료되지 않았어요.'
-  }
-
-  return '소장 도서관을 불러오지 못했습니다.'
-})
-
-const holdingsErrorMessage = computed(() => {
-  if (isData4LibraryConfigError(holdingsError.value)) {
-    return '정보나루 API Key 설정이 끝나면 소장 도서관 조회를 사용할 수 있습니다.'
-  }
-
-  return holdingsError.value?.message || '네트워크 상태를 확인한 뒤 다시 시도해주세요.'
-})
-
 function isData4LibraryConfigError(requestError) {
-  return (
-    requestError?.status === 503 &&
-    typeof requestError.message === 'string' &&
-    requestError.message.includes('Data4Library API key')
-  )
+  return requestError?.status === 503 && typeof requestError.message === 'string' && requestError.message.includes('Data4Library API key')
 }
 
 function holdingStatusText(holding) {
-  if (holding?.loan_available === true) {
-    return '대출 가능'
-  }
-
-  if (holding?.loan_available === false) {
-    return '대출 불가'
-  }
-
+  if (holding?.loan_available === true) return '대출 가능'
+  if (holding?.loan_available === false) return '대출 불가'
   return '대출 상태 미제공'
 }
 
@@ -120,7 +80,6 @@ async function loadHoldings() {
       page: pageQuery.page,
       page_size: pageQuery.page_size || DEFAULT_PAGE_SIZE,
     })
-
     holdings.value = data.results ?? []
     holdingsMeta.value = {
       count: data.count ?? 0,
@@ -144,20 +103,12 @@ function goToHoldingsPage(page) {
   router.push({
     name: 'book-detail',
     params: { isbn13: isbn13.value },
-    query: {
-      ...route.query,
-      page,
-    },
+    query: { ...route.query, page },
   })
 }
 
 watch(() => route.params.isbn13, loadPage)
-watch(
-  () => route.query,
-  () => {
-    loadHoldings()
-  },
-)
+watch(() => route.query, loadHoldings)
 onMounted(loadPage)
 </script>
 
@@ -176,11 +127,7 @@ onMounted(loadPage)
     <template v-else>
       <div class="book-detail-layout mb-4">
         <div class="book-detail-cover">
-          <ResponsiveImage
-            :src="book.cover_image_url"
-            :alt="`${book.title} 표지`"
-            fallback-label="표지 없음"
-          />
+          <ResponsiveImage :src="book.cover_image_url" :alt="`${book.title} 표지`" fallback-label="표지 없음" />
         </div>
 
         <div class="book-detail-main">
@@ -193,17 +140,15 @@ onMounted(loadPage)
             <dd class="col-sm-9">{{ publicationText || '출판 정보 없음' }}</dd>
             <dt class="col-sm-3">KDC</dt>
             <dd class="col-sm-9">{{ kdcText || '분류 정보 없음' }}</dd>
-            <dt v-if="book.loan_count !== null && book.loan_count !== undefined" class="col-sm-3">
-              대출 수
-            </dt>
+            <dt v-if="book.loan_count !== null && book.loan_count !== undefined" class="col-sm-3">대출 수</dt>
             <dd v-if="book.loan_count !== null && book.loan_count !== undefined" class="col-sm-9">
-              {{ book.loan_count.toLocaleString() }}회
+              {{ formatNumber(book.loan_count) }}회
             </dd>
           </dl>
 
           <p v-if="book.description" class="mb-3">{{ book.description }}</p>
 
-          <div v-if="book.tags?.length" class="d-flex flex-wrap gap-2 mb-3">
+          <div v-if="book.tags?.length" class="chip-row mb-3">
             <span v-for="tag in book.tags" :key="tag.code || tag.id || tag.name" class="book-chip">
               {{ tag.label || tag.name || tag.code }}
             </span>
@@ -221,40 +166,26 @@ onMounted(loadPage)
             </a>
             <SaveButton resource-type="book" :resource-id="book.isbn13" />
           </div>
-
-          <p v-if="book.source_name || book.source_updated_at" class="meta-text mt-3 mb-0">
-            {{
-              [book.source_name || book.provider_code, book.source_updated_at || book.metadata_fetched_at]
-                .filter(Boolean)
-                .join(' · ')
-            }}
-          </p>
         </div>
       </div>
 
       <section class="content-panel p-4">
-        <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+        <div class="section-header-row">
           <div>
-            <h2 class="section-title mb-1">부산 소장 도서관</h2>
-            <p class="meta-text mb-0">정보나루 기준 소장 도서관과 서비스 내부 매칭 상태를 표시합니다.</p>
+            <h2 class="section-title mb-1">이 책을 보유한 도서관</h2>
+            <p class="meta-text mb-0">정보나루 기준 소장 도서관과 서비스 매칭 상태를 표시합니다.</p>
           </div>
-          <p v-if="holdingsMeta.count" class="meta-text mb-0 align-self-end">
-            총 {{ holdingsMeta.count.toLocaleString() }}곳
-          </p>
+          <p v-if="holdingsMeta.count" class="meta-text mb-0">총 {{ holdingsMeta.count.toLocaleString('ko-KR') }}곳</p>
         </div>
 
         <LoadingState v-if="isHoldingsLoading" title="소장 도서관을 불러오는 중입니다." />
         <ErrorState
           v-else-if="holdingsError"
-          :title="holdingsErrorTitle"
-          :message="holdingsErrorMessage"
+          :title="isData4LibraryConfigError(holdingsError) ? '정보나루 설정이 필요합니다.' : '소장 도서관을 불러오지 못했습니다.'"
+          :message="isData4LibraryConfigError(holdingsError) ? 'API Key 설정이 완료되면 소장 도서관 조회를 사용할 수 있습니다.' : holdingsError.message"
           @retry="loadHoldings"
         />
-        <EmptyState
-          v-else-if="!hasHoldings"
-          title="소장 도서관이 없습니다."
-          description="현재 정보나루 조회 결과에 표시할 도서관이 없습니다."
-        />
+        <EmptyState v-else-if="!hasHoldings" title="소장 도서관이 없습니다." />
 
         <template v-else>
           <div class="d-grid gap-3">
@@ -264,53 +195,19 @@ onMounted(loadPage)
               class="holding-card"
             >
               <div>
-                <p class="meta-text mb-1">
-                  {{ item.matched ? '서비스 도서관과 연결됨' : '외부 도서관 정보' }}
-                </p>
+                <p class="meta-text mb-1">서비스 도서관과 연결됨</p>
                 <h3 class="h5 mb-2">
-                  <RouterLink
-                    v-if="item.matched && item.library?.id"
-                    class="text-decoration-none"
-                    :to="`/libraries/${item.library.id}`"
-                  >
+                  <RouterLink v-if="item.library?.id" class="text-decoration-none" :to="`/libraries/${item.library.id}`">
                     {{ item.library.name }}
                   </RouterLink>
                   <span v-else>{{ item.external_library?.name || '도서관명 없음' }}</span>
                 </h3>
-                <p class="meta-text mb-2">
-                  {{
-                    item.matched
-                      ? item.library?.road_address || item.external_library?.address || '주소 정보 없음'
-                      : item.external_library?.address || '주소 정보 없음'
-                  }}
-                </p>
-                <p v-if="!item.matched" class="meta-text mb-2">
-                  서비스 도서관 정보와 아직 연결되지 않았습니다.
-                </p>
-                <div class="d-flex flex-wrap gap-2">
+                <p class="meta-text mb-2">{{ item.library?.road_address || item.external_library?.address || '주소 정보 없음' }}</p>
+                <div class="chip-row">
                   <span class="book-chip">{{ holdingStatusText(item.holding) }}</span>
-                  <span v-if="item.holding?.call_number" class="book-chip">
-                    청구기호 {{ item.holding.call_number }}
-                  </span>
-                  <span v-if="item.holding?.loan_status" class="book-chip">
-                    {{ item.holding.loan_status }}
-                  </span>
+                  <span v-if="item.holding?.call_number" class="book-chip">청구기호 {{ item.holding.call_number }}</span>
+                  <span v-if="item.holding?.loan_status" class="book-chip">{{ item.holding.loan_status }}</span>
                 </div>
-              </div>
-
-              <div class="holding-card-actions">
-                <a
-                  v-if="item.external_library?.homepage_url"
-                  class="btn btn-outline-secondary btn-sm"
-                  :href="item.external_library.homepage_url"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  홈페이지
-                </a>
-                <span v-if="item.external_library?.phone" class="meta-text">
-                  {{ item.external_library.phone }}
-                </span>
               </div>
             </article>
             <ExternalLibraryCard

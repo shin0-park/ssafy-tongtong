@@ -42,9 +42,9 @@ const resolvedHasNext = computed(() => {
 </script>
 
 <template>
-  <nav class="d-flex justify-content-center gap-2 mt-4" aria-label="페이지 이동">
+  <nav class="pagination-bar" aria-label="페이지 이동">
     <button
-      class="btn btn-outline-secondary"
+      class="btn btn-outline-secondary btn-sm"
       type="button"
       :disabled="!resolvedHasPrevious"
       @click="$emit('change', resolvedPage - 1)"
@@ -53,7 +53,7 @@ const resolvedHasNext = computed(() => {
     </button>
     <span class="meta-text align-self-center">{{ resolvedPage }}페이지</span>
     <button
-      class="btn btn-outline-secondary"
+      class="btn btn-outline-secondary btn-sm"
       type="button"
       :disabled="!resolvedHasNext"
       @click="$emit('change', resolvedPage + 1)"

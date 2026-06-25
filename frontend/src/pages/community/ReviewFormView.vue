@@ -1,24 +1,36 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
 import { searchBooks } from '@/services/bookService'
+import { fetchLibraries } from '@/services/libraryService'
 import { fetchPrograms } from '@/services/programService'
 import { createReview, fetchReviewDetail, updateReview } from '@/services/reviewService'
 import { useAuthStore } from '@/stores/auth'
 import { extractErrorMessage, normalizeApiError } from '@/utils/apiError'
-import {
-  DEFAULT_MAX_IMAGE_SIZE_MB,
-  buildMultipartPayload,
-  findInvalidImage,
-  hasFiles,
-} from '@/utils/formData'
+import { REVIEW_TAG_LABELS } from '@/utils/display'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+
+const TAG_OPTIONS = [
+  { code: 'review_quiet_study', label: REVIEW_TAG_LABELS.review_quiet_study },
+  { code: 'review_seats_sufficient', label: REVIEW_TAG_LABELS.review_seats_sufficient },
+  { code: 'review_comfortable_reading_space', label: REVIEW_TAG_LABELS.review_comfortable_reading_space },
+  { code: 'review_comfortable_space', label: REVIEW_TAG_LABELS.review_comfortable_space },
+  { code: 'review_clean_space', label: REVIEW_TAG_LABELS.review_clean_space },
+  { code: 'review_books_diverse', label: REVIEW_TAG_LABELS.review_books_diverse },
+  { code: 'review_easy_book_finding', label: REVIEW_TAG_LABELS.review_easy_book_finding },
+  { code: 'review_good_programs', label: REVIEW_TAG_LABELS.review_good_programs },
+  { code: 'review_children_friendly', label: REVIEW_TAG_LABELS.review_children_friendly },
+  { code: 'review_parking_convenient', label: REVIEW_TAG_LABELS.review_parking_convenient },
+  { code: 'review_wifi_reliable', label: REVIEW_TAG_LABELS.review_wifi_reliable },
+  { code: 'review_kind_guidance', label: REVIEW_TAG_LABELS.review_kind_guidance },
+  { code: 'review_well_managed', label: REVIEW_TAG_LABELS.review_well_managed },
+]
 
 const isEdit = computed(() => route.name === 'review-edit')
 const isLoading = ref(false)
@@ -26,144 +38,133 @@ const isSaving = ref(false)
 const errorMessage = ref('')
 const fieldErrors = ref({})
 const validationMessage = ref('')
-const selectedImages = ref([])
-const imagePreviews = ref([])
-const relatedPrograms = ref([])
-const isLoadingPrograms = ref(false)
-const programErrorMessage = ref('')
+const librarySearchQuery = ref('')
+const librarySearchResults = ref([])
 const bookSearchQuery = ref('')
 const bookSearchResults = ref([])
-const isSearchingBooks = ref(false)
-const bookSearchMessage = ref('')
+const relatedPrograms = ref([])
+const searchMessage = ref('')
 
 const form = reactive({
   library_id: typeof route.query.library_id === 'string' ? route.query.library_id : '',
+  library_name: '',
   content: '',
-  tag_codes: '',
-  book_ids: '',
-  program_ids: '',
-  replace_images: false,
+  tag_codes: [],
+  book_ids: [],
+  program_ids: [],
 })
 
-const selectedProgramIds = computed(() => splitNumericValues(form.program_ids))
-const selectedBookIds = computed(() => splitNumericValues(form.book_ids))
+const selectedTagCount = computed(() => form.tag_codes.length)
 
-function splitValues(value) {
-  return String(value || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
+function firstFieldError(fieldName) {
+  const fieldError = fieldErrors.value?.[fieldName]
+  if (Array.isArray(fieldError)) return fieldError[0]
+  return fieldError || ''
 }
 
-function splitNumericValues(value) {
-  return splitValues(value)
-    .map((item) => Number(item))
-    .filter((item) => Number.isFinite(item))
+function validate() {
+  if (!form.library_id) return '도서관을 선택해주세요.'
+  const contentLength = form.content.trim().length
+  if (contentLength < 1 || contentLength > 200) return '후기는 1자 이상 200자 이하로 입력해주세요.'
+  if (form.tag_codes.length < 1 || form.tag_codes.length > 5) return '태그는 1개 이상 5개 이하로 선택해주세요.'
+  return ''
 }
 
 function buildPayload() {
   return {
-    library_id: form.library_id ? Number(form.library_id) : null,
+    library_id: Number(form.library_id),
     content: form.content.trim(),
-    tag_codes: splitValues(form.tag_codes),
-    book_ids: splitNumericValues(form.book_ids),
-    program_ids: splitNumericValues(form.program_ids),
+    tag_codes: [...form.tag_codes],
+    book_ids: form.book_ids.map(Number).filter(Number.isFinite),
+    program_ids: form.program_ids.map(Number).filter(Number.isFinite),
   }
 }
 
-function validate() {
+async function searchLibraries() {
+  searchMessage.value = ''
+  librarySearchResults.value = []
+  const query = librarySearchQuery.value.trim()
+  if (!query) {
+    searchMessage.value = '도서관명을 입력해주세요.'
+    return
+  }
+
+  try {
+    const data = await fetchLibraries({ q: query, page_size: 6 })
+    librarySearchResults.value = data.results ?? []
+    if (!librarySearchResults.value.length) searchMessage.value = '검색된 도서관이 없습니다.'
+  } catch (error) {
+    searchMessage.value = extractErrorMessage(error, '도서관을 검색하지 못했어요.')
+  }
+}
+
+function selectLibrary(library) {
+  form.library_id = String(library.id)
+  form.library_name = library.name
+  librarySearchQuery.value = library.name
+  librarySearchResults.value = []
+}
+
+async function searchRelatedBooks() {
+  searchMessage.value = ''
+  bookSearchResults.value = []
+  const query = bookSearchQuery.value.trim()
+  if (!query) {
+    searchMessage.value = '책 검색어를 입력해주세요.'
+    return
+  }
+
+  try {
+    const data = await searchBooks({ search_type: 'keyword', q: query, page_size: 6 })
+    bookSearchResults.value = data.results ?? []
+    if (!bookSearchResults.value.length) searchMessage.value = '검색된 책이 없습니다.'
+  } catch (error) {
+    searchMessage.value = extractErrorMessage(error, '책을 검색하지 못했어요.')
+  }
+}
+
+function toggleSelection(target, id, checked) {
+  const value = Number(id)
+  if (!Number.isFinite(value)) return
+  const set = new Set(form[target])
+  if (checked) set.add(value)
+  else set.delete(value)
+  form[target] = Array.from(set)
+}
+
+async function loadRelatedPrograms() {
   if (!form.library_id) {
-    return '도서관을 선택해주세요.'
+    relatedPrograms.value = []
+    return
   }
-
-  const contentLength = form.content.trim().length
-  if (contentLength < 1 || contentLength > 200) {
-    return '후기는 1자 이상 200자 이하로 입력해주세요.'
+  try {
+    const data = await fetchPrograms({ library_id: form.library_id, page_size: 8 })
+    relatedPrograms.value = data.results ?? []
+  } catch {
+    relatedPrograms.value = []
   }
-
-  const tagCount = splitValues(form.tag_codes).length
-  if (tagCount < 1 || tagCount > 5) {
-    return '태그는 1개 이상 5개 이하로 입력해주세요.'
-  }
-
-  if (selectedImages.value.length > 5) {
-    return '이미지는 최대 5장까지 선택할 수 있어요.'
-  }
-
-  const invalidImage = findInvalidImage(selectedImages.value)
-
-  if (invalidImage && invalidImage.size > DEFAULT_MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-    return `이미지는 1장당 ${DEFAULT_MAX_IMAGE_SIZE_MB}MB 이하로 선택할 수 있어요.`
-  }
-
-  if (invalidImage) {
-    return '이미지는 jpg, png, webp 형식만 사용할 수 있어요.'
-  }
-
-  return ''
-}
-
-function handleImageChange(event) {
-  selectedImages.value = Array.from(event.target.files ?? [])
-}
-
-function setNumericSelection(fieldName, id, checked) {
-  const values = new Set(splitNumericValues(form[fieldName]))
-
-  if (checked) {
-    values.add(Number(id))
-  } else {
-    values.delete(Number(id))
-  }
-
-  form[fieldName] = Array.from(values).join(', ')
-}
-
-function syncImagePreviews(files) {
-  imagePreviews.value.forEach((item) => URL.revokeObjectURL(item.url))
-  imagePreviews.value = files.map((file) => ({
-    name: file.name,
-    url: URL.createObjectURL(file),
-  }))
-}
-
-function firstFieldError(fieldName) {
-  const fieldError = fieldErrors.value?.[fieldName]
-
-  if (Array.isArray(fieldError)) {
-    return fieldError[0]
-  }
-
-  return fieldError || ''
 }
 
 async function loadReview() {
-  if (!isEdit.value) {
-    return
-  }
+  if (!isEdit.value) return
 
   isLoading.value = true
   errorMessage.value = ''
 
   try {
     const review = await fetchReviewDetail(route.params.id)
-
     if (review.user?.id && authStore.user?.id && review.user.id !== authStore.user.id) {
       await router.replace('/403')
       return
     }
 
     form.library_id = review.library?.id ? String(review.library.id) : ''
+    form.library_name = review.library?.name || ''
+    librarySearchQuery.value = form.library_name
     form.content = review.content || ''
-    form.tag_codes = (review.tags ?? []).map((tag) => tag.code || tag.name).filter(Boolean).join(', ')
-    form.book_ids = (review.books ?? review.related_books ?? [])
-      .map((book) => book.id || book.isbn13)
-      .filter(Boolean)
-      .join(', ')
-    form.program_ids = (review.programs ?? review.related_programs ?? [])
-      .map((program) => program.id)
-      .filter(Boolean)
-      .join(', ')
+    form.tag_codes = (review.tags ?? []).map((tag) => tag.code || tag.review_group).filter(Boolean).slice(0, 5)
+    form.book_ids = (review.books ?? review.related_books ?? []).map((book) => Number(book.id)).filter(Number.isFinite)
+    form.program_ids = (review.programs ?? review.related_programs ?? []).map((program) => Number(program.id)).filter(Number.isFinite)
   } catch (error) {
     errorMessage.value = extractErrorMessage(error, '후기 정보를 불러오지 못했어요.')
     fieldErrors.value = normalizeApiError(error).fields ?? {}
@@ -172,86 +173,18 @@ async function loadReview() {
   }
 }
 
-async function loadRelatedPrograms() {
-  if (!form.library_id) {
-    relatedPrograms.value = []
-    return
-  }
-
-  isLoadingPrograms.value = true
-  programErrorMessage.value = ''
-
-  try {
-    const data = await fetchPrograms({
-      library_id: form.library_id,
-      page_size: 6,
-    })
-    relatedPrograms.value = data.results ?? []
-  } catch {
-    relatedPrograms.value = []
-    programErrorMessage.value = '관련 프로그램을 불러오지 못했어요.'
-  } finally {
-    isLoadingPrograms.value = false
-  }
-}
-
-async function searchRelatedBooks() {
-  const query = bookSearchQuery.value.trim()
-  bookSearchMessage.value = ''
-  bookSearchResults.value = []
-
-  if (!query) {
-    bookSearchMessage.value = '검색어를 입력해주세요.'
-    return
-  }
-
-  isSearchingBooks.value = true
-
-  try {
-    const data = await searchBooks({
-      search_type: 'keyword',
-      q: query,
-      page_size: 6,
-    })
-    bookSearchResults.value = data.results ?? []
-    if (!bookSearchResults.value.length) {
-      bookSearchMessage.value = '검색 결과가 없어요.'
-    }
-  } catch (error) {
-    bookSearchMessage.value = extractErrorMessage(error, '책을 검색하지 못했어요.')
-  } finally {
-    isSearchingBooks.value = false
-  }
-}
-
 async function handleSubmit() {
   validationMessage.value = validate()
-  if (validationMessage.value) {
-    return
-  }
+  if (validationMessage.value) return
 
   isSaving.value = true
   errorMessage.value = ''
   fieldErrors.value = {}
 
   try {
-    const payload = buildPayload()
-    const hasSelectedImages = hasFiles(selectedImages.value)
-    const shouldSendMultipart = hasSelectedImages || (isEdit.value && form.replace_images)
-    const requestBody = shouldSendMultipart
-      ? buildMultipartPayload(
-          {
-            ...payload,
-            replace_images: isEdit.value ? form.replace_images : undefined,
-          },
-          { images: selectedImages.value },
-        )
-      : payload
-
     const review = isEdit.value
-      ? await updateReview(route.params.id, requestBody)
-      : await createReview(requestBody)
-
+      ? await updateReview(route.params.id, buildPayload())
+      : await createReview(buildPayload())
     await router.push(`/reviews/${review.id ?? route.params.id}`)
   } catch (error) {
     const normalizedError = normalizeApiError(error)
@@ -262,16 +195,10 @@ async function handleSubmit() {
   }
 }
 
-watch(selectedImages, syncImagePreviews)
 watch(() => form.library_id, loadRelatedPrograms)
-
 onMounted(async () => {
   await loadReview()
   await loadRelatedPrograms()
-})
-
-onBeforeUnmount(() => {
-  imagePreviews.value.forEach((item) => URL.revokeObjectURL(item.url))
 })
 </script>
 
@@ -279,9 +206,9 @@ onBeforeUnmount(() => {
   <section class="page-shell page-shell-narrow">
     <div class="page-header">
       <p class="eyebrow">커뮤니티</p>
-      <h1>{{ isEdit ? '후기 수정' : '후기 작성' }}</h1>
+      <h1 class="page-title">{{ isEdit ? '후기 수정' : '후기 작성' }}</h1>
       <p class="page-description mb-0">
-        후기 본문, 태그, 관련 책과 프로그램을 API 계약 형식에 맞춰 저장합니다.
+        도서관을 선택하고 200자 이내의 짧은 후기와 태그를 남겨주세요.
       </p>
     </div>
 
@@ -289,145 +216,96 @@ onBeforeUnmount(() => {
     <ErrorState v-else-if="errorMessage && !isSaving" :message="errorMessage" @retry="loadReview" />
 
     <form v-else class="content-panel p-4" @submit.prevent="handleSubmit">
-      <div v-if="validationMessage" class="alert alert-warning" role="alert">
-        {{ validationMessage }}
-      </div>
-      <div v-if="errorMessage" class="alert alert-danger" role="alert">
-        {{ errorMessage }}
-      </div>
+      <div v-if="validationMessage" class="alert alert-warning" role="alert">{{ validationMessage }}</div>
+      <div v-if="errorMessage" class="alert alert-danger" role="alert">{{ errorMessage }}</div>
+
+      <section class="content-panel-soft mb-3">
+        <label class="form-field mb-2">
+          <span>도서관 선택</span>
+          <div class="d-flex gap-2">
+            <input v-model.trim="librarySearchQuery" class="form-control" type="search" placeholder="도서관명 검색" />
+            <button class="btn btn-outline-primary" type="button" @click="searchLibraries">검색</button>
+          </div>
+        </label>
+        <p v-if="form.library_name" class="meta-text mb-2">선택됨: {{ form.library_name }}</p>
+        <p v-if="firstFieldError('library_id')" class="field-error">{{ firstFieldError('library_id') }}</p>
+        <div v-if="librarySearchResults.length" class="selection-list mt-3">
+          <button
+            v-for="library in librarySearchResults"
+            :key="library.id"
+            class="selection-row text-start"
+            type="button"
+            @click="selectLibrary(library)"
+          >
+            <span></span>
+            <span>
+              <strong>{{ library.name }}</strong>
+              <span class="meta-text d-block">{{ library.sigungu }} · {{ library.road_address }}</span>
+            </span>
+          </button>
+        </div>
+      </section>
 
       <label class="form-field mb-3">
-        <span>도서관 ID</span>
-        <input v-model.trim="form.library_id" class="form-control" type="number" min="1" required />
-        <p v-if="firstFieldError('library_id')" class="field-error">
-          {{ firstFieldError('library_id') }}
-        </p>
-      </label>
-
-      <label class="form-field mb-3">
-        <span>후기</span>
+        <span>후기 본문</span>
         <textarea v-model="form.content" class="form-control" rows="5" maxlength="200" required />
         <span class="meta-text">{{ form.content.trim().length }}/200</span>
-        <p v-if="firstFieldError('content')" class="field-error">
-          {{ firstFieldError('content') }}
-        </p>
+        <p v-if="firstFieldError('content')" class="field-error">{{ firstFieldError('content') }}</p>
       </label>
 
-      <label class="form-field mb-3">
-        <span>태그 코드</span>
-        <input v-model.trim="form.tag_codes" class="form-control" placeholder="review_quiet, review_kids" />
-        <p v-if="firstFieldError('tag_codes')" class="field-error">
-          {{ firstFieldError('tag_codes') }}
-        </p>
-      </label>
-
-      <label class="form-field mb-3">
-        <span>관련 책 ID</span>
-        <input v-model.trim="form.book_ids" class="form-control" />
-        <span class="meta-text">책 검색 결과에 내부 numeric id가 있을 때만 선택할 수 있어요.</span>
-        <p v-if="firstFieldError('book_ids')" class="field-error">
-          {{ firstFieldError('book_ids') }}
-        </p>
-      </label>
+      <section class="mb-3">
+        <p class="filter-group-title mb-2">후기 태그 {{ selectedTagCount }}/5</p>
+        <div class="filter-chip-grid">
+          <label v-for="tag in TAG_OPTIONS" :key="tag.code" class="filter-chip">
+            <input v-model="form.tag_codes" type="checkbox" :value="tag.code" :disabled="!form.tag_codes.includes(tag.code) && selectedTagCount >= 5" />
+            <span>{{ tag.label }}</span>
+          </label>
+        </div>
+        <p v-if="firstFieldError('tag_codes')" class="field-error">{{ firstFieldError('tag_codes') }}</p>
+      </section>
 
       <section class="content-panel-soft mb-3">
         <div class="d-flex gap-2">
-          <input
-            v-model.trim="bookSearchQuery"
-            class="form-control"
-            type="search"
-            placeholder="관련 책 검색"
-          />
-          <button class="btn btn-outline-primary" type="button" :disabled="isSearchingBooks" @click="searchRelatedBooks">
-            검색
-          </button>
+          <input v-model.trim="bookSearchQuery" class="form-control" type="search" placeholder="관련 책 검색" />
+          <button class="btn btn-outline-primary" type="button" @click="searchRelatedBooks">검색</button>
         </div>
-        <p v-if="bookSearchMessage" class="meta-text mt-2 mb-0">{{ bookSearchMessage }}</p>
+        <p v-if="searchMessage" class="meta-text mt-2 mb-0">{{ searchMessage }}</p>
         <div v-if="bookSearchResults.length" class="selection-list mt-3">
           <label v-for="book in bookSearchResults" :key="book.id || book.isbn13" class="selection-row">
             <input
               class="form-check-input"
               type="checkbox"
               :disabled="!book.id"
-              :checked="book.id ? selectedBookIds.includes(Number(book.id)) : false"
-              @change="setNumericSelection('book_ids', book.id, $event.target.checked)"
+              :checked="book.id ? form.book_ids.includes(Number(book.id)) : false"
+              @change="toggleSelection('book_ids', book.id, $event.target.checked)"
             />
             <span>
               <strong>{{ book.title || '제목 정보 없음' }}</strong>
-              <span class="meta-text d-block">
-                {{ book.authors_text || '저자 정보 없음' }}
-                <template v-if="!book.id"> · 내부 ID 없음</template>
-              </span>
+              <span class="meta-text d-block">{{ book.authors_text || '저자 정보 없음' }}</span>
             </span>
           </label>
         </div>
       </section>
 
-      <label class="form-field mb-3">
-        <span>관련 프로그램 ID</span>
-        <input v-model.trim="form.program_ids" class="form-control" />
-        <p v-if="firstFieldError('program_ids')" class="field-error">
-          {{ firstFieldError('program_ids') }}
-        </p>
-      </label>
-
-      <section class="content-panel-soft mb-3">
-        <p v-if="isLoadingPrograms" class="meta-text mb-0">관련 프로그램을 불러오는 중입니다.</p>
-        <p v-else-if="programErrorMessage" class="meta-text mb-0">{{ programErrorMessage }}</p>
-        <p v-else-if="!form.library_id" class="meta-text mb-0">도서관 ID를 입력하면 관련 프로그램을 선택할 수 있어요.</p>
-        <p v-else-if="!relatedPrograms.length" class="meta-text mb-0">선택할 수 있는 관련 프로그램이 없어요.</p>
+      <section class="content-panel-soft mb-4">
+        <p class="filter-group-title mb-2">관련 프로그램</p>
+        <p v-if="!form.library_id" class="meta-text mb-0">도서관을 선택하면 관련 프로그램을 고를 수 있어요.</p>
+        <p v-else-if="!relatedPrograms.length" class="meta-text mb-0">선택 가능한 관련 프로그램이 없어요.</p>
         <div v-else class="selection-list">
           <label v-for="program in relatedPrograms" :key="program.id" class="selection-row">
             <input
               class="form-check-input"
               type="checkbox"
-              :checked="selectedProgramIds.includes(Number(program.id))"
-              @change="setNumericSelection('program_ids', program.id, $event.target.checked)"
+              :checked="form.program_ids.includes(Number(program.id))"
+              @change="toggleSelection('program_ids', program.id, $event.target.checked)"
             />
             <span>
               <strong>{{ program.title || '프로그램명 정보 없음' }}</strong>
-              <span class="meta-text d-block">
-                {{ program.category_display || '분류 정보 없음' }}
-              </span>
+              <span class="meta-text d-block">{{ program.category_display || '분류 정보 없음' }}</span>
             </span>
           </label>
         </div>
       </section>
-
-      <label class="form-field mb-3">
-        <span>이미지</span>
-        <input
-          class="form-control"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          @change="handleImageChange"
-        />
-        <span class="meta-text">선택 {{ selectedImages.length }}장 / 최대 5장</span>
-        <p v-if="firstFieldError('images')" class="field-error">
-          {{ firstFieldError('images') }}
-        </p>
-      </label>
-
-      <div v-if="imagePreviews.length" class="review-image-grid mb-3">
-        <img
-          v-for="image in imagePreviews"
-          :key="image.url"
-          class="review-image-preview"
-          :src="image.url"
-          :alt="`${image.name} 미리보기`"
-        />
-      </div>
-
-      <label v-if="isEdit" class="form-check mb-4">
-        <input v-model="form.replace_images" class="form-check-input" type="checkbox" />
-        <span class="form-check-label">
-          선택한 이미지로 기존 이미지를 교체
-          <span v-if="form.replace_images && !selectedImages.length" class="meta-text d-block">
-            새 이미지를 선택하지 않으면 기존 이미지가 모두 삭제됩니다.
-          </span>
-        </span>
-      </label>
 
       <div class="d-flex flex-wrap justify-content-end gap-2">
         <RouterLink class="btn btn-outline-secondary" to="/community">취소</RouterLink>

@@ -3,9 +3,10 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import LikeButton from '@/components/actions/LikeButton.vue'
-import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
 import RelatedBookMiniCard from '@/components/cards/RelatedBookMiniCard.vue'
 import RelatedProgramMiniCard from '@/components/cards/RelatedProgramMiniCard.vue'
+import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
+import { REVIEW_TAG_LABELS, formatDate, labelFromMap } from '@/utils/display'
 
 const props = defineProps({
   review: {
@@ -36,16 +37,8 @@ const updatedDateText = computed(() => {
   return formatDate(props.review.updated_at)
 })
 
-function formatDate(value) {
-  if (!value) {
-    return '정보 없음'
-  }
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date(value))
+function tagLabel(tag) {
+  return tag.review_label || tag.label || tag.name || labelFromMap(REVIEW_TAG_LABELS, tag.review_group || tag.code, tag.code)
 }
 </script>
 
@@ -88,9 +81,9 @@ function formatDate(value) {
       />
     </div>
 
-    <div v-if="tags.length" class="d-flex flex-wrap gap-2">
+    <div v-if="tags.length" class="chip-row">
       <span v-for="tag in tags" :key="tag.code || tag.id || tag.name" class="book-chip">
-        {{ tag.label || tag.name || tag.code }}
+        {{ tagLabel(tag) }}
       </span>
     </div>
 
@@ -100,7 +93,7 @@ function formatDate(value) {
     </div>
 
     <footer class="review-card-footer">
-      <span>조회 {{ (review.view_count ?? 0).toLocaleString() }}</span>
+      <span>조회 {{ (review.view_count ?? 0).toLocaleString('ko-KR') }}</span>
       <span>작성 {{ formatDate(review.created_at) }}</span>
       <span v-if="updatedDateText">수정 {{ updatedDateText }}</span>
     </footer>
