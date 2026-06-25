@@ -42,6 +42,13 @@ const themeGroups = computed(() => {
 })
 const personalRecommendations = computed(() => homeData.value?.personal_recommendations ?? {})
 const personalItems = computed(() => personalRecommendations.value.items ?? [])
+const personalReasonKeywords = computed(() => {
+  const reason = personalRecommendations.value.reason || ''
+  if (reason.includes('선호 설정') && reason.includes('나들이 활동')) return ['선호 설정', '저장', '후기']
+  if (reason.includes('저장') || reason.includes('후기') || reason.includes('나들이 활동')) return ['저장', '후기 활동']
+  if (reason.includes('선호 설정')) return ['선호 목적', '관심 지역', '관심 태그']
+  return []
+})
 const showPersonalRecommendations = computed(
   () => authStore.isAuthenticated && personalRecommendations.value.available === true && personalItems.value.length > 0,
 )
@@ -149,14 +156,26 @@ onMounted(loadHome)
         <div class="section-header-row">
           <div>
             <h2 class="section-title mb-1">{{ personalRecommendations.title || '여기는 어때요?' }}</h2>
-            <p class="meta-text mb-0">
-              {{ personalRecommendations.reason || '저장한 도서관, 책, 프로그램과 후기 활동을 바탕으로 골랐어요.' }}
-            </p>
+            <div class="section-summary-line">
+              <p class="meta-text mb-0">
+                {{ personalRecommendations.reason || '저장한 도서관, 책, 프로그램과 후기 활동을 바탕으로 골랐어요.' }}
+              </p>
+              <div v-if="personalReasonKeywords.length" class="summary-keyword-row" aria-label="추천 기준 요약">
+                <span v-for="keyword in personalReasonKeywords" :key="keyword" class="summary-keyword-chip">
+                  {{ keyword }}
+                </span>
+              </div>
+            </div>
           </div>
           <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/dashboard">나의 나들이</RouterLink>
         </div>
         <div class="responsive-card-grid-three">
-          <LibraryCard v-for="library in personalItems.slice(0, 3)" :key="library.id" :library="library" />
+          <LibraryCard
+            v-for="library in personalItems.slice(0, 3)"
+            :key="library.id"
+            :library="library"
+            :show-recommendation-reason="false"
+          />
         </div>
       </section>
 

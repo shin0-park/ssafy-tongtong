@@ -296,10 +296,9 @@ onMounted(() => {
 
 <template>
   <section class="page-shell">
-    <div class="page-hero">
+    <div class="page-hero page-hero-banner page-hero-libraries">
       <h1>도서관 찾기</h1>
       <p>지역, 테마, 운영 조건, 시설 정보를 조합해 오늘 가기 좋은 부산 도서관을 찾아보세요.</p>
-      <div class="page-hero-visual" aria-hidden="true"></div>
     </div>
 
     <form class="content-panel p-4 mb-4 filter-panel" @submit.prevent="applyFilters">

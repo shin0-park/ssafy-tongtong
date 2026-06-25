@@ -26,6 +26,7 @@ const similarLibraries = ref([])
 const isLoading = ref(false)
 const error = ref(null)
 const sectionErrors = ref({ programs: '', reviews: '', similar: '' })
+const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
 
 const locationText = computed(() => [library.value?.sido, library.value?.sigungu].filter(Boolean).join(' '))
 const typeText = computed(() => LIBRARY_TYPE_LABELS[library.value?.library_type] || library.value?.library_type || '도서관')
@@ -44,6 +45,28 @@ const topTags = computed(() => {
   if (library.value?.book_count) chips.push('장서 풍부')
   return chips.slice(0, 5)
 })
+const todayOperationText = computed(() => {
+  const statusText = boolText(library.value?.open_today, '운영', '휴관')
+  const hoursText = formatHours(library.value?.today_hours, '')
+  return [statusText, hoursText].filter(Boolean).join(' · ')
+})
+const displayOpeningHours = computed(() => {
+  const seen = new Set()
+  return (library.value?.opening_hours ?? [])
+    .filter((hour) => !isClosedAllDayHour(hour))
+    .map((hour) => ({
+      key: hour.id || `${hour.day_type}-${hour.day_of_week ?? ''}-${hour.specific_date ?? ''}-${hour.sequence ?? ''}`,
+      label: dayTypeLabel(hour),
+      text: openingHourLabel(hour),
+    }))
+    .filter((item) => {
+      const signature = `${item.label}-${item.text}`
+      if (seen.has(signature)) return false
+      seen.add(signature)
+      return true
+    })
+})
+const closureText = computed(() => formatClosureRules(library.value?.closure_rules ?? []))
 
 function boolText(value, trueText, falseText, unknownText = '확인 필요') {
   if (value === true) return trueText
@@ -51,11 +74,11 @@ function boolText(value, trueText, falseText, unknownText = '확인 필요') {
   return unknownText
 }
 
-function formatHours(hours) {
-  if (!hours) return '정보 없음'
+function formatHours(hours, fallback = '정보 없음') {
+  if (!hours) return fallback
   if (typeof hours === 'string') return hours
   if (hours.open && hours.close) return `${hours.open} ~ ${hours.close}${hours.closes_next_day ? ' 다음날' : ''}`
-  return '정보 없음'
+  return fallback
 }
 
 function openingHourLabel(hour) {
@@ -67,13 +90,73 @@ function openingHourLabel(hour) {
   return '정보 없음'
 }
 
+function isClosedAllDayHour(hour) {
+  const rawText = String(hour.raw_text || '').replace(/\s/g, '')
+  const openTime = String(hour.open_time || '').slice(0, 5)
+  const closeTime = String(hour.close_time || '').slice(0, 5)
+  return rawText === '00:00~00:00' || (openTime === '00:00' && closeTime === '00:00')
+}
+
 function dayTypeLabel(hour) {
   if (hour.day_type === 'weekday') return '평일'
   if (hour.day_type === 'saturday') return '토요일'
   if (hour.day_type === 'sunday') return '일요일'
-  if (hour.day_type === 'holiday') return '공휴일'
-  if (hour.day_of_week !== null && hour.day_of_week !== undefined) return `요일 ${hour.day_of_week}`
+  if (hour.day_type === 'holiday' || hour.day_type === 'public_holiday') return '주말/공휴일'
+  if (hour.day_of_week !== null && hour.day_of_week !== undefined) return WEEKDAY_LABELS[Number(hour.day_of_week)] || '운영시간'
   return hour.day_type || '운영시간'
+}
+
+function addClosureLabel(labels, value) {
+  if (!value) return
+  labels.add(value)
+}
+
+function addClosureDay(labels, value) {
+  const label = WEEKDAY_LABELS[Number(value)]
+  addClosureLabel(labels, label)
+}
+
+function addClosureLabelsFromText(labels, text) {
+  const normalized = String(text || '').replace(/\s/g, '')
+  if (!normalized) return
+  const tokens = normalized.split(/[,+/·ㆍ|]+/).filter(Boolean)
+
+  tokens.forEach((token) => {
+    if (token === '월' || token.includes('월요일')) addClosureLabel(labels, '월')
+    if (token === '화' || token.includes('화요일')) addClosureLabel(labels, '화')
+    if (token === '수' || token.includes('수요일')) addClosureLabel(labels, '수')
+    if (token === '목' || token.includes('목요일')) addClosureLabel(labels, '목')
+    if (token === '금' || token.includes('금요일')) addClosureLabel(labels, '금')
+    if (token === '토' || token.includes('토요일')) addClosureLabel(labels, '토')
+    if (token === '일' || token.includes('일요일')) addClosureLabel(labels, '일')
+    if (token.includes('공휴일') || token === '휴일') addClosureLabel(labels, '공휴일')
+  })
+}
+
+function formatClosureRules(rules) {
+  const labels = new Set()
+
+  rules.forEach((rule) => {
+    const normalizedRule = rule.normalized_rule && typeof rule.normalized_rule === 'object' ? rule.normalized_rule : {}
+
+    if (rule.rule_type === 'weekly' || rule.rule_type === 'nth_weekday') {
+      if (Array.isArray(normalizedRule.day_of_week)) {
+        normalizedRule.day_of_week.forEach((day) => addClosureDay(labels, day))
+      } else {
+        addClosureDay(labels, normalizedRule.day_of_week)
+      }
+    }
+
+    if (rule.rule_type === 'public_holiday' || rule.rule_type === 'named_holiday') {
+      addClosureLabel(labels, '공휴일')
+    }
+
+    addClosureLabelsFromText(labels, rule.raw_text)
+  })
+
+  const order = ['월', '화', '수', '목', '금', '토', '일', '공휴일']
+  const orderedLabels = order.filter((label) => labels.has(label))
+  return orderedLabels.length ? orderedLabels.join(', ') : ''
 }
 
 async function loadLibrary() {
@@ -185,20 +268,14 @@ onMounted(loadLibrary)
             <h2 class="section-title">운영 정보</h2>
             <dl class="row mb-0">
               <dt class="col-sm-4">오늘 운영</dt>
-              <dd class="col-sm-8">{{ boolText(library.open_today, '운영', '휴관') }}</dd>
-              <dt class="col-sm-4">현재 운영</dt>
-              <dd class="col-sm-8">{{ boolText(library.open_now, '운영 중', '운영 중 아님') }}</dd>
-              <dt class="col-sm-4">오늘 시간</dt>
-              <dd class="col-sm-8">{{ formatHours(library.today_hours) }}</dd>
-              <template v-for="hour in (library.opening_hours ?? []).slice(0, 4)" :key="hour.id || `${hour.day_type}-${hour.sequence}`">
-                <dt class="col-sm-4">{{ dayTypeLabel(hour) }}</dt>
-                <dd class="col-sm-8">{{ openingHourLabel(hour) }}</dd>
+              <dd class="col-sm-8">{{ todayOperationText }}</dd>
+              <template v-for="hour in displayOpeningHours" :key="hour.key">
+                <dt class="col-sm-4">{{ hour.label }}</dt>
+                <dd class="col-sm-8">{{ hour.text }}</dd>
               </template>
               <dt class="col-sm-4">휴관일</dt>
               <dd class="col-sm-8">
-                <span v-if="library.closure_rules?.length">
-                  {{ library.closure_rules.map((rule) => rule.raw_text || rule.normalized_rule).filter(Boolean).join(', ') }}
-                </span>
+                <span v-if="closureText">{{ closureText }}</span>
                 <span v-else>휴관 정보 없음</span>
               </dd>
             </dl>

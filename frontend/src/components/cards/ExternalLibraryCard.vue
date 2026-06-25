@@ -14,19 +14,9 @@ defineProps({
 <template>
   <article class="holding-card">
     <div>
-      <p class="meta-text mb-1">외부 도서관 정보</p>
       <h3 class="h5 mb-2">{{ library.name || '도서관명 없음' }}</h3>
       <p class="meta-text mb-2">{{ library.address || '주소 정보 없음' }}</p>
-      <p class="meta-text mb-2">서비스 도서관 정보와 아직 연결되지 않았습니다.</p>
-      <span class="book-chip">
-        {{
-          holding?.loan_available === true
-            ? '대출 가능'
-            : holding?.loan_available === false
-              ? '대출 불가'
-              : '대출 상태 미제공'
-        }}
-      </span>
+      <span v-if="holding?.call_number" class="book-chip">청구기호 {{ holding.call_number }}</span>
     </div>
     <div class="holding-card-actions">
       <a

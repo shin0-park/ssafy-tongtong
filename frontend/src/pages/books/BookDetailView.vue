@@ -50,12 +50,6 @@ function isData4LibraryConfigError(requestError) {
   return requestError?.status === 503 && typeof requestError.message === 'string' && requestError.message.includes('Data4Library API key')
 }
 
-function holdingStatusText(holding) {
-  if (holding?.loan_available === true) return '대출 가능'
-  if (holding?.loan_available === false) return '대출 불가'
-  return '대출 상태 미제공'
-}
-
 async function loadBook() {
   isBookLoading.value = true
   bookError.value = null
@@ -173,7 +167,6 @@ onMounted(loadPage)
         <div class="section-header-row">
           <div>
             <h2 class="section-title mb-1">이 책을 보유한 도서관</h2>
-            <p class="meta-text mb-0">정보나루 기준 소장 도서관과 서비스 매칭 상태를 표시합니다.</p>
           </div>
           <p v-if="holdingsMeta.count" class="meta-text mb-0">총 {{ holdingsMeta.count.toLocaleString('ko-KR') }}곳</p>
         </div>
@@ -195,7 +188,6 @@ onMounted(loadPage)
               class="holding-card"
             >
               <div>
-                <p class="meta-text mb-1">서비스 도서관과 연결됨</p>
                 <h3 class="h5 mb-2">
                   <RouterLink v-if="item.library?.id" class="text-decoration-none" :to="`/libraries/${item.library.id}`">
                     {{ item.library.name }}
@@ -203,10 +195,8 @@ onMounted(loadPage)
                   <span v-else>{{ item.external_library?.name || '도서관명 없음' }}</span>
                 </h3>
                 <p class="meta-text mb-2">{{ item.library?.road_address || item.external_library?.address || '주소 정보 없음' }}</p>
-                <div class="chip-row">
-                  <span class="book-chip">{{ holdingStatusText(item.holding) }}</span>
+                <div v-if="item.holding?.call_number" class="chip-row">
                   <span v-if="item.holding?.call_number" class="book-chip">청구기호 {{ item.holding.call_number }}</span>
-                  <span v-if="item.holding?.loan_status" class="book-chip">{{ item.holding.loan_status }}</span>
                 </div>
               </div>
             </article>

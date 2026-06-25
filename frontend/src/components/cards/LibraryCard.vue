@@ -16,6 +16,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  showRecommendationReason: {
+    type: Boolean,
+    default: true,
+  },
 })
 
 const thumbnailUrl = computed(() => props.library.thumbnail?.url || '')
@@ -99,7 +103,7 @@ function formatHours(hours) {
         </span>
       </div>
 
-      <p v-if="library.recommendation_reason && !compact" class="recommendation-reason mt-3 mb-0">
+      <p v-if="showRecommendationReason && library.recommendation_reason && !compact" class="recommendation-reason mt-3 mb-0">
         {{ library.recommendation_reason }}
       </p>
     </div>
