@@ -483,10 +483,20 @@
   font-size: var(--font-size-13);
 }
 
+.review-detail-library-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  color: var(--color-primary-800);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
 .review-detail-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
-  gap: var(--space-6);
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
+  gap: var(--space-5);
   padding-top: var(--space-5);
 }
 
@@ -498,7 +508,7 @@
 .review-detail-content {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: var(--font-size-18);
+  font-size: var(--font-size-20);
   line-height: 1.8;
   white-space: pre-line;
 }
@@ -531,13 +541,6 @@
   border-radius: var(--radius-md);
   background: var(--color-bg-soft);
   object-fit: cover;
-}
-
-.review-detail-library-box {
-  border: var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  background: var(--color-bg-soft);
 }
 
 .selection-list {
@@ -608,6 +611,27 @@
 
 .related-mini-grid {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.related-mini-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.review-detail-section .related-mini-list .mini-card {
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  box-shadow: none;
+}
+
+.review-detail-section .related-mini-list .mini-card strong {
+  display: block;
+  overflow: hidden;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mini-card {
