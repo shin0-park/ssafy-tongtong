@@ -15,7 +15,7 @@ import {
   PROGRAM_CATEGORY_LABELS,
   PROGRAM_TARGET_LABELS,
 } from '@/utils/display'
-import { readPageQuery } from '@/utils/query'
+import { normalizeOrdering, readPageQuery } from '@/utils/query'
 
 const route = useRoute()
 const router = useRouter()
@@ -46,6 +46,12 @@ const TARGET_OPTIONS = Object.entries(PROGRAM_TARGET_LABELS)
   .map(([value, label]) => ({ value, label }))
 const APPLICATION_OPTIONS = Object.entries(APPLICATION_STATUS_LABELS).map(([value, label]) => ({ value, label }))
 const OPERATION_OPTIONS = Object.entries(OPERATION_STATUS_LABELS).map(([value, label]) => ({ value, label }))
+const ORDERING_OPTIONS = [
+  { value: '-post_date', label: '게시 최신순' },
+  { value: 'title', label: '프로그램명순' },
+  { value: 'library__name', label: '도서관명순' },
+]
+const DEFAULT_ORDERING = '-post_date'
 
 const programs = ref([])
 const pagination = ref({ count: 0, next: null, previous: null })
@@ -60,6 +66,7 @@ const allowedValues = {
   target: TARGET_OPTIONS.map((item) => item.value),
   application_status: APPLICATION_OPTIONS.map((item) => item.value),
   operation_status: OPERATION_OPTIONS.map((item) => item.value),
+  ordering: ORDERING_OPTIONS.map((item) => item.value),
 }
 const filters = reactive(readFiltersFromRoute())
 
@@ -89,6 +96,7 @@ function createEmptyFilters() {
     target: [],
     application_status: '',
     operation_status: '',
+    ordering: DEFAULT_ORDERING,
   }
 }
 
@@ -106,6 +114,11 @@ function readFiltersFromRoute() {
     operation_status: readSingleQueryValue(
       route.query.operation_status,
       allowedValues?.operation_status ?? OPERATION_OPTIONS.map((item) => item.value),
+    ),
+    ordering: normalizeOrdering(
+      route.query.ordering,
+      allowedValues?.ordering ?? ORDERING_OPTIONS.map((item) => item.value),
+      DEFAULT_ORDERING,
     ),
   }
 }
@@ -126,6 +139,7 @@ function buildRequestParams() {
     target: filters.target.join(','),
     application_status: filters.application_status,
     operation_status: filters.operation_status,
+    ordering: filters.ordering,
   }
 }
 
@@ -160,8 +174,20 @@ function applyFilters() {
       target: filters.target.length ? filters.target.join(',') : undefined,
       application_status: filters.application_status || undefined,
       operation_status: filters.operation_status || undefined,
+      ordering: filters.ordering === DEFAULT_ORDERING ? undefined : filters.ordering,
       page: 1,
       page_size: readPageQuery(route).page_size || DEFAULT_PAGE_SIZE,
+    },
+  })
+}
+
+function applySort() {
+  router.push({
+    name: 'program-list',
+    query: {
+      ...route.query,
+      ordering: filters.ordering === DEFAULT_ORDERING ? undefined : filters.ordering,
+      page: 1,
     },
   })
 }
@@ -334,7 +360,19 @@ onMounted(loadPrograms)
     />
 
     <template v-else>
-      <ResultCount class="mb-3" :count="pagination.count" label="개" />
+      <div class="result-toolbar mb-3">
+        <ResultCount :count="pagination.count" label="개" />
+        <div class="result-sort-controls" aria-label="문화 프로그램 목록 정렬">
+          <label class="result-sort-select">
+            <span>정렬</span>
+            <select v-model="filters.ordering" class="form-select form-select-sm" @change="applySort">
+              <option v-for="option in ORDERING_OPTIONS" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+        </div>
+      </div>
       <div class="program-result-grid">
         <ProgramCard v-for="program in programs" :key="program.id" :program="program" />
       </div>

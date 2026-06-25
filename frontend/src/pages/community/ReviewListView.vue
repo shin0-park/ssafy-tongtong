@@ -108,6 +108,17 @@ function resetFilters() {
   router.push({ path: '/community' })
 }
 
+function applySort() {
+  router.push({
+    path: '/community',
+    query: {
+      ...route.query,
+      ordering: filters.ordering !== '-created_at' ? filters.ordering : undefined,
+      page: 1,
+    },
+  })
+}
+
 function goToPage(nextPage) {
   router.push({
     path: '/community',
@@ -147,14 +158,6 @@ onMounted(async () => {
           <span>도서관 ID</span>
           <input v-model.trim="filters.library_id" class="form-control" inputmode="numeric" />
         </label>
-        <label class="form-field">
-          <span>정렬</span>
-          <select v-model="filters.ordering" class="form-select">
-            <option v-for="option in ORDERING_OPTIONS" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
       </div>
 
       <div class="filter-group">
@@ -181,7 +184,19 @@ onMounted(async () => {
       description="첫 후기를 남기거나 검색 조건을 바꿔보세요."
     />
     <template v-else>
-      <ResultCount class="mb-3" :count="count" label="개" />
+      <div class="result-toolbar mb-3">
+        <ResultCount :count="count" label="개" />
+        <div class="result-sort-controls" aria-label="후기 목록 정렬">
+          <label class="result-sort-select">
+            <span>정렬</span>
+            <select v-model="filters.ordering" class="form-select form-select-sm" @change="applySort">
+              <option v-for="option in ORDERING_OPTIONS" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+        </div>
+      </div>
       <div class="stack-list">
         <ReviewCard v-for="review in reviews" :key="review.id" :review="review" />
       </div>

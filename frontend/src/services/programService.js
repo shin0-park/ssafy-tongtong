@@ -11,6 +11,7 @@ const PROGRAM_LIST_QUERY_KEYS = [
   'target',
   'application_status',
   'operation_status',
+  'ordering',
 ]
 
 export async function fetchPrograms(params = {}) {

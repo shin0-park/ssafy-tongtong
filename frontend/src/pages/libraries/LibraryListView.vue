@@ -43,7 +43,7 @@ const LIBRARY_TYPE_OPTIONS = [
 const PURPOSE_OPTIONS = Object.entries(PURPOSE_LABELS).map(([value, label]) => ({ value, label }))
 const FACILITY_OPTIONS = Object.entries(FACILITY_LABELS).map(([value, label]) => ({ value, label }))
 const ORDERING_OPTIONS = [
-  { value: '', label: '이름순' },
+  { value: 'name', label: '이름순' },
   { value: '-book_count', label: '장서 많은 순' },
   { value: '-reading_seat_count', label: '좌석 많은 순' },
   { value: 'purpose_score', label: '테마 적합순' },
@@ -70,7 +70,7 @@ const filters = reactive({
   lng: '',
   min_book_count: '',
   min_reading_seat_count: '',
-  ordering: '',
+  ordering: 'name',
   open_today: false,
   weekend_open: false,
   holiday_status: '',
@@ -124,9 +124,10 @@ function syncFromRoute() {
   filters.lng = readStringQuery(route, 'lng')
   filters.min_book_count = readStringQuery(route, 'min_book_count')
   filters.min_reading_seat_count = readStringQuery(route, 'min_reading_seat_count')
-  filters.ordering = ORDERING_OPTIONS.some((item) => item.value === route.query.ordering)
+  const routeOrdering = ORDERING_OPTIONS.some((item) => item.value === route.query.ordering)
     ? readStringQuery(route, 'ordering')
-    : ''
+    : 'name'
+  filters.ordering = routeOrdering === 'purpose_score' && !filters.purpose ? 'name' : routeOrdering
   filters.holiday_status = HOLIDAY_STATUS_OPTIONS.some((item) => item.value === route.query.holiday_status)
     ? readStringQuery(route, 'holiday_status')
     : ''
@@ -208,7 +209,7 @@ function applyFilters() {
       lng: purpose ? filters.lng || undefined : undefined,
       min_book_count: filters.min_book_count || undefined,
       min_reading_seat_count: filters.min_reading_seat_count || undefined,
-      ordering: ordering || undefined,
+      ordering: ordering === 'name' ? undefined : ordering,
       open_today: filters.open_today ? 'true' : undefined,
       weekend_open: filters.weekend_open ? 'true' : undefined,
       holiday_status: filters.holiday_status || undefined,
@@ -225,12 +226,29 @@ function resetFilters() {
   router.push({ name: 'library-list' })
 }
 
+function applySort() {
+  const ordering = filters.ordering === 'purpose_score' && !filters.purpose ? 'name' : filters.ordering
+  filters.ordering = ordering
+
+  router.push({
+    name: 'library-list',
+    query: {
+      ...route.query,
+      ordering: ordering === 'name' ? undefined : ordering,
+      page: 1,
+    },
+  })
+}
+
 function togglePurpose(value) {
   locationMessage.value = ''
   if (filters.purpose === value) {
     filters.purpose = ''
     filters.lat = ''
     filters.lng = ''
+    if (filters.ordering === 'purpose_score') {
+      filters.ordering = 'name'
+    }
     return
   }
   filters.purpose = value
@@ -331,14 +349,6 @@ onMounted(() => {
         <label class="form-field">
           <span>검색</span>
           <input v-model.trim="filters.q" class="form-control" type="search" placeholder="도서관명, 지역, 주소 검색" />
-        </label>
-        <label class="form-field">
-          <span>정렬</span>
-          <select v-model="filters.ordering" class="form-select">
-            <option v-for="option in ORDERING_OPTIONS" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
         </label>
         <label class="form-field">
           <span>최소 장서 수</span>
@@ -465,9 +475,26 @@ onMounted(() => {
     />
 
     <template v-else>
-      <div class="section-header-row">
-        <ResultCount :count="pagination.count" label="곳" />
-        <p class="meta-text mb-0">{{ hasFilter ? '검색 필터 결과입니다.' : '전체 도서관 목록입니다.' }}</p>
+      <div class="result-toolbar mb-3">
+        <div>
+          <ResultCount :count="pagination.count" label="곳" />
+          <p class="meta-text mb-0">{{ hasFilter ? '검색 필터 결과입니다.' : '전체 도서관 목록입니다.' }}</p>
+        </div>
+        <div class="result-sort-controls" aria-label="도서관 목록 정렬">
+          <label class="result-sort-select">
+            <span>정렬</span>
+            <select v-model="filters.ordering" class="form-select form-select-sm" @change="applySort">
+              <option
+                v-for="option in ORDERING_OPTIONS"
+                :key="option.value"
+                :value="option.value"
+                :disabled="option.value === 'purpose_score' && !filters.purpose"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+        </div>
       </div>
       <div class="library-result-grid">
         <LibraryCard v-for="library in libraries" :key="library.id" :library="library" />

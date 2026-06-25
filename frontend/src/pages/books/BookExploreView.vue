@@ -31,6 +31,8 @@ const ORDER_OPTIONS = [
   { value: 'desc', label: '내림차순' },
 ]
 const DEFAULT_PAGE_SIZE = 12
+const DEFAULT_SORT = 'title'
+const DEFAULT_ORDER = 'asc'
 
 const books = ref([])
 const popularBooks = ref([])
@@ -44,8 +46,8 @@ const popularRail = ref(null)
 const filters = reactive({
   search_type: normalizeSearchType(route.query.search_type),
   q: normalizeText(route.query.q),
-  sort: normalizeText(route.query.sort),
-  order: normalizeText(route.query.order),
+  sort: normalizeSort(route.query.sort),
+  order: normalizeOrder(route.query.order),
 })
 
 const hasSearchQuery = computed(() => normalizeText(route.query.q).length > 0)
@@ -73,6 +75,14 @@ function normalizeSearchType(value) {
   return SEARCH_TYPE_VALUES.has(value) ? value : 'title'
 }
 
+function normalizeSort(value) {
+  return SORT_OPTIONS.some((option) => option.value === value) ? value : DEFAULT_SORT
+}
+
+function normalizeOrder(value) {
+  return ORDER_OPTIONS.some((option) => option.value === value) ? value : DEFAULT_ORDER
+}
+
 function isData4LibraryConfigError(requestError) {
   return (
     requestError?.status === 503 &&
@@ -89,8 +99,8 @@ function buildRequestParams() {
     q: normalizeText(route.query.q),
     page: pageQuery.page,
     page_size: pageQuery.page_size || DEFAULT_PAGE_SIZE,
-    sort: normalizeText(route.query.sort),
-    order: normalizeText(route.query.order),
+    sort: normalizeSort(route.query.sort),
+    order: normalizeOrder(route.query.order),
   }
 }
 
@@ -153,8 +163,8 @@ function applySearch() {
       ? {
           search_type: normalizeSearchType(filters.search_type),
           q: nextQuery,
-          sort: filters.sort || undefined,
-          order: filters.order || undefined,
+          sort: filters.sort === DEFAULT_SORT ? undefined : filters.sort,
+          order: filters.order === DEFAULT_ORDER ? undefined : filters.order,
           page: 1,
           page_size: route.query.page_size || DEFAULT_PAGE_SIZE,
         }
@@ -165,8 +175,8 @@ function applySearch() {
 function resetSearch() {
   filters.search_type = 'title'
   filters.q = ''
-  filters.sort = ''
-  filters.order = ''
+  filters.sort = DEFAULT_SORT
+  filters.order = DEFAULT_ORDER
   router.push({ name: 'book-list' })
 }
 
@@ -177,24 +187,8 @@ function applySort() {
     name: 'book-list',
     query: {
       ...route.query,
-      sort: filters.sort || undefined,
-      order: filters.order || undefined,
-      page: 1,
-    },
-  })
-}
-
-function resetSort() {
-  if (!hasSearchQuery.value) return
-
-  filters.sort = ''
-  filters.order = ''
-  router.push({
-    name: 'book-list',
-    query: {
-      ...route.query,
-      sort: undefined,
-      order: undefined,
+      sort: filters.sort === DEFAULT_SORT ? undefined : filters.sort,
+      order: filters.order === DEFAULT_ORDER ? undefined : filters.order,
       page: 1,
     },
   })
@@ -224,8 +218,8 @@ watch(
   () => {
     filters.search_type = normalizeSearchType(route.query.search_type)
     filters.q = normalizeText(route.query.q)
-    filters.sort = normalizeText(route.query.sort)
-    filters.order = normalizeText(route.query.order)
+    filters.sort = normalizeSort(route.query.sort)
+    filters.order = normalizeOrder(route.query.order)
     loadBooks()
   },
 )
@@ -331,28 +325,25 @@ onMounted(() => {
     />
 
     <template v-else>
-      <div class="book-result-toolbar mb-3">
+      <div class="result-toolbar mb-3">
         <ResultCount :count="responseMeta.num_found" label="권" />
-        <div class="book-sort-controls" aria-label="검색 결과 정렬">
-          <label class="book-sort-select">
+        <div class="result-sort-controls" aria-label="검색 결과 정렬">
+          <label class="result-sort-select">
             <span>정렬 기준</span>
             <select v-model="filters.sort" class="form-select form-select-sm" @change="applySort">
-              <option value="" disabled>선택</option>
               <option v-for="option in SORT_OPTIONS" :key="option.value" :value="option.value">
                 {{ option.label }}
               </option>
             </select>
           </label>
-          <label class="book-sort-select">
+          <label class="result-sort-select">
             <span>정렬 방향</span>
             <select v-model="filters.order" class="form-select form-select-sm" @change="applySort">
-              <option value="" disabled>선택</option>
               <option v-for="option in ORDER_OPTIONS" :key="option.value" :value="option.value">
                 {{ option.label }}
               </option>
             </select>
           </label>
-          <button class="btn btn-outline-secondary btn-sm" type="button" @click="resetSort">정렬 초기화</button>
         </div>
       </div>
       <div class="book-result-grid">
