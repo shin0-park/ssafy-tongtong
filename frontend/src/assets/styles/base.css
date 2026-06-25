@@ -33,12 +33,15 @@ a {
 .app-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 20px;
   min-width: 0;
+  overflow: visible;
   padding-block: 0;
 }
 
 .brand-icon {
+  position: relative;
+  z-index: 1;
   width: 38px;
   height: 38px;
   flex: 0 0 auto;
@@ -47,8 +50,8 @@ a {
 
 .brand-wordmark {
   width: auto;
-  height: 38px;
-  max-width: min(250px, 52vw);
+  height: 86px;
+  max-width: min(565px, 64vw);
   object-fit: contain;
 }
 

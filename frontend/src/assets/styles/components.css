@@ -450,7 +450,7 @@
 
 .review-card {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
   padding: var(--space-5);
 }
 
@@ -467,15 +467,32 @@
   justify-content: space-between;
 }
 
+.review-card-header .meta-text {
+  color: var(--color-primary-800);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+
 .review-card-title {
   margin: 0;
-  font-size: var(--font-size-20);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
   line-height: var(--line-height-card);
 }
 
+.review-card-title a,
+.review-card-title span {
+  color: var(--color-text-primary);
+}
+
 .review-content {
+  border-left: 3px solid #f4d7a4;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: #fffdf7;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-16);
   line-height: var(--line-height-body);
 }
 
@@ -752,6 +769,8 @@
 }
 
 .review-card-footer {
+  border-top: var(--border-subtle);
+  padding-top: var(--space-3);
   color: var(--color-text-muted);
   font-size: var(--font-size-13);
 }
