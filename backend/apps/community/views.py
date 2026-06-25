@@ -68,7 +68,8 @@ class UserReviewQueryMixin:
 
         tag_values = self.split_query_values(params.get("tag"))
         if tag_values:
-            queryset = queryset.filter(tag_links__tag__code__in=tag_values)
+            for tag_value in tag_values:
+                queryset = queryset.filter(tag_links__tag__code=tag_value)
 
         user_id = params.get("user_id", "").strip()
         if user_id:
