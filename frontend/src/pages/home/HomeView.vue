@@ -7,12 +7,14 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
 import { fetchHome } from '@/services/homeService'
+import { fetchMyOutingsDashboard } from '@/services/myOutingsService'
 import { useAuthStore } from '@/stores/auth'
-import { PURPOSE_LABELS } from '@/utils/display'
+import { PURPOSE_LABELS, isBrokenText } from '@/utils/display'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const homeData = ref(null)
+const dashboardData = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
 const locationMessage = ref('')
@@ -42,12 +44,28 @@ const themeGroups = computed(() => {
 })
 const personalRecommendations = computed(() => homeData.value?.personal_recommendations ?? {})
 const personalItems = computed(() => personalRecommendations.value.items ?? [])
+const dashboardSummarySentence = computed(() => {
+  const sentence = dashboardData.value?.summary_sentence
+  return sentence && !isBrokenText(sentence) ? sentence : ''
+})
 const personalReasonKeywords = computed(() => {
-  const reason = personalRecommendations.value.reason || ''
-  if (reason.includes('선호 설정') && reason.includes('나들이 활동')) return ['선호 설정', '저장', '후기']
-  if (reason.includes('저장') || reason.includes('후기') || reason.includes('나들이 활동')) return ['저장', '후기 활동']
-  if (reason.includes('선호 설정')) return ['선호 목적', '관심 지역', '관심 태그']
-  return []
+  const sourceText = dashboardSummarySentence.value
+  if (!sourceText) return []
+
+  const keywords = []
+  const addKeyword = (condition, label) => {
+    if (condition && !keywords.includes(label)) keywords.push(label)
+  }
+
+  addKeyword(/공부|열람|좌석|조용|학습/.test(sourceText), '공부/열람')
+  addKeyword(/책|독서|장서|도서|문학|자료/.test(sourceText), '책 탐색')
+  addKeyword(/프로그램|문화|강연|체험|전시/.test(sourceText), '문화 프로그램')
+  addKeyword(/휴식|분위기|공간|카페|머무/.test(sourceText), '휴식 공간')
+  addKeyword(/아이|가족|어린이|유아|초등/.test(sourceText), '아이/가족')
+  addKeyword(/지역|가까|동네|자주 찾/.test(sourceText), '관심 지역')
+  addKeyword(/저장|후기|좋아요|활동/.test(sourceText), '활동 기반')
+
+  return keywords.slice(0, 4)
 })
 const showPersonalRecommendations = computed(
   () => authStore.isAuthenticated && personalRecommendations.value.available === true && personalItems.value.length > 0,
@@ -59,9 +77,17 @@ const hasContent = computed(
 async function loadHome() {
   isLoading.value = true
   error.value = null
+  dashboardData.value = null
 
   try {
-    homeData.value = await fetchHome()
+    const [homeResult, dashboardResult] = await Promise.allSettled([
+      fetchHome(),
+      authStore.isAuthenticated ? fetchMyOutingsDashboard() : Promise.resolve(null),
+    ])
+
+    if (homeResult.status === 'rejected') throw homeResult.reason
+    homeData.value = homeResult.value
+    dashboardData.value = dashboardResult.status === 'fulfilled' ? dashboardResult.value : null
   } catch (requestError) {
     error.value = requestError
   } finally {
