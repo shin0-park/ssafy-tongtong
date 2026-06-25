@@ -106,11 +106,15 @@ onMounted(loadReview)
       <article class="review-detail-shell">
         <header class="review-detail-header">
           <div>
-            <p class="eyebrow mb-2">
+            <p class="review-detail-library-line mb-2">
               <RouterLink v-if="library?.id" class="text-decoration-none" :to="`/libraries/${library.id}`">
                 {{ library.name }}
               </RouterLink>
               <span v-else>{{ library?.name || '도서관 정보 없음' }}</span>
+              <span class="meta-text">{{ library?.sigungu || library?.road_address || '위치 정보 없음' }}</span>
+              <RouterLink v-if="library?.id" class="btn btn-outline-primary btn-sm" :to="`/libraries/${library.id}`">
+                상세 보기
+              </RouterLink>
             </p>
             <h2>{{ authorName }}님의 후기</h2>
             <div class="review-detail-meta">
@@ -137,7 +141,7 @@ onMounted(loadReview)
 
             <section v-if="books.length || programs.length" class="review-detail-section">
               <h3>관련 책과 프로그램</h3>
-              <div class="related-mini-grid">
+              <div class="related-mini-list">
                 <RelatedBookMiniCard v-for="book in books" :key="book.isbn13 || book.id" :book="book" />
                 <RelatedProgramMiniCard v-for="program in programs" :key="program.id" :program="program" />
               </div>
@@ -156,14 +160,6 @@ onMounted(loadReview)
                   :alt="image.alt_text || `${authorName} 후기 이미지`"
                 />
               </div>
-            </section>
-            <section class="review-detail-section review-detail-library-box">
-              <h3>도서관</h3>
-              <p class="mb-2">{{ library?.name || '도서관 정보 없음' }}</p>
-              <p class="meta-text mb-3">{{ library?.road_address || library?.sigungu || '위치 정보 없음' }}</p>
-              <RouterLink v-if="library?.id" class="btn btn-outline-primary btn-sm" :to="`/libraries/${library.id}`">
-                도서관 상세 보기
-              </RouterLink>
             </section>
           </aside>
         </div>

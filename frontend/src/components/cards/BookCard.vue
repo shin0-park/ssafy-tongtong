@@ -57,7 +57,9 @@ const kdcText = computed(() =>
           대출 {{ formatNumber(book.loan_count) }}회
         </span>
       </div>
-      <SaveButton v-if="book.isbn13" resource-type="book" :resource-id="book.isbn13" />
+      <div class="book-card-save">
+        <SaveButton v-if="book.isbn13" resource-type="book" :resource-id="book.isbn13" />
+      </div>
     </div>
   </article>
 </template>

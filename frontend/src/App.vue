@@ -4,6 +4,8 @@ import { storeToRefs } from 'pinia'
 
 import { useAuthStore } from '@/stores/auth'
 
+const DEFAULT_PROFILE_IMAGE_URL = '/static/media_assets/placeholders/default_profile.png'
+
 const authStore = useAuthStore()
 const router = useRouter()
 const { isAuthenticated, user } = storeToRefs(authStore)
@@ -59,9 +61,13 @@ async function handleLogout() {
 
           <div class="d-flex align-items-center gap-2 app-user-actions">
             <template v-if="isAuthenticated">
-              <RouterLink class="btn btn-outline-primary btn-sm" to="/preferences">선호 설정</RouterLink>
-              <RouterLink class="btn btn-outline-secondary btn-sm" to="/profile">
-                {{ user?.nickname || '프로필' }}
+              <RouterLink class="nav-profile-link" to="/profile" :aria-label="`${user?.nickname || '프로필'} 페이지로 이동`">
+                <img
+                  class="nav-profile-avatar"
+                  :src="user?.profile_image_url || DEFAULT_PROFILE_IMAGE_URL"
+                  :alt="user?.profile_image_alt || ''"
+                />
+                <span class="visually-hidden">{{ user?.nickname || '프로필' }}</span>
               </RouterLink>
               <button class="btn btn-link btn-sm" type="button" @click="handleLogout">로그아웃</button>
             </template>

@@ -67,6 +67,29 @@ a {
   color: var(--color-primary-700);
 }
 
+.nav-profile-link {
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: var(--border-subtle);
+  border-radius: 50%;
+  background: var(--color-bg-card);
+  overflow: hidden;
+}
+
+.nav-profile-link:hover,
+.nav-profile-link:focus-visible {
+  border-color: var(--color-primary-300);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.nav-profile-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .page-shell {
   width: min(1400px, 100%);
   margin: 0 auto;

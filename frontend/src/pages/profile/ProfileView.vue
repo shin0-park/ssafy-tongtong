@@ -9,6 +9,8 @@ import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 
+const DEFAULT_PROFILE_IMAGE_URL = '/static/media_assets/placeholders/default_profile.png'
+
 const isLoading = ref(false)
 const error = ref(null)
 
@@ -43,16 +45,19 @@ onMounted(loadProfile)
         <div class="d-flex align-items-center gap-3">
           <ResponsiveImage
             class="profile-avatar"
-            :src="authStore.user?.profile_image_url"
+            :src="authStore.user?.profile_image_url || DEFAULT_PROFILE_IMAGE_URL"
             :alt="authStore.user?.profile_image_alt || `${authStore.user?.nickname || '사용자'} 프로필 이미지`"
-            fallback-label="이미지 없음"
+            fallback-label="기본 프로필 이미지"
           />
           <div>
           <h1 class="page-title">프로필</h1>
             <p class="page-subtitle">계정 정보와 공개 프로필을 확인합니다.</p>
           </div>
         </div>
-        <RouterLink class="btn btn-outline-primary align-self-start" to="/profile/edit">수정</RouterLink>
+        <div class="d-flex flex-wrap gap-2 align-self-start">
+          <RouterLink class="btn btn-outline-primary" to="/preferences">선호 설정</RouterLink>
+          <RouterLink class="btn btn-outline-primary" to="/profile/edit">수정</RouterLink>
+        </div>
       </div>
 
       <dl class="row mb-0">
