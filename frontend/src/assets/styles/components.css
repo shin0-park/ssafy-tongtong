@@ -181,7 +181,7 @@
   justify-content: flex-end;
 }
 
-.book-result-toolbar {
+.result-toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
@@ -189,7 +189,7 @@
   justify-content: space-between;
 }
 
-.book-sort-controls {
+.result-sort-controls {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
@@ -197,7 +197,7 @@
   justify-content: flex-end;
 }
 
-.book-sort-select {
+.result-sort-select {
   display: inline-flex;
   gap: var(--space-2);
   align-items: center;
@@ -206,7 +206,7 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.book-sort-select .form-select {
+.result-sort-select .form-select {
   width: auto;
   min-width: 132px;
 }
@@ -1333,11 +1333,11 @@ button.filter-chip:focus-visible {
   }
 
   .book-search-actions,
-  .book-sort-controls {
+  .result-sort-controls {
     justify-content: flex-start;
   }
 
-  .book-result-toolbar {
+  .result-toolbar {
     align-items: flex-start;
   }
 
