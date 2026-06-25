@@ -73,7 +73,10 @@
 }
 
 .popular-book-carousel {
-  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
 }
 
 .popular-book-rail {
@@ -101,15 +104,9 @@
   scroll-snap-align: start;
 }
 
-.carousel-controls {
-  display: flex;
-  flex: 0 0 auto;
-  gap: var(--space-2);
-  align-items: center;
-}
-
 .carousel-arrow {
   display: inline-grid;
+  flex: 0 0 auto;
   width: 40px;
   height: 40px;
   place-items: center;
@@ -528,6 +525,13 @@
 .selection-list {
   display: grid;
   gap: var(--space-2);
+}
+
+.selection-list-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: var(--space-1);
 }
 
 .selection-row {

@@ -215,24 +215,6 @@ onMounted(() => {
             }}
           </p>
         </div>
-        <div v-if="popularBooks.length" class="carousel-controls" aria-label="인기 도서 이동">
-          <button
-            class="carousel-arrow"
-            type="button"
-            aria-label="이전 인기 도서 보기"
-            @click="scrollPopularBooks(-1)"
-          >
-            ‹
-          </button>
-          <button
-            class="carousel-arrow"
-            type="button"
-            aria-label="다음 인기 도서 보기"
-            @click="scrollPopularBooks(1)"
-          >
-            ›
-          </button>
-        </div>
       </div>
       <LoadingState v-if="isPopularLoading" title="인기 도서를 불러오는 중입니다." />
       <p v-else-if="popularError" class="meta-text">인기 도서를 불러오지 못했어요.</p>
@@ -242,11 +224,27 @@ onMounted(() => {
         description="집계 데이터가 준비되면 이곳에 표시됩니다."
       />
       <div v-else class="popular-book-carousel">
+        <button
+          class="carousel-arrow"
+          type="button"
+          aria-label="이전 인기 도서 보기"
+          @click="scrollPopularBooks(-1)"
+        >
+          ‹
+        </button>
         <div ref="popularRail" class="popular-book-rail" tabindex="0" aria-label="이번 주 인기 도서 목록">
           <div v-for="(book, index) in popularBooks" :key="book.isbn13 || index" class="popular-book-item">
             <BookCard :book="book" :rank="index + 1" />
           </div>
         </div>
+        <button
+          class="carousel-arrow"
+          type="button"
+          aria-label="다음 인기 도서 보기"
+          @click="scrollPopularBooks(1)"
+        >
+          ›
+        </button>
       </div>
     </section>
 
