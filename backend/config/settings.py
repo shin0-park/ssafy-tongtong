@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -35,16 +36,76 @@ def load_local_env(env_path):
 load_local_env(BASE_DIR / ".env")
 
 
+def env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "on"}
+
+
+def env_list(name, default=None):
+    value = os.environ.get(name)
+    if value is None:
+        return list(default or [])
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def env_int(name, default):
+    value = os.environ.get(name)
+    if value in (None, ""):
+        return default
+    return int(value)
+
+
+def env_float(name, default):
+    value = os.environ.get(name)
+    if value in (None, ""):
+        return default
+    return float(value)
+
+
+def database_from_url(database_url):
+    parsed = urlparse(database_url)
+    scheme = parsed.scheme
+    if scheme in {"sqlite", "sqlite3"}:
+        if parsed.path in ("", "/"):
+            name = BASE_DIR / "db.sqlite3"
+        elif parsed.netloc:
+            name = f"{parsed.netloc}{parsed.path}"
+        else:
+            name = parsed.path
+        return {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": name,
+        }
+    if scheme in {"postgres", "postgresql"}:
+        return {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": parsed.path.lstrip("/"),
+            "USER": parsed.username or "",
+            "PASSWORD": parsed.password or "",
+            "HOST": parsed.hostname or "",
+            "PORT": str(parsed.port or ""),
+        }
+    raise ValueError("Unsupported DATABASE_URL scheme.")
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-2)(50b22x2r^wk081x&6p2i@855ch#-p3^e6(*hxs2@sk$8s6c'
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-2)(50b22x2r^wk081x&6p2i@855ch#-p3^e6(*hxs2@sk$8s6c",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DJANGO_DEBUG", True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", [])
+CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", [])
+CORS_ALLOW_CREDENTIALS = env_bool("CORS_ALLOW_CREDENTIALS", bool(CORS_ALLOWED_ORIGINS))
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", [])
 
 
 # Application definition
@@ -63,6 +124,7 @@ INSTALLED_APPS = [
     'apps.myoutings',
     'apps.preferences',
     'apps.integrations',
+    'corsheaders',
     # 설치한 앱
     'rest_framework',
     # 기본 앱
@@ -88,16 +150,14 @@ SIMPLE_JWT = {
 JWT_REFRESH_COOKIE_NAME = 'library_outing_refresh'
 JWT_REFRESH_COOKIE_MAX_AGE = int(SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
 JWT_REFRESH_COOKIE_HTTPONLY = True
-JWT_REFRESH_COOKIE_SECURE = os.environ.get(
-    'JWT_REFRESH_COOKIE_SECURE',
-    'false',
-).lower() in {'1', 'true', 'yes', 'on'}
+JWT_REFRESH_COOKIE_SECURE = env_bool('JWT_REFRESH_COOKIE_SECURE', False)
 JWT_REFRESH_COOKIE_SAMESITE = os.environ.get('JWT_REFRESH_COOKIE_SAMESITE', 'Lax')
 JWT_REFRESH_COOKIE_PATH = '/api/v1/auth/'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -128,11 +188,16 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 DATABASES = {
-    'default': {
+    'default': (
+        database_from_url(DATABASE_URL)
+        if DATABASE_URL
+        else {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
-    }
+        }
+    )
 }
 
 
@@ -177,7 +242,7 @@ AUTH_USER_MODEL = 'accounts.User'
 STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-MEDIA_MAX_UPLOAD_MB = int(os.environ.get("MEDIA_MAX_UPLOAD_MB", "10"))
+MEDIA_MAX_UPLOAD_MB = env_int("MEDIA_MAX_UPLOAD_MB", 10)
 
 DATA4LIBRARY_API_KEY = os.environ.get("DATA4LIBRARY_API_KEY", "")
 DATA4LIBRARY_BASE_URL = os.environ.get("DATA4LIBRARY_BASE_URL", "http://data4library.kr/api")
@@ -191,15 +256,10 @@ PUBLIC_HOLIDAY_API_OPERATION = os.environ.get(
     "PUBLIC_HOLIDAY_API_OPERATION",
     "getRestDeInfo",
 )
-PUBLIC_HOLIDAY_API_NUM_OF_ROWS = int(os.environ.get("PUBLIC_HOLIDAY_API_NUM_OF_ROWS", "20"))
+PUBLIC_HOLIDAY_API_NUM_OF_ROWS = env_int("PUBLIC_HOLIDAY_API_NUM_OF_ROWS", 20)
 
 GMS_API_KEY = os.environ.get("GMS_API_KEY", "")
 GMS_OPENAI_BASE_URL = os.environ.get("GMS_OPENAI_BASE_URL", "")
 GMS_MODEL = os.environ.get("GMS_MODEL", "")
-GMS_SUMMARY_ENABLED = os.environ.get("GMS_SUMMARY_ENABLED", "false").lower() in {
-    "1",
-    "true",
-    "yes",
-    "on",
-}
-GMS_TIMEOUT_SECONDS = float(os.environ.get("GMS_TIMEOUT_SECONDS", "3"))
+GMS_SUMMARY_ENABLED = env_bool("GMS_SUMMARY_ENABLED", False)
+GMS_TIMEOUT_SECONDS = env_float("GMS_TIMEOUT_SECONDS", 3)
