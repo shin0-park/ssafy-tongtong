@@ -1,10 +1,15 @@
-from pathlib import Path
+from __future__ import annotations
+
 import shutil
+import zipfile
+from dataclasses import dataclass
+from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.utils import timezone
 
 from apps.accounts.models import UserProfile
 from apps.books.models import Book
@@ -18,146 +23,294 @@ from apps.community.models import (
 )
 from apps.libraries.models import Library
 from apps.preferences.services import rebuild_user_preference
-from apps.programs.models import Program
+from apps.programs.models import (
+    ApplicationStatus,
+    OperationStatus,
+    Program,
+    ProgramCategory,
+)
 from apps.tags.models import Tag, TagSemanticKind
 
 
-SOURCE_IMAGE_DIR = (
-    settings.BASE_DIR / "apps" / "media_assets" / "static" / "media_assets" / "placeholders"
-)
+DEMO_EMAIL_DOMAIN = "library-outing.local"
+DEMO_LIKER_COUNT = 15
+DEMO_IMAGE_DIR = "reviews/demo"
 
-DEMO_USERS = [
-    {
-        "email": "demo.reviewer@library-outing.local",
-        "nickname": "시연 나들이",
-    },
-    {
-        "email": "demo.friend@library-outing.local",
-        "nickname": "시연 친구",
-    },
-]
-
-DEMO_IMAGE_SOURCES = {
-    "reviews/demo/demo_review_study_01.png": "default_library_public.png",
-    "reviews/demo/demo_review_kids_01.png": "default_library_children.png",
-    "reviews/demo/demo_review_mood_01.png": "default_library_small.png",
-    "reviews/demo/demo_review_program_01.png": "default_program_reading.png",
+TAG_ALIASES = {
+    "review_clear_guidance": "review_kind_guidance",
+    "review_collection_good": "review_books_diverse",
+    "review_easy_access": "review_easy_to_visit",
+    "review_family_visit": "review_family_friendly",
+    "review_reading_writing_program": "review_program_reading_writing_good",
 }
+
+IMAGE_MAPPINGS = {
+    "김나들이_01.png": "reviews/demo/demo_review_01.png",
+    "책산책_01.png": "reviews/demo/demo_review_02.png",
+    "부산책방문자_01.png": "reviews/demo/demo_review_03.png",
+    "나들이초보_01.png": "reviews/demo/demo_review_04.png",
+    "나들이초보_02.png": "reviews/demo/demo_review_05.png",
+    "나들이초보_03.png": "reviews/demo/demo_review_06.png",
+    "조용한서가_01.png": "reviews/demo/demo_review_07.png",
+    "조용한서가_02.png": "reviews/demo/demo_review_08.png",
+}
+
+UNUSED_ZIP_IMAGES = {
+    "책산책_01_추가.png",
+    "책산책_02_추가.png",
+    "부산책방문자_02.png",
+    "노트북들고_01.png",
+}
+
+
+@dataclass(frozen=True)
+class DemoReviewImage:
+    source_name: str
+    target_path: str
+    alt_text: str
+
 
 REVIEW_BLUEPRINTS = [
     {
-        "key": "study",
-        "content": "방문했을 때 분위기가 차분해서 해야 할 일을 정리하기 좋았어요. 짧게 머물러도 집중이 잘 되는 느낌이었습니다.",
-        "tag_codes": ["review_quiet_study", "review_focused_atmosphere", "review_comfortable_reading_space"],
-        "image": "reviews/demo/demo_review_study_01.png",
-        "alt_text": "차분한 도서관 열람 분위기 예시 이미지",
-        "book": True,
+        "user_nickname": "김나들이",
+        "library_name": "부산광역시립해운대도서관",
+        "sigungu": "해운대구",
+        "content": "생각보다 공간이 넓고 조용해서 오래 앉아 있기 좋았어요. 시험 기간에 다시 와도 괜찮겠다는 생각이 들었습니다.",
+        "tag_codes": ["review_quiet_study", "review_seats_sufficient", "review_comfortable_space"],
+        "related_books": [],
+        "related_programs": [],
+        "images": [
+            DemoReviewImage("김나들이_01.png", IMAGE_MAPPINGS["김나들이_01.png"], "부산광역시립해운대도서관의 조용한 열람 공간"),
+        ],
+        "view_count": 48,
+        "like_count": 12,
     },
     {
-        "key": "kids",
-        "content": "아이와 함께 책을 고르기 편했고 직원 안내도 친절했습니다. 주말에 가볍게 들르기 좋은 도서관이었어요.",
-        "tag_codes": ["review_children_friendly", "review_good_children_books", "review_kind_guidance"],
-        "image": "reviews/demo/demo_review_kids_01.png",
-        "alt_text": "아이와 방문한 도서관 분위기 예시 이미지",
-        "book": True,
+        "user_nickname": "책산책",
+        "library_name": "재송어린이도서관",
+        "sigungu": "해운대구",
+        "content": "아이랑 같이 갔는데 어린이자료실이 아늑해서 좋았어요. 책 고르는 동안 아이가 지루해하지 않아서 주말에 들르기 괜찮았습니다.",
+        "tag_codes": ["review_children_friendly", "review_children_room_good", "review_family_visit"],
+        "related_books": [],
+        "related_programs": [],
+        "images": [
+            DemoReviewImage("책산책_01.png", IMAGE_MAPPINGS["책산책_01.png"], "재송어린이도서관의 어린이자료실 분위기"),
+        ],
+        "view_count": 36,
+        "like_count": 8,
     },
     {
-        "key": "books",
-        "content": "책장을 천천히 둘러보는 재미가 있었고 관심 가는 책을 찾기 쉬웠습니다. 다음에도 책 빌리러 오고 싶어요.",
-        "tag_codes": ["review_books_diverse", "review_easy_book_finding", "review_frequent_new_books"],
-        "book": True,
+        "user_nickname": "부산책방문자",
+        "library_name": "해운대인문학도서관",
+        "sigungu": "해운대구",
+        "content": "창가 쪽 자리가 편안했고 전체적으로 분위기가 차분했어요. 책을 빌리지 않아도 잠깐 머물다 가기 좋은 곳이었습니다.",
+        "tag_codes": ["review_comfortable_space", "review_clean_space", "review_stay_friendly"],
+        "related_books": [],
+        "related_programs": [],
+        "images": [
+            DemoReviewImage("부산책방문자_01.png", IMAGE_MAPPINGS["부산책방문자_01.png"], "해운대인문학도서관의 창가 좌석과 휴게 공간"),
+        ],
+        "view_count": 41,
+        "like_count": 11,
     },
     {
-        "key": "program",
-        "content": "프로그램 안내가 보기 쉬웠고 진행 분위기도 편안했습니다. 도서관을 처음 방문하는 사람도 부담이 적을 것 같아요.",
-        "tag_codes": ["review_good_programs", "review_program_reading_writing_good", "review_kind_guidance"],
-        "image": "reviews/demo/demo_review_program_01.png",
-        "alt_text": "도서관 문화 프로그램 안내 예시 이미지",
-        "program": True,
+        "user_nickname": "나들이초보",
+        "library_name": "다대도서관",
+        "sigungu": "사하구",
+        "content": "독서 프로그램에 참여했는데 진행이 차분하고 안내가 친절했어요. 처음 참여하는 사람도 부담 없이 따라갈 수 있었습니다.",
+        "tag_codes": ["review_good_programs", "review_kind_guidance", "review_reading_writing_program"],
+        "related_books": [],
+        "related_programs": ["책 소풍 가는 날"],
+        "images": [
+            DemoReviewImage("나들이초보_01.png", IMAGE_MAPPINGS["나들이초보_01.png"], "다대도서관 프로그램 안내판"),
+            DemoReviewImage("나들이초보_02.png", IMAGE_MAPPINGS["나들이초보_02.png"], "다대도서관 프로그램 강의실"),
+            DemoReviewImage("나들이초보_03.png", IMAGE_MAPPINGS["나들이초보_03.png"], "다대도서관 프로그램 활동 자료"),
+        ],
+        "view_count": 52,
+        "like_count": 15,
     },
     {
-        "key": "mood",
-        "content": "전체적으로 공간이 깔끔하게 관리되어 있어서 머무는 동안 편했습니다. 잠깐 쉬며 책 읽기에 좋았어요.",
-        "tag_codes": ["review_clean_space", "review_comfortable_space", "review_well_managed"],
-        "image": "reviews/demo/demo_review_mood_01.png",
-        "alt_text": "깔끔한 도서관 공간 분위기 예시 이미지",
+        "user_nickname": "조용한서가",
+        "library_name": "화명도서관",
+        "sigungu": "북구",
+        "content": "관심 있던 분야 책이 꽤 다양해서 둘러보는 재미가 있었어요. 서가 안내도 어렵지 않아서 원하는 책을 금방 찾았습니다.",
+        "tag_codes": ["review_books_diverse", "review_easy_book_finding", "review_collection_good"],
+        "related_books": ["아몬드", "불편한 편의점"],
+        "related_programs": [],
+        "images": [
+            DemoReviewImage("조용한서가_01.png", IMAGE_MAPPINGS["조용한서가_01.png"], "화명도서관의 서가"),
+            DemoReviewImage("조용한서가_02.png", IMAGE_MAPPINGS["조용한서가_02.png"], "화명도서관에서 고른 책"),
+        ],
+        "view_count": 44,
+        "like_count": 10,
     },
     {
-        "key": "access",
-        "content": "동네에서 들르기 부담 없는 위치라 일정을 마치고 잠깐 방문하기 좋았습니다. 책 찾는 동선도 편했어요.",
-        "tag_codes": ["review_easy_to_visit", "review_public_transport_access", "review_easy_book_finding"],
+        "user_nickname": "김나들이",
+        "library_name": "부산광역시립시민도서관",
+        "sigungu": "부산진구",
+        "content": "대중교통으로 가기 편했고 처음 방문했는데도 동선이 크게 어렵지 않았어요. 필요한 공간을 찾기 쉬운 편이었습니다.",
+        "tag_codes": ["review_easy_access", "review_clear_guidance"],
+        "related_books": [],
+        "related_programs": [],
+        "images": [],
+        "view_count": 27,
+        "like_count": 5,
     },
     {
-        "key": "guide",
-        "content": "처음 이용하는 자료를 찾고 있었는데 안내를 친절하게 받아서 금방 적응했습니다. 관리도 잘 되는 느낌이었어요.",
-        "tag_codes": ["review_kind_guidance", "review_well_managed", "review_easy_book_finding"],
-        "book": True,
+        "user_nickname": "책산책",
+        "library_name": "부산영어도서관",
+        "sigungu": "부산진구",
+        "content": "영어 원서가 궁금해서 방문했는데 생각보다 자료가 잘 정리되어 있었어요. 가볍게 영어책을 골라보기 좋은 곳이었습니다.",
+        "tag_codes": ["review_books_diverse", "review_easy_book_finding"],
+        "related_books": ["Wonder"],
+        "related_programs": [],
+        "images": [],
+        "view_count": 22,
+        "like_count": 4,
     },
     {
-        "key": "local",
-        "content": "산책하다 들러 조용히 책을 읽고 왔습니다. 가까운 곳에 이런 공간이 있다는 점이 마음에 들었어요.",
-        "tag_codes": ["review_comfortable_space", "review_stay_friendly", "review_easy_to_visit"],
+        "user_nickname": "노트북들고",
+        "library_name": "금샘도서관",
+        "sigungu": "금정구",
+        "content": "노트북으로 작업하기 괜찮았고 와이파이도 무난하게 연결됐어요. 짧게 집중해서 할 일을 정리하기 좋은 분위기였습니다.",
+        "tag_codes": ["review_laptop_friendly", "review_wifi_reliable", "review_quiet_study"],
+        "related_books": [],
+        "related_programs": [],
+        "images": [],
+        "view_count": 31,
+        "like_count": 7,
     },
     {
-        "key": "family",
-        "content": "가족이 함께 방문해도 각자 읽을 책을 고르기 괜찮았습니다. 분위기가 편안해서 오래 머물고 싶었어요.",
-        "tag_codes": ["review_family_friendly", "review_books_diverse", "review_comfortable_space"],
-        "book": True,
+        "user_nickname": "부산책방문자",
+        "library_name": "금정도서관",
+        "sigungu": "금정구",
+        "content": "차를 가지고 갔는데 주차가 생각보다 불편하지 않았어요. 가족이랑 같이 움직일 때 후보로 넣어둘 만한 도서관입니다.",
+        "tag_codes": ["review_parking_convenient", "review_family_visit", "review_easy_access"],
+        "related_books": [],
+        "related_programs": [],
+        "images": [],
+        "view_count": 19,
+        "like_count": 3,
     },
     {
-        "key": "program_kids",
-        "content": "어린이 대상 프로그램을 살펴보기 좋았고 일정 확인도 어렵지 않았습니다. 아이와 다시 방문해 보고 싶어요.",
-        "tag_codes": ["review_good_children_programs", "review_programs_diverse", "review_children_friendly"],
-        "program": True,
+        "user_nickname": "나들이초보",
+        "library_name": "연제만화도서관",
+        "sigungu": "연제구",
+        "content": "만화 자료가 있어서 분위기가 조금 더 편하게 느껴졌어요. 조용히 읽고 가기에도 좋고 부담 없이 들르기 괜찮았습니다.",
+        "tag_codes": ["review_collection_good", "review_comfortable_space", "review_stay_friendly"],
+        "related_books": [],
+        "related_programs": [],
+        "images": [],
+        "view_count": 25,
+        "like_count": 6,
+    },
+    {
+        "user_nickname": "책산책",
+        "library_name": "부산진구기적의도서관",
+        "sigungu": "부산진구",
+        "content": "어린이 프로그램을 보러 갔는데 공간이 밝고 안내도 잘 되어 있었어요. 아이와 처음 방문하기에도 부담이 적었습니다.",
+        "tag_codes": ["review_children_friendly", "review_good_programs", "review_kind_guidance"],
+        "related_books": [],
+        "related_programs": ["그림책으로 만나는 주말"],
+        "images": [],
+        "view_count": 33,
+        "like_count": 9,
+    },
+    {
+        "user_nickname": "조용한서가",
+        "library_name": "부산광역시립구포도서관",
+        "sigungu": "북구",
+        "content": "규모가 있어서 그런지 자료가 풍부하게 느껴졌어요. 오래 머물기보다는 책을 찾고 빌리러 가기에 만족스러웠습니다.",
+        "tag_codes": ["review_books_diverse", "review_collection_good"],
+        "related_books": ["도시와 그 불확실한 벽"],
+        "related_programs": [],
+        "images": [],
+        "view_count": 16,
+        "like_count": 2,
     },
 ]
 
 
+BOOK_DEFAULTS = {
+    "Wonder": {
+        "title": "Wonder",
+        "authors_text": "R. J. Palacio",
+        "publisher": "Knopf Books for Young Readers",
+        "publication_year": 2012,
+        "kdc_class_name": "문학",
+        "provider_code": "demo",
+    },
+    "도시와 그 불확실한 벽": {
+        "title": "도시와 그 불확실한 벽",
+        "authors_text": "무라카미 하루키",
+        "publisher": "문학동네",
+        "publication_year": 2023,
+        "kdc_class_name": "문학",
+        "provider_code": "demo",
+    },
+}
+
+
+class BaseCommandError(CommandError):
+    pass
+
+
 class Command(BaseCommand):
-    help = "Reset only review-related data and create demo reviews with valid media files."
+    help = "Reset only review-related data and create polished demo reviews with valid media."
 
     def add_arguments(self, parser):
         parser.add_argument(
+            "--image-zip",
+            required=True,
+            help="Path to the zip file containing demo review images.",
+        )
+        parser.add_argument(
             "--dry-run",
             action="store_true",
-            help="Show the planned reset without changing the database or copying media files.",
+            help="Validate and print the planned reset without changing database rows or media files.",
         )
 
     def handle(self, *args, **options):
+        image_zip = Path(options["image_zip"])
         dry_run = options["dry_run"]
+
         before_counts = self.get_counts()
-        before_image_paths = self.get_review_image_paths()
-        missing_before = self.find_missing_media(before_image_paths)
-        source_images = self.validate_source_images()
+        before_images = self.collect_existing_review_images()
+        zip_names = self.validate_image_zip(image_zip)
+        libraries = self.resolve_libraries()
+        tags = self.resolve_tags()
+        books = self.resolve_books()
+        programs = self.resolve_programs(libraries)
+        planned_images = self.plan_images(zip_names)
 
-        tags_by_code = self.get_review_tags()
-        libraries = self.pick_libraries()
-        books = self.pick_books()
-        programs = self.pick_programs()
-        self.validate_blueprints(tags_by_code, libraries, books, programs)
-
+        self.print_plan(before_counts, before_images, planned_images, books, programs)
         if dry_run:
-            self.stdout.write("dry-run: no database rows changed and no media files copied.")
-            self.print_summary(before_counts, missing_before, [], [], [], [])
+            self.stdout.write(self.style.WARNING("dry-run: no database rows or media files changed."))
             return
 
-        copied_images = self.copy_demo_images(source_images)
-
         with transaction.atomic():
-            affected_users = set(UserReview.objects.values_list("user_id", flat=True))
+            affected_user_ids = set(UserReview.objects.values_list("user_id", flat=True))
             deleted_counts = UserReview.objects.all().delete()[1]
-            demo_users = self.ensure_demo_users()
-            created_reviews = self.create_demo_reviews(demo_users, libraries, books, programs, tags_by_code)
-            affected_users.update(user.id for user in demo_users)
+            authors = self.ensure_author_users()
+            liker_users = self.ensure_liker_users()
+            created_books = self.ensure_books(books)
+            created_programs = self.ensure_programs(programs, libraries)
+            created_reviews = self.create_reviews(
+                authors=authors,
+                liker_users=liker_users,
+                libraries=libraries,
+                tags=tags,
+                books=created_books,
+                programs=created_programs,
+            )
+            affected_user_ids.update(user.id for user in authors.values())
+            affected_user_ids.update(user.id for user in liker_users)
 
-        # Keep preference/dashboard derived data in sync after the review reset.
-        user_model = get_user_model()
-        for user in user_model.objects.filter(id__in=affected_users):
-            rebuild_user_preference(user)
+        deleted_files = self.delete_existing_review_media(before_images)
+        copied_images = self.copy_demo_images(image_zip)
+        self.rebuild_preferences(affected_user_ids)
 
-        orphan_files = self.find_orphan_files(before_image_paths)
-        after_counts = self.get_counts()
-        self.print_summary(after_counts, missing_before, deleted_counts, copied_images, created_reviews, orphan_files)
+        self.print_result(deleted_counts, deleted_files, copied_images, created_reviews)
 
     def get_counts(self):
         return {
@@ -169,210 +322,335 @@ class Command(BaseCommand):
             "ReviewProgramReference": ReviewProgramReference.objects.count(),
         }
 
-    def get_review_image_paths(self):
+    def collect_existing_review_images(self):
         return [
-            image
-            for image in UserReviewImage.objects.exclude(image="").exclude(image__isnull=True).values_list(
-                "image", flat=True
+            value
+            for value in UserReviewImage.objects.exclude(image="").exclude(image__isnull=True).values_list(
+                "image",
+                flat=True,
             )
         ]
 
-    def find_missing_media(self, image_paths):
-        missing = []
-        for image_path in image_paths:
-            if self.is_external_path(image_path):
-                continue
-            candidate = Path(settings.MEDIA_ROOT) / image_path
-            if not candidate.exists():
-                missing.append(image_path)
-        return missing
+    def validate_image_zip(self, image_zip):
+        if not image_zip.exists():
+            raise CommandError(f"image zip does not exist: {image_zip}")
+        if not zipfile.is_zipfile(image_zip):
+            raise CommandError(f"image zip is not a valid zip file: {image_zip}")
 
-    def find_orphan_files(self, before_image_paths):
-        referenced = set(self.get_review_image_paths())
-        orphan_files = []
-        for image_path in before_image_paths:
-            if self.is_external_path(image_path):
-                continue
-            candidate = Path(settings.MEDIA_ROOT) / image_path
-            if candidate.exists() and image_path not in referenced:
-                orphan_files.append(image_path)
-        return sorted(set(orphan_files))
+        with zipfile.ZipFile(image_zip) as archive:
+            names = {Path(info.filename).name for info in archive.infolist() if not info.is_dir()}
 
-    @staticmethod
-    def is_external_path(image_path):
-        return str(image_path).startswith(("http://", "https://"))
-
-    def validate_source_images(self):
-        sources = {}
-        missing = []
-        for relative_path, source_name in DEMO_IMAGE_SOURCES.items():
-            source_path = SOURCE_IMAGE_DIR / source_name
-            if source_path.exists():
-                sources[relative_path] = source_path
-            else:
-                missing.append(str(source_path))
+        required = set(IMAGE_MAPPINGS)
+        missing = sorted(required - names)
         if missing:
-            raise CommandError(
-                "Missing source demo image files:\n" + "\n".join(f"- {path}" for path in missing)
-            )
-        return sources
+            raise CommandError("missing required images in zip:\n" + "\n".join(f"- {name}" for name in missing))
+        return names
 
-    def get_review_tags(self):
-        return {
+    def resolve_libraries(self):
+        libraries = {}
+        missing = []
+        for blueprint in REVIEW_BLUEPRINTS:
+            key = (blueprint["library_name"], blueprint["sigungu"])
+            if key in libraries:
+                continue
+            library = Library.objects.filter(
+                is_active=True,
+                name=blueprint["library_name"],
+                sigungu=blueprint["sigungu"],
+            ).first()
+            if library:
+                libraries[key] = library
+            else:
+                missing.append(f"{blueprint['library_name']} ({blueprint['sigungu']})")
+        if missing:
+            raise CommandError("missing demo libraries:\n" + "\n".join(f"- {item}" for item in missing))
+        return libraries
+
+    def resolve_tags(self):
+        requested_codes = {
+            TAG_ALIASES.get(tag_code, tag_code)
+            for blueprint in REVIEW_BLUEPRINTS
+            for tag_code in blueprint["tag_codes"]
+        }
+        tags = {
             tag.code: tag
             for tag in Tag.objects.filter(
+                code__in=requested_codes,
                 is_active=True,
                 is_review_selectable=True,
                 semantic_kind=TagSemanticKind.EXPERIENCE,
             )
         }
+        missing = sorted(requested_codes - set(tags))
+        if missing:
+            raise CommandError("missing selectable review tags:\n" + "\n".join(f"- {code}" for code in missing))
+        return tags
 
-    def pick_libraries(self):
-        program_library_ids = list(
-            Program.objects.filter(is_visible=True, deleted_at__isnull=True, library__is_active=True)
-            .order_by("library_id", "id")
-            .values_list("library_id", flat=True)
-            .distinct()[:10]
-        )
-        libraries = list(Library.objects.filter(id__in=program_library_ids, is_active=True).order_by("id"))
-        if len(libraries) < len(REVIEW_BLUEPRINTS):
-            existing_ids = [library.id for library in libraries]
-            libraries.extend(
-                Library.objects.filter(is_active=True)
-                .exclude(id__in=existing_ids)
-                .order_by("id")[: len(REVIEW_BLUEPRINTS) - len(libraries)]
-            )
-        return libraries[: len(REVIEW_BLUEPRINTS)]
+    def resolve_books(self):
+        titles = {title for blueprint in REVIEW_BLUEPRINTS for title in blueprint["related_books"]}
+        resolved = {}
+        for title in titles:
+            book = Book.objects.filter(is_active=True, title__icontains=title).order_by("id").first()
+            if book:
+                resolved[title] = {"book": book, "create": False}
+            elif title in BOOK_DEFAULTS:
+                resolved[title] = {"book": None, "create": True}
+            else:
+                raise CommandError(f"missing demo book and no default is configured: {title}")
+        return resolved
 
-    def pick_books(self):
-        return list(Book.objects.filter(is_active=True).exclude(isbn13="").order_by("title", "id")[:8])
+    def resolve_programs(self, libraries):
+        titles = {title for blueprint in REVIEW_BLUEPRINTS for title in blueprint["related_programs"]}
+        resolved = {}
+        for title in titles:
+            blueprint = next(item for item in REVIEW_BLUEPRINTS if title in item["related_programs"])
+            library = libraries[(blueprint["library_name"], blueprint["sigungu"])]
+            program = Program.objects.filter(
+                title__icontains=title,
+                library=library,
+                is_visible=True,
+                deleted_at__isnull=True,
+            ).order_by("id").first()
+            resolved[title] = {"program": program, "library": library, "create": program is None}
+        return resolved
 
-    def pick_programs(self):
-        return list(
-            Program.objects.filter(is_visible=True, deleted_at__isnull=True, library__is_active=True)
-            .select_related("library")
-            .order_by("library_id", "id")[:8]
-        )
+    def plan_images(self, zip_names):
+        planned = []
+        for blueprint in REVIEW_BLUEPRINTS:
+            for image in blueprint["images"]:
+                planned.append(image)
+        planned_sources = {image.source_name for image in planned}
+        unused_present = sorted(UNUSED_ZIP_IMAGES & zip_names)
+        self.stdout.write(f"unused images present in zip: {len(unused_present)}")
+        for name in unused_present:
+            self.stdout.write(f"- unused: {name}")
+        return planned
 
-    def validate_blueprints(self, tags_by_code, libraries, books, programs):
-        if len(libraries) < len(REVIEW_BLUEPRINTS):
-            raise CommandError("Not enough active libraries to create demo reviews.")
-        if not books:
-            raise CommandError("No active books with isbn13 are available for demo review references.")
-        if not programs:
-            raise CommandError("No visible programs are available for demo review references.")
-        missing_tags = sorted(
-            {
-                tag_code
-                for blueprint in REVIEW_BLUEPRINTS
-                for tag_code in blueprint["tag_codes"]
-                if tag_code not in tags_by_code
-            }
-        )
-        if missing_tags:
-            raise CommandError(
-                "Missing selectable review tags:\n" + "\n".join(f"- {code}" for code in missing_tags)
-            )
-
-    def copy_demo_images(self, source_images):
-        copied = []
-        for relative_path, source_path in source_images.items():
-            destination = Path(settings.MEDIA_ROOT) / relative_path
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(source_path, destination)
-            copied.append(relative_path)
-        return copied
-
-    def ensure_demo_users(self):
+    def ensure_author_users(self):
         user_model = get_user_model()
-        users = []
-        for data in DEMO_USERS:
-            user, created = user_model.objects.get_or_create(
-                email=data["email"],
-                defaults={"nickname": data["nickname"]},
-            )
-            fields_to_update = []
-            if user.nickname != data["nickname"]:
-                user.nickname = data["nickname"]
-                fields_to_update.append("nickname")
+        users = {}
+        for nickname in sorted({blueprint["user_nickname"] for blueprint in REVIEW_BLUEPRINTS}):
+            email = f"demo.review.{slugify_korean(nickname)}@{DEMO_EMAIL_DOMAIN}"
+            user, created = user_model.objects.get_or_create(email=email, defaults={"nickname": nickname})
+            update_fields = []
+            if user.nickname != nickname:
+                user.nickname = nickname
+                update_fields.append("nickname")
             if created or not user.has_usable_password():
                 user.set_unusable_password()
-                fields_to_update.append("password")
-            if fields_to_update:
-                user.save(update_fields=fields_to_update)
+                update_fields.append("password")
+            if update_fields:
+                user.save(update_fields=update_fields)
+            UserProfile.objects.get_or_create(user=user)
+            users[nickname] = user
+        return users
+
+    def ensure_liker_users(self):
+        user_model = get_user_model()
+        users = []
+        for index in range(1, DEMO_LIKER_COUNT + 1):
+            email = f"demo.like.{index:02d}@{DEMO_EMAIL_DOMAIN}"
+            nickname = f"시연좋아요{index:02d}"
+            user, created = user_model.objects.get_or_create(email=email, defaults={"nickname": nickname})
+            update_fields = []
+            if user.nickname != nickname:
+                user.nickname = nickname
+                update_fields.append("nickname")
+            if created or not user.has_usable_password():
+                user.set_unusable_password()
+                update_fields.append("password")
+            if update_fields:
+                user.save(update_fields=update_fields)
             UserProfile.objects.get_or_create(user=user)
             users.append(user)
         return users
 
-    def create_demo_reviews(self, demo_users, libraries, books, programs, tags_by_code):
-        created_reviews = []
-        book_index = 0
-        program_index = 0
-        for index, blueprint in enumerate(REVIEW_BLUEPRINTS):
-            author = demo_users[index % len(demo_users)]
-            program = None
-            library = libraries[index]
-            if blueprint.get("program"):
-                program = programs[program_index % len(programs)]
-                program_index += 1
-                library = program.library
+    def ensure_books(self, resolved):
+        books = {}
+        for title, data in resolved.items():
+            if data["book"]:
+                books[title] = data["book"]
+                continue
+            defaults = BOOK_DEFAULTS[title]
+            book = Book.objects.create(**defaults)
+            books[title] = book
+        return books
 
+    def ensure_programs(self, resolved, libraries):
+        programs = {}
+        for title, data in resolved.items():
+            if data["program"]:
+                programs[title] = data["program"]
+                continue
+            library = data["library"]
+            program = Program.objects.create(
+                library=library,
+                source_sido="부산광역시",
+                source_sigungu=library.sigungu,
+                source_library_name=library.name,
+                provider_code="demo",
+                external_program_key=f"demo-review-{library.id}-{slugify_korean(title)}",
+                title=title,
+                category_code=ProgramCategory.READING_WRITING,
+                target_text="전체",
+                target_codes=["all"],
+                application_required=False,
+                application_status=ApplicationStatus.NOT_REQUIRED,
+                operation_start_date=timezone.localdate(),
+                operation_end_date=timezone.localdate(),
+                operation_status=OperationStatus.ONGOING,
+                source_board="demo",
+                is_visible=True,
+            )
+            programs[title] = program
+        return programs
+
+    def create_reviews(self, *, authors, liker_users, libraries, tags, books, programs):
+        created_reviews = []
+        for blueprint in REVIEW_BLUEPRINTS:
+            library = libraries[(blueprint["library_name"], blueprint["sigungu"])]
             review = UserReview.objects.create(
-                user=author,
+                user=authors[blueprint["user_nickname"]],
                 library=library,
                 content=blueprint["content"],
+                view_count=blueprint["view_count"],
+                like_count=0,
             )
-            for tag_code in blueprint["tag_codes"]:
-                ReviewTag.objects.create(review=review, tag=tags_by_code[tag_code])
-
-            if blueprint.get("book"):
-                book = books[book_index % len(books)]
-                book_index += 1
-                ReviewBookReference.objects.create(review=review, book=book, display_order=0)
-
-            if program:
-                ReviewProgramReference.objects.create(review=review, program=program, display_order=0)
-
-            if blueprint.get("image"):
-                UserReviewImage.objects.create(
-                    review=review,
-                    image=blueprint["image"],
-                    alt_text=blueprint["alt_text"],
-                    display_order=0,
-                )
+            self.create_review_tags(review, blueprint, tags)
+            self.create_review_books(review, blueprint, books)
+            self.create_review_programs(review, blueprint, programs)
+            self.create_review_images(review, blueprint)
+            self.create_review_likes(review, liker_users, blueprint["like_count"])
             created_reviews.append(review)
-
-        # Give the primary demo account liked-review/dashboard data without liking its own reviews.
-        liker = demo_users[0]
-        for review in [review for review in created_reviews if review.user_id != liker.id][:3]:
-            UserReviewLike.objects.create(user=liker, review=review)
-            review.like_count = review.likes.count()
-            review.save(update_fields=["like_count", "updated_at"])
-
         return created_reviews
 
-    def print_summary(self, counts, missing_before, deleted_counts, copied_images, created_reviews, orphan_files):
-        self.stdout.write("review data counts:")
-        for key, value in counts.items():
+    def create_review_tags(self, review, blueprint, tags):
+        seen = set()
+        for tag_code in blueprint["tag_codes"]:
+            resolved_code = TAG_ALIASES.get(tag_code, tag_code)
+            if resolved_code in seen:
+                continue
+            seen.add(resolved_code)
+            ReviewTag.objects.create(review=review, tag=tags[resolved_code])
+
+    def create_review_books(self, review, blueprint, books):
+        for index, title in enumerate(blueprint["related_books"]):
+            ReviewBookReference.objects.create(review=review, book=books[title], display_order=index)
+
+    def create_review_programs(self, review, blueprint, programs):
+        for index, title in enumerate(blueprint["related_programs"]):
+            program = programs[title]
+            if program.library_id != review.library_id:
+                raise CommandError(f"program library mismatch: {title}")
+            ReviewProgramReference.objects.create(review=review, program=program, display_order=index)
+
+    def create_review_images(self, review, blueprint):
+        for index, image in enumerate(blueprint["images"]):
+            UserReviewImage.objects.create(
+                review=review,
+                image=image.target_path,
+                alt_text=image.alt_text,
+                display_order=index,
+            )
+
+    def create_review_likes(self, review, liker_users, like_count):
+        for user in liker_users[:like_count]:
+            UserReviewLike.objects.create(user=user, review=review)
+        review.like_count = review.likes.count()
+        review.save(update_fields=["like_count", "updated_at"])
+
+    def delete_existing_review_media(self, image_paths):
+        deleted = []
+        skipped = []
+        media_root = Path(settings.MEDIA_ROOT).resolve()
+        for image_path in sorted(set(image_paths)):
+            result = resolve_media_path(media_root, image_path)
+            if result is None:
+                skipped.append(image_path)
+                continue
+            if result.exists() and result.is_file():
+                result.unlink()
+                deleted.append(image_path)
+            else:
+                skipped.append(image_path)
+        self.stdout.write(f"deleted old review media files: {len(deleted)}")
+        for image_path in deleted:
+            self.stdout.write(f"- deleted media: {image_path}")
+        for image_path in skipped:
+            self.stdout.write(f"- skipped media: {image_path}")
+        return deleted
+
+    def copy_demo_images(self, image_zip):
+        copied = []
+        with zipfile.ZipFile(image_zip) as archive:
+            by_name = {Path(info.filename).name: info for info in archive.infolist() if not info.is_dir()}
+            for source_name, target_path in IMAGE_MAPPINGS.items():
+                target = Path(settings.MEDIA_ROOT) / target_path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with archive.open(by_name[source_name]) as source, target.open("wb") as destination:
+                    shutil.copyfileobj(source, destination)
+                copied.append(target_path)
+        return copied
+
+    def rebuild_preferences(self, user_ids):
+        user_model = get_user_model()
+        for user in user_model.objects.filter(id__in=user_ids):
+            rebuild_user_preference(user)
+
+    def print_plan(self, before_counts, before_images, planned_images, books, programs):
+        self.stdout.write("current review data counts:")
+        for key, value in before_counts.items():
             self.stdout.write(f"- {key}: {value}")
-        self.stdout.write(f"- missing review image files before reset: {len(missing_before)}")
-        for image_path in missing_before:
-            self.stdout.write(f"  - {image_path}")
-        if deleted_counts:
-            self.stdout.write("deleted rows by model:")
-            for model_name, count in sorted(deleted_counts.items()):
-                self.stdout.write(f"- {model_name}: {count}")
-        if copied_images:
-            self.stdout.write("copied demo media files:")
-            for image_path in copied_images:
-                self.stdout.write(f"- {image_path}")
-        if created_reviews:
-            self.stdout.write(f"created demo reviews: {len(created_reviews)}")
-            for review in created_reviews:
-                self.stdout.write(f"- id={review.id} library={review.library_id} user={review.user_id}")
-        if orphan_files:
-            self.stdout.write("orphan review media files left in place:")
-            for image_path in orphan_files:
-                self.stdout.write(f"- {image_path}")
-        else:
-            self.stdout.write("orphan review media files left in place: none")
+        self.stdout.write(f"existing referenced review media files: {len(before_images)}")
+        for image_path in before_images:
+            self.stdout.write(f"- old media: {image_path}")
+        self.stdout.write(f"planned demo reviews: {len(REVIEW_BLUEPRINTS)}")
+        self.stdout.write(f"planned demo images: {len(planned_images)}")
+        self.stdout.write("book references:")
+        for title, data in sorted(books.items()):
+            action = "reuse" if data["book"] else "create"
+            self.stdout.write(f"- {action}: {title}")
+        self.stdout.write("program references:")
+        for title, data in sorted(programs.items()):
+            action = "reuse" if data["program"] else "create"
+            self.stdout.write(f"- {action}: {title} @ {data['library'].name}")
+
+    def print_result(self, deleted_counts, deleted_files, copied_images, created_reviews):
+        self.stdout.write("deleted rows by model:")
+        for model_name, count in sorted(deleted_counts.items()):
+            self.stdout.write(f"- {model_name}: {count}")
+        self.stdout.write("copied demo media files:")
+        for image_path in copied_images:
+            self.stdout.write(f"- {image_path}")
+        self.stdout.write(f"created demo reviews: {len(created_reviews)}")
+        self.stdout.write(f"created image rows: {UserReviewImage.objects.count()}")
+        self.stdout.write(f"image-included reviews: {UserReview.objects.filter(images__isnull=False).distinct().count()}")
+        self.stdout.write(f"deleted old media file count: {len(deleted_files)}")
+
+
+def resolve_media_path(media_root, image_path):
+    raw = str(image_path or "")
+    if not raw or raw.startswith(("http://", "https://")):
+        return None
+    candidate = (media_root / raw).resolve()
+    try:
+        candidate.relative_to(media_root)
+    except ValueError:
+        return None
+    return candidate
+
+
+def slugify_korean(value):
+    replacements = {
+        "김나들이": "kim-nadeuli",
+        "책산책": "book-walk",
+        "부산책방문자": "busan-book-visitor",
+        "나들이초보": "outing-starter",
+        "조용한서가": "quiet-shelf",
+        "노트북들고": "with-laptop",
+        "책 소풍 가는 날": "book-picnic-day",
+        "그림책으로 만나는 주말": "picture-book-weekend",
+    }
+    if value in replacements:
+        return replacements[value]
+    return "-".join(str(value).strip().lower().split())

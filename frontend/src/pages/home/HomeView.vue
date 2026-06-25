@@ -6,10 +6,12 @@ import LibraryCard from '@/components/cards/LibraryCard.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
+import LocationPermissionPanel from '@/components/location/LocationPermissionPanel.vue'
 import { fetchHome } from '@/services/homeService'
 import { fetchMyOutingsDashboard } from '@/services/myOutingsService'
 import { useAuthStore } from '@/stores/auth'
 import { PURPOSE_LABELS, isBrokenText } from '@/utils/display'
+import { readStoredLocation, storeLocation } from '@/utils/locationPreference'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -18,6 +20,9 @@ const dashboardData = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
 const locationMessage = ref('')
+const currentLocation = ref(readStoredLocation())
+const showLocationPanel = ref(false)
+const isLocationLoading = ref(false)
 
 const THEME_CODES = ['study', 'book', 'kids', 'mood', 'nearby']
 const THEME_DESCRIPTIONS = {
@@ -42,6 +47,10 @@ const themeGroups = computed(() => {
     }
   })
 })
+const selectedThemeCode = ref('study')
+const selectedThemeGroup = computed(() =>
+  themeGroups.value.find((group) => group.code === selectedThemeCode.value) ?? themeGroups.value[0],
+)
 const personalRecommendations = computed(() => homeData.value?.personal_recommendations ?? {})
 const personalItems = computed(() => personalRecommendations.value.items ?? [])
 const dashboardSummarySentence = computed(() => {
@@ -81,7 +90,7 @@ async function loadHome() {
 
   try {
     const [homeResult, dashboardResult] = await Promise.allSettled([
-      fetchHome(),
+      fetchHome(currentLocation.value ?? {}),
       authStore.isAuthenticated ? fetchMyOutingsDashboard() : Promise.resolve(null),
     ])
 
@@ -95,6 +104,12 @@ async function loadHome() {
   }
 }
 
+function selectTheme(code) {
+  locationMessage.value = ''
+  selectedThemeCode.value = code
+  showLocationPanel.value = code === 'nearby' && !currentLocation.value
+}
+
 function goToTheme(code) {
   locationMessage.value = ''
 
@@ -103,26 +118,46 @@ function goToTheme(code) {
     return
   }
 
-  if (!navigator.geolocation) {
-    locationMessage.value = '현재 브라우저에서 위치를 사용할 수 없어 전체 도서관 목록으로 이동합니다.'
-    router.push('/libraries')
+  if (currentLocation.value) {
+    router.push({
+      path: '/libraries',
+      query: {
+        purpose: 'nearby',
+        lat: currentLocation.value.lat,
+        lng: currentLocation.value.lng,
+      },
+    })
     return
   }
 
+  showLocationPanel.value = true
+}
+
+async function applyCurrentLocation({ navigateAfterApply = false } = {}) {
+  locationMessage.value = ''
+
+  if (!navigator.geolocation) {
+    locationMessage.value = '현재 브라우저에서 위치 정보를 사용할 수 없습니다.'
+    return
+  }
+
+  isLocationLoading.value = true
   navigator.geolocation.getCurrentPosition(
     (position) => {
-      router.push({
-        path: '/libraries',
-        query: {
-          purpose: 'nearby',
-          lat: position.coords.latitude.toFixed(7),
-          lng: position.coords.longitude.toFixed(7),
-        },
-      })
+      currentLocation.value = storeLocation(position)
+      if (!currentLocation.value) {
+        locationMessage.value = '현재 위치를 확인하지 못했습니다.'
+        isLocationLoading.value = false
+        return
+      }
+      showLocationPanel.value = false
+      isLocationLoading.value = false
+      loadHome()
+      if (navigateAfterApply) goToTheme('nearby')
     },
     () => {
-      locationMessage.value = '위치 권한을 사용할 수 없어 전체 도서관 목록으로 이동합니다.'
-      router.push('/libraries')
+      locationMessage.value = '위치 권한을 사용할 수 없어 가까운 곳 추천을 적용하지 않았습니다.'
+      isLocationLoading.value = false
     },
     {
       enableHighAccuracy: false,
@@ -217,33 +252,47 @@ onMounted(loadHome)
           <button
             v-for="group in themeGroups"
             :key="group.code"
-            class="theme-card-button"
+            class="theme-tab-button"
+            :class="{ 'is-active': selectedThemeCode === group.code }"
             type="button"
-            @click="goToTheme(group.code)"
+            @click="selectTheme(group.code)"
           >
             <strong>{{ group.label }}</strong>
-            <span class="meta-text">{{ group.description }}</span>
           </button>
         </div>
 
-        <div class="d-grid gap-5">
-          <section v-for="group in themeGroups.filter((item) => item.items.length)" :key="group.code">
-            <div class="section-header-row">
-              <h3 class="section-title mb-0">{{ group.label }}</h3>
-              <button class="btn btn-outline-primary btn-sm" type="button" @click="goToTheme(group.code)">
-                더보기
-              </button>
+        <LocationPermissionPanel
+          v-if="showLocationPanel"
+          class="mb-4"
+          :is-loading="isLocationLoading"
+          :error-message="locationMessage"
+          @confirm="applyCurrentLocation()"
+          @dismiss="showLocationPanel = false"
+        />
+
+        <section v-if="selectedThemeGroup">
+          <div class="section-header-row">
+            <div>
+              <h3 class="section-title mb-1">{{ selectedThemeGroup.label }}</h3>
+              <p class="meta-text mb-0">{{ selectedThemeGroup.description }}</p>
             </div>
-            <div class="responsive-card-grid">
+            <button class="btn btn-outline-primary btn-sm" type="button" @click="goToTheme(selectedThemeGroup.code)">
+              더보기
+            </button>
+          </div>
+          <EmptyState
+            v-if="!selectedThemeGroup.items.length"
+            title="이 테마에 맞는 추천 도서관이 아직 없어요."
+            description="추천 데이터가 준비되면 이곳에 표시됩니다."
+          />
+          <div v-else class="library-result-grid">
               <LibraryCard
-                v-for="library in group.items.slice(0, 6)"
+                v-for="library in selectedThemeGroup.items.slice(0, 4)"
                 :key="library.id"
-                compact
                 :library="library"
               />
-            </div>
-          </section>
-        </div>
+          </div>
+        </section>
       </section>
     </div>
   </section>

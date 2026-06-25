@@ -6,10 +6,12 @@ import LibraryCard from '@/components/cards/LibraryCard.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
+import LocationPermissionPanel from '@/components/location/LocationPermissionPanel.vue'
 import PaginationBar from '@/components/navigation/PaginationBar.vue'
 import ResultCount from '@/components/navigation/ResultCount.vue'
 import { fetchLibraries } from '@/services/libraryService'
 import { FACILITY_LABELS, PURPOSE_LABELS } from '@/utils/display'
+import { readStoredLocation, storeLocation } from '@/utils/locationPreference'
 import { readPageQuery, readStringQuery } from '@/utils/query'
 
 const route = useRoute()
@@ -50,13 +52,15 @@ const HOLIDAY_STATUS_OPTIONS = [
   { value: 'open', label: '공휴일 운영' },
   { value: 'closed', label: '공휴일 휴관' },
 ]
-const LATE_OPEN_AFTER = '18:00'
 
 const libraries = ref([])
 const pagination = ref({ count: 0, next: null, previous: null })
 const isLoading = ref(false)
 const error = ref(null)
 const locationMessage = ref('')
+const currentLocation = ref(readStoredLocation())
+const showLocationPanel = ref(false)
+const isLocationLoading = ref(false)
 const filters = reactive({
   q: '',
   sigungu: '',
@@ -69,7 +73,6 @@ const filters = reactive({
   ordering: '',
   open_today: false,
   weekend_open: false,
-  late_open: false,
   holiday_status: '',
   facilities: [],
 })
@@ -89,7 +92,6 @@ const hasFilter = computed(() =>
       filters.min_reading_seat_count ||
       filters.open_today ||
       filters.weekend_open ||
-      filters.late_open ||
       filters.holiday_status ||
       filters.facilities.length,
   ),
@@ -130,8 +132,14 @@ function syncFromRoute() {
     : ''
   filters.open_today = route.query.open_today === 'true'
   filters.weekend_open = route.query.weekend_open === 'true'
-  filters.late_open = route.query.late_open_after === LATE_OPEN_AFTER
   filters.facilities = FACILITY_OPTIONS.map((item) => item.value).filter((key) => route.query[key] === 'true')
+  if (filters.lat && filters.lng) {
+    currentLocation.value = { lat: filters.lat, lng: filters.lng }
+  } else if (filters.purpose === 'nearby' && currentLocation.value) {
+    filters.lat = currentLocation.value.lat
+    filters.lng = currentLocation.value.lng
+  }
+  showLocationPanel.value = filters.purpose === 'nearby' && !filters.lat && !filters.lng
 }
 
 function buildRequestParams() {
@@ -151,7 +159,6 @@ function buildRequestParams() {
     ordering,
     open_today: filters.open_today ? true : undefined,
     weekend_open: filters.weekend_open ? true : undefined,
-    late_open_after: filters.late_open ? LATE_OPEN_AFTER : undefined,
     holiday_status: filters.holiday_status,
     page: page.value,
     page_size: pageSize.value,
@@ -182,6 +189,7 @@ async function loadLibraries() {
 function applyFilters() {
   if (needsLocation.value) {
     locationMessage.value = '가까운 도서관을 보려면 현재 위치를 먼저 적용해 주세요.'
+    showLocationPanel.value = true
     return
   }
 
@@ -203,7 +211,6 @@ function applyFilters() {
       ordering: ordering || undefined,
       open_today: filters.open_today ? 'true' : undefined,
       weekend_open: filters.weekend_open ? 'true' : undefined,
-      late_open_after: filters.late_open ? LATE_OPEN_AFTER : undefined,
       holiday_status: filters.holiday_status || undefined,
       ...facilityQuery,
       page: 1,
@@ -214,6 +221,7 @@ function applyFilters() {
 
 function resetFilters() {
   locationMessage.value = ''
+  showLocationPanel.value = false
   router.push({ name: 'library-list' })
 }
 
@@ -229,10 +237,18 @@ function togglePurpose(value) {
   if (value !== 'nearby') {
     filters.lat = ''
     filters.lng = ''
+    showLocationPanel.value = false
+    return
+  }
+  if (currentLocation.value) {
+    filters.lat = currentLocation.value.lat
+    filters.lng = currentLocation.value.lng
+    showLocationPanel.value = false
     return
   }
   if (!filters.lat || !filters.lng) {
     locationMessage.value = '가까운 도서관을 보려면 현재 위치를 적용해 주세요.'
+    showLocationPanel.value = true
   }
 }
 
@@ -244,7 +260,7 @@ function toggleHolidayStatus(value) {
   filters.holiday_status = filters.holiday_status === value ? '' : value
 }
 
-function requestNearby() {
+function applyCurrentLocation() {
   locationMessage.value = ''
   filters.purpose = 'nearby'
 
@@ -253,18 +269,27 @@ function requestNearby() {
     return
   }
 
+  isLocationLoading.value = true
   navigator.geolocation.getCurrentPosition(
     (position) => {
-      filters.lat = position.coords.latitude.toFixed(7)
-      filters.lng = position.coords.longitude.toFixed(7)
+      currentLocation.value = storeLocation(position)
+      if (!currentLocation.value) {
+        locationMessage.value = '현재 위치를 확인하지 못했습니다.'
+        isLocationLoading.value = false
+        return
+      }
+      filters.lat = currentLocation.value.lat
+      filters.lng = currentLocation.value.lng
       locationMessage.value = ''
+      showLocationPanel.value = false
+      isLocationLoading.value = false
       applyFilters()
     },
     () => {
       locationMessage.value = '위치 권한을 사용할 수 없어 가까운 도서관 필터를 적용하지 않았습니다.'
-      filters.purpose = ''
       filters.lat = ''
       filters.lng = ''
+      isLocationLoading.value = false
     },
     { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
   )
@@ -374,10 +399,14 @@ onMounted(() => {
             <span>{{ purpose.label }}</span>
           </button>
         </div>
-        <div v-if="filters.purpose === 'nearby' && needsLocation" class="alert alert-info mt-3 mb-0">
-          <span>가까운 도서관을 보려면 현재 위치를 적용해 주세요.</span>
-          <button class="btn btn-sm btn-primary ms-2" type="button" @click="requestNearby">현재 위치 적용</button>
-        </div>
+        <LocationPermissionPanel
+          v-if="showLocationPanel"
+          class="mt-3"
+          :is-loading="isLocationLoading"
+          :error-message="locationMessage"
+          @confirm="applyCurrentLocation"
+          @dismiss="showLocationPanel = false"
+        />
         <p v-else-if="locationMessage" class="meta-text mb-0">{{ locationMessage }}</p>
       </div>
 
@@ -391,10 +420,6 @@ onMounted(() => {
           <label class="filter-chip">
             <input v-model="filters.weekend_open" type="checkbox" />
             <span>주말 운영</span>
-          </label>
-          <label class="filter-chip">
-            <input v-model="filters.late_open" type="checkbox" />
-            <span>18시 이후 운영</span>
           </label>
           <button
             v-for="option in HOLIDAY_STATUS_OPTIONS"
