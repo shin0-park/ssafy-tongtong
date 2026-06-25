@@ -31,6 +31,7 @@ const TAG_OPTIONS = [
   { code: 'review_kind_guidance', label: REVIEW_TAG_LABELS.review_kind_guidance },
   { code: 'review_well_managed', label: REVIEW_TAG_LABELS.review_well_managed },
 ]
+const RELATED_BOOK_SEARCH_PAGE_SIZE = 100
 
 const isEdit = computed(() => route.name === 'review-edit')
 const isLoading = ref(false)
@@ -42,6 +43,8 @@ const librarySearchQuery = ref('')
 const librarySearchResults = ref([])
 const bookSearchQuery = ref('')
 const bookSearchResults = ref([])
+const bookSearchMessage = ref('')
+const isBookSearching = ref(false)
 const relatedPrograms = ref([])
 const searchMessage = ref('')
 
@@ -105,21 +108,49 @@ function selectLibrary(library) {
   librarySearchResults.value = []
 }
 
+function normalizeBookSearchResults(data) {
+  return (data.results ?? data.items ?? data.books ?? [])
+    .map((item) => item.book ?? item)
+    .filter(Boolean)
+}
+
+function mergeBookSearchResults(...resultGroups) {
+  const seen = new Set()
+
+  return resultGroups.flat().filter((book) => {
+    const key = getBookSelectionValue(book) || book.title
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 async function searchRelatedBooks() {
-  searchMessage.value = ''
+  bookSearchMessage.value = ''
   bookSearchResults.value = []
   const query = bookSearchQuery.value.trim()
   if (!query) {
-    searchMessage.value = '책 검색어를 입력해주세요.'
+    bookSearchMessage.value = '책 검색어를 입력해주세요.'
     return
   }
 
+  isBookSearching.value = true
   try {
-    const data = await searchBooks({ search_type: 'keyword', q: query, page_size: 6 })
-    bookSearchResults.value = data.results ?? []
-    if (!bookSearchResults.value.length) searchMessage.value = '검색된 책이 없습니다.'
+    const titleData = await searchBooks({ search_type: 'title', q: query, page_size: RELATED_BOOK_SEARCH_PAGE_SIZE })
+    const titleResults = normalizeBookSearchResults(titleData)
+    let keywordResults = []
+
+    if (!titleResults.length) {
+      const keywordData = await searchBooks({ search_type: 'keyword', q: query, page_size: RELATED_BOOK_SEARCH_PAGE_SIZE })
+      keywordResults = normalizeBookSearchResults(keywordData)
+    }
+
+    bookSearchResults.value = mergeBookSearchResults(titleResults, keywordResults)
+    if (!bookSearchResults.value.length) bookSearchMessage.value = '검색된 책이 없습니다.'
   } catch (error) {
-    searchMessage.value = extractErrorMessage(error, '책을 검색하지 못했어요.')
+    bookSearchMessage.value = extractErrorMessage(error, '책을 검색하지 못했어요.')
+  } finally {
+    isBookSearching.value = false
   }
 }
 
@@ -130,6 +161,21 @@ function toggleSelection(target, id, checked) {
   if (checked) set.add(value)
   else set.delete(value)
   form[target] = Array.from(set)
+}
+
+function getBookSelectionValue(book) {
+  const value = Number(book?.local_book_id ?? book?.id)
+  return Number.isFinite(value) ? value : null
+}
+
+function toggleBookSelection(book, checked) {
+  const value = getBookSelectionValue(book)
+  if (!value) return
+
+  const set = new Set(form.book_ids)
+  if (checked) set.add(value)
+  else set.delete(value)
+  form.book_ids = Array.from(set)
 }
 
 async function loadRelatedPrograms() {
@@ -163,7 +209,7 @@ async function loadReview() {
     librarySearchQuery.value = form.library_name
     form.content = review.content || ''
     form.tag_codes = (review.tags ?? []).map((tag) => tag.code || tag.review_group).filter(Boolean).slice(0, 5)
-    form.book_ids = (review.books ?? review.related_books ?? []).map((book) => Number(book.id)).filter(Number.isFinite)
+    form.book_ids = (review.books ?? review.related_books ?? []).map(getBookSelectionValue).filter(Boolean)
     form.program_ids = (review.programs ?? review.related_programs ?? []).map((program) => Number(program.id)).filter(Number.isFinite)
   } catch (error) {
     errorMessage.value = extractErrorMessage(error, '후기 정보를 불러오지 못했어요.')
@@ -213,9 +259,9 @@ onMounted(async () => {
     </div>
 
     <LoadingState v-if="isLoading" title="후기 정보를 불러오는 중입니다." />
-    <ErrorState v-else-if="errorMessage && !isSaving" :message="errorMessage" @retry="loadReview" />
+    <ErrorState v-else-if="errorMessage && !isSaving && isEdit && !form.content" :message="errorMessage" @retry="loadReview" />
 
-    <form v-else class="content-panel p-4" @submit.prevent="handleSubmit">
+    <div v-else class="content-panel p-4">
       <div v-if="validationMessage" class="alert alert-warning" role="alert">{{ validationMessage }}</div>
       <div v-if="errorMessage" class="alert alert-danger" role="alert">{{ errorMessage }}</div>
 
@@ -223,7 +269,13 @@ onMounted(async () => {
         <label class="form-field mb-2">
           <span>도서관 선택</span>
           <div class="d-flex gap-2">
-            <input v-model.trim="librarySearchQuery" class="form-control" type="search" placeholder="도서관명 검색" />
+            <input
+              v-model.trim="librarySearchQuery"
+              class="form-control"
+              type="search"
+              placeholder="도서관명 검색"
+              @keyup.enter="searchLibraries"
+            />
             <button class="btn btn-outline-primary" type="button" @click="searchLibraries">검색</button>
           </div>
         </label>
@@ -266,18 +318,26 @@ onMounted(async () => {
 
       <section class="content-panel-soft mb-3">
         <div class="d-flex gap-2">
-          <input v-model.trim="bookSearchQuery" class="form-control" type="search" placeholder="관련 책 검색" />
-          <button class="btn btn-outline-primary" type="button" @click="searchRelatedBooks">검색</button>
+          <input
+            v-model.trim="bookSearchQuery"
+            class="form-control"
+            type="search"
+            placeholder="관련 책 검색"
+            @keydown.enter.prevent="searchRelatedBooks"
+          />
+          <button class="btn btn-outline-primary" type="button" :disabled="isBookSearching" @click="searchRelatedBooks">
+            {{ isBookSearching ? '검색 중' : '검색' }}
+          </button>
         </div>
-        <p v-if="searchMessage" class="meta-text mt-2 mb-0">{{ searchMessage }}</p>
-        <div v-if="bookSearchResults.length" class="selection-list mt-3">
-          <label v-for="book in bookSearchResults" :key="book.id || book.isbn13" class="selection-row">
+        <p v-if="bookSearchMessage" class="meta-text mt-2 mb-0">{{ bookSearchMessage }}</p>
+        <div v-if="bookSearchResults.length" class="selection-list selection-list-scroll mt-3">
+          <label v-for="book in bookSearchResults" :key="book.local_book_id || book.id || book.isbn13" class="selection-row">
             <input
               class="form-check-input"
               type="checkbox"
-              :disabled="!book.id"
-              :checked="book.id ? form.book_ids.includes(Number(book.id)) : false"
-              @change="toggleSelection('book_ids', book.id, $event.target.checked)"
+              :disabled="getBookSelectionValue(book) === null"
+              :checked="form.book_ids.includes(getBookSelectionValue(book))"
+              @change="toggleBookSelection(book, $event.target.checked)"
             />
             <span>
               <strong>{{ book.title || '제목 정보 없음' }}</strong>
@@ -285,6 +345,7 @@ onMounted(async () => {
             </span>
           </label>
         </div>
+        <p v-if="firstFieldError('book_ids')" class="field-error">{{ firstFieldError('book_ids') }}</p>
       </section>
 
       <section class="content-panel-soft mb-4">
@@ -309,10 +370,10 @@ onMounted(async () => {
 
       <div class="d-flex flex-wrap justify-content-end gap-2">
         <RouterLink class="btn btn-outline-secondary" to="/community">취소</RouterLink>
-        <button class="btn btn-primary" type="submit" :disabled="isSaving">
+        <button class="btn btn-primary" type="button" :disabled="isSaving" @click="handleSubmit">
           {{ isSaving ? '저장 중' : '저장' }}
         </button>
       </div>
-    </form>
+    </div>
   </section>
 </template>

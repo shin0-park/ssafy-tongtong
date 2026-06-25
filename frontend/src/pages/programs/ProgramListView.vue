@@ -21,6 +21,7 @@ const route = useRoute()
 const router = useRouter()
 
 const DEFAULT_PAGE_SIZE = 12
+const MAX_SIGUNGU_SELECTIONS = 3
 const SIGUNGU_OPTIONS = [
   '강서구',
   '금정구',
@@ -79,12 +80,24 @@ function readSingleQueryValue(value, allowed) {
   return splitQuery(value, allowed)[0] ?? ''
 }
 
+function createEmptyFilters() {
+  return {
+    q: '',
+    library_id: '',
+    sigungu: [],
+    category: [],
+    target: [],
+    application_status: '',
+    operation_status: '',
+  }
+}
+
 function readFiltersFromRoute() {
   return {
     q: normalizeText(route.query.q),
     library_id: normalizeText(route.query.library_id),
-    sigungu: readSingleQueryValue(route.query.sigungu, allowedValues?.sigungu ?? SIGUNGU_OPTIONS),
-    category: readSingleQueryValue(route.query.category, allowedValues?.category ?? CATEGORY_OPTIONS.map((item) => item.value)),
+    sigungu: splitQuery(route.query.sigungu, allowedValues?.sigungu ?? SIGUNGU_OPTIONS).slice(0, MAX_SIGUNGU_SELECTIONS),
+    category: splitQuery(route.query.category, allowedValues?.category ?? CATEGORY_OPTIONS.map((item) => item.value)),
     target: splitQuery(route.query.target, allowedValues?.target ?? TARGET_OPTIONS.map((item) => item.value)),
     application_status: readSingleQueryValue(
       route.query.application_status,
@@ -108,8 +121,8 @@ function buildRequestParams() {
     page_size: pageQuery.page_size || DEFAULT_PAGE_SIZE,
     q: filters.q,
     library_id: filters.library_id,
-    sigungu: filters.sigungu,
-    category: filters.category,
+    sigungu: filters.sigungu.join(','),
+    category: filters.category.join(','),
     target: filters.target.join(','),
     application_status: filters.application_status,
     operation_status: filters.operation_status,
@@ -142,8 +155,8 @@ function applyFilters() {
     query: {
       q: filters.q || undefined,
       library_id: filters.library_id || undefined,
-      sigungu: filters.sigungu || undefined,
-      category: filters.category || undefined,
+      sigungu: filters.sigungu.length ? filters.sigungu.join(',') : undefined,
+      category: filters.category.length ? filters.category.join(',') : undefined,
       target: filters.target.length ? filters.target.join(',') : undefined,
       application_status: filters.application_status || undefined,
       operation_status: filters.operation_status || undefined,
@@ -154,11 +167,32 @@ function applyFilters() {
 }
 
 function clearFilters() {
+  Object.assign(filters, createEmptyFilters())
   router.push({ name: 'program-list' })
 }
 
 function toggleSingleFilter(field, value) {
   filters[field] = filters[field] === value ? '' : value
+}
+
+function toggleMultiFilter(field, value, maxSelections = Infinity) {
+  const selectedValues = filters[field]
+  const selectedIndex = selectedValues.indexOf(value)
+
+  if (selectedIndex >= 0) {
+    selectedValues.splice(selectedIndex, 1)
+    return
+  }
+
+  if (selectedValues.length >= maxSelections) {
+    return
+  }
+
+  selectedValues.push(value)
+}
+
+function isSigunguSelectionDisabled(sigungu) {
+  return !filters.sigungu.includes(sigungu) && filters.sigungu.length >= MAX_SIGUNGU_SELECTIONS
 }
 
 function goToPage(page) {
@@ -208,10 +242,11 @@ onMounted(loadPrograms)
             v-for="sigungu in SIGUNGU_OPTIONS"
             :key="sigungu"
             class="filter-chip"
-            :class="{ active: filters.sigungu === sigungu }"
+            :class="{ active: filters.sigungu.includes(sigungu) }"
             type="button"
-            :aria-pressed="filters.sigungu === sigungu"
-            @click="toggleSingleFilter('sigungu', sigungu)"
+            :aria-pressed="filters.sigungu.includes(sigungu)"
+            :disabled="isSigunguSelectionDisabled(sigungu)"
+            @click="toggleMultiFilter('sigungu', sigungu, MAX_SIGUNGU_SELECTIONS)"
           >
             <span>{{ sigungu }}</span>
           </button>
@@ -225,10 +260,10 @@ onMounted(loadPrograms)
             v-for="category in CATEGORY_OPTIONS"
             :key="category.value"
             class="filter-chip"
-            :class="{ active: filters.category === category.value }"
+            :class="{ active: filters.category.includes(category.value) }"
             type="button"
-            :aria-pressed="filters.category === category.value"
-            @click="toggleSingleFilter('category', category.value)"
+            :aria-pressed="filters.category.includes(category.value)"
+            @click="toggleMultiFilter('category', category.value)"
           >
             <span>{{ category.label }}</span>
           </button>
