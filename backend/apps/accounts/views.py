@@ -107,7 +107,7 @@ class LogoutAPIView(APIView):
     permission_classes = (AllowAny,)
 
     def post(self, request):
-        response = Response({"detail": "Logged out."})
+        response = Response({"detail": "Successfully logged out."})
         _delete_refresh_cookie(response)
         return response
 
