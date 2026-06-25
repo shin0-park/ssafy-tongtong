@@ -66,6 +66,18 @@
   gap: var(--space-4);
 }
 
+.book-result-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.program-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
 .responsive-card-grid-three {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -770,10 +782,17 @@
   .library-result-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .book-result-grid,
+  .program-result-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 575.98px) {
-  .library-result-grid {
+  .library-result-grid,
+  .book-result-grid,
+  .program-result-grid {
     grid-template-columns: 1fr;
   }
 

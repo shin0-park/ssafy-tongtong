@@ -188,10 +188,9 @@ onMounted(() => {
 
 <template>
   <section class="page-shell">
-    <div class="page-hero">
+    <div class="page-hero page-hero-banner page-hero-books">
       <h1>책 둘러보기</h1>
       <p>읽고 싶은 책을 찾고, 부산에서 그 책을 소장한 도서관을 함께 확인해보세요.</p>
-      <div class="page-hero-visual" aria-hidden="true">▤</div>
     </div>
 
     <section class="mb-5">
@@ -214,7 +213,7 @@ onMounted(() => {
         title="인기 도서가 아직 없습니다."
         description="집계 데이터가 준비되면 이곳에 표시됩니다."
       />
-      <div v-else class="responsive-card-grid">
+      <div v-else class="book-result-grid">
         <BookCard
           v-for="(book, index) in popularBooks.slice(0, 6)"
           :key="book.isbn13 || index"
@@ -288,7 +287,7 @@ onMounted(() => {
 
     <template v-else>
       <ResultCount class="mb-3" :count="responseMeta.num_found" label="권" />
-      <div class="responsive-card-grid">
+      <div class="book-result-grid">
         <BookCard v-for="book in books" :key="book.isbn13" :book="book" />
       </div>
       <PaginationBar

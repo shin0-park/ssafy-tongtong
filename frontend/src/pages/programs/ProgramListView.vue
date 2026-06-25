@@ -168,10 +168,9 @@ onMounted(loadPrograms)
 
 <template>
   <section class="page-shell">
-    <div class="page-hero">
+    <div class="page-hero page-hero-banner page-hero-programs">
       <h1>문화 프로그램</h1>
       <p>도서관에서 열리는 강연, 독서, 전시, 체험 프로그램을 검색하고 해당 도서관으로 이동해보세요.</p>
-      <div class="page-hero-visual" aria-hidden="true">▦</div>
     </div>
 
     <form class="content-panel p-4 mb-4 filter-panel" @submit.prevent="applyFilters">
@@ -257,7 +256,7 @@ onMounted(loadPrograms)
 
     <template v-else>
       <ResultCount class="mb-3" :count="pagination.count" label="개" />
-      <div class="responsive-card-grid">
+      <div class="program-result-grid">
         <ProgramCard v-for="program in programs" :key="program.id" :program="program" />
       </div>
       <PaginationBar

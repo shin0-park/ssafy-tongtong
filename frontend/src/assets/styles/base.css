@@ -140,6 +140,41 @@ a {
   color: var(--color-text-secondary);
 }
 
+.page-hero-banner {
+  min-height: clamp(220px, 18vw, 280px);
+  padding-block: clamp(2rem, 5vw, 4rem);
+  background-position: center;
+  background-size: cover;
+}
+
+.page-hero-home {
+  --hero-banner-image: url('/banners/home-banner.png');
+  background-image:
+    linear-gradient(90deg, rgba(255, 253, 247, 0.98) 0%, rgba(255, 253, 247, 0.86) 36%, rgba(255, 253, 247, 0.22) 72%),
+    var(--hero-banner-image);
+}
+
+.page-hero-books {
+  --hero-banner-image: url('/banners/books-banner.png');
+  background-image:
+    linear-gradient(90deg, rgba(255, 253, 247, 0.98) 0%, rgba(255, 253, 247, 0.82) 34%, rgba(255, 253, 247, 0.2) 70%),
+    var(--hero-banner-image);
+}
+
+.page-hero-programs {
+  --hero-banner-image: url('/banners/programs-banner.png');
+  background-image:
+    linear-gradient(90deg, rgba(255, 253, 247, 0.98) 0%, rgba(255, 253, 247, 0.84) 36%, rgba(255, 253, 247, 0.24) 74%),
+    var(--hero-banner-image);
+}
+
+.page-hero-community {
+  --hero-banner-image: url('/banners/community-banner.png');
+  background-image:
+    linear-gradient(90deg, rgba(255, 253, 247, 0.98) 0%, rgba(255, 253, 247, 0.84) 35%, rgba(255, 253, 247, 0.18) 72%),
+    var(--hero-banner-image);
+}
+
 .page-hero-visual {
   position: absolute;
   right: var(--space-8);
@@ -196,5 +231,19 @@ a {
 @media (max-width: 767px) {
   .page-shell {
     padding: var(--space-6) var(--space-4) var(--space-8);
+  }
+
+  .page-hero-banner {
+    min-height: 220px;
+    background-position: center right;
+  }
+
+  .page-hero-home,
+  .page-hero-books,
+  .page-hero-programs,
+  .page-hero-community {
+    background-image:
+      linear-gradient(90deg, rgba(255, 253, 247, 0.98) 0%, rgba(255, 253, 247, 0.92) 58%, rgba(255, 253, 247, 0.62) 100%),
+      var(--hero-banner-image);
   }
 }

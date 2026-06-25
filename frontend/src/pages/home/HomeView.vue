@@ -104,7 +104,7 @@ onMounted(loadHome)
 
 <template>
   <section class="page-shell">
-    <div class="page-hero">
+    <div class="page-hero page-hero-banner page-hero-home">
       <h1>오늘, 어떤 도서관으로 나들이 가볼까요?</h1>
       <p>책, 공부, 프로그램, 공간 정보를 한눈에 보고 오늘 가기 좋은 도서관을 찾아보세요.</p>
       <div class="d-flex flex-wrap gap-2 mt-4">
@@ -112,7 +112,6 @@ onMounted(loadHome)
         <RouterLink class="btn btn-outline-primary" to="/books">책 둘러보기</RouterLink>
         <RouterLink class="btn btn-outline-primary" to="/programs">문화 프로그램</RouterLink>
       </div>
-      <div class="page-hero-visual" aria-hidden="true">▥</div>
     </div>
 
     <LoadingState v-if="isLoading" title="추천 도서관을 불러오는 중입니다." />

@@ -131,11 +131,10 @@ onMounted(async () => {
 
 <template>
   <section class="page-shell">
-    <div class="page-hero">
+    <div class="page-hero page-hero-banner page-hero-community">
       <h1>커뮤니티</h1>
       <p>도서관 이용 후기와 관련 책, 프로그램 이야기를 함께 둘러보세요.</p>
       <RouterLink class="btn btn-primary mt-4" to="/reviews/new">후기 작성</RouterLink>
-      <div class="page-hero-visual" aria-hidden="true">☰</div>
     </div>
 
     <form class="content-panel p-4 mb-4 filter-panel" @submit.prevent="applyFilters">
