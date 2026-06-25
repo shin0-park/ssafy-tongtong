@@ -209,7 +209,12 @@ onMounted(loadHome)
           <RouterLink class="btn btn-outline-primary btn-sm" to="/libraries">더보기</RouterLink>
         </div>
         <div class="responsive-card-grid-three">
-          <LibraryCard v-for="library in todayItems" :key="library.id" :library="library" />
+          <LibraryCard
+            v-for="library in todayItems"
+            :key="library.id"
+            :library="library"
+            :show-recommendation-reason="false"
+          />
         </div>
       </section>
 
@@ -290,6 +295,7 @@ onMounted(loadHome)
                 v-for="library in selectedThemeGroup.items.slice(0, 4)"
                 :key="library.id"
                 :library="library"
+                :show-recommendation-reason="false"
               />
           </div>
         </section>
