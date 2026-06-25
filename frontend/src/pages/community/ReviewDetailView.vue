@@ -121,6 +121,13 @@ onMounted(loadReview)
               <span>작성 {{ formatDate(review.created_at) }}</span>
               <span v-if="review.updated_at && review.updated_at !== review.created_at">수정 {{ formatDate(review.updated_at) }}</span>
               <span>조회 {{ (review.view_count ?? 0).toLocaleString('ko-KR') }}</span>
+              <span
+                v-for="tag in tags"
+                :key="tag.code || tag.id || tag.name"
+                class="review-detail-meta-chip"
+              >
+                {{ tagLabel(tag) }}
+              </span>
             </div>
           </div>
           <LikeButton :review-id="review.id" :like-count="review.like_count ?? 0" />
@@ -130,16 +137,7 @@ onMounted(loadReview)
           <div class="review-detail-main">
             <p class="review-detail-content">{{ review.content || '후기 내용이 없습니다.' }}</p>
 
-            <section v-if="tags.length" class="review-detail-section">
-              <h3>경험 태그</h3>
-              <div class="chip-row">
-                <span v-for="tag in tags" :key="tag.code || tag.id || tag.name" class="book-chip">
-                  {{ tagLabel(tag) }}
-                </span>
-              </div>
-            </section>
-
-            <section v-if="books.length || programs.length" class="review-detail-section">
+            <section v-if="books.length || programs.length" class="review-detail-section review-detail-related-section">
               <h3>관련 책과 프로그램</h3>
               <div class="related-mini-list">
                 <RelatedBookMiniCard v-for="book in books" :key="book.isbn13 || book.id" :book="book" />
