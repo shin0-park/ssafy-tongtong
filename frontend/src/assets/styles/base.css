@@ -75,11 +75,17 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+
   min-width: 0;
+  overflow: visible;
   padding-block: 0;
 }
 
 .brand-icon {
+
+  position: relative;
+  z-index: 1;
+
   width: 32px;
   height: 32px;
   flex: 0 0 auto;
@@ -87,6 +93,9 @@ a {
 }
 
 .brand-wordmark {
+
+  width: auto;
+
   width: 148px;
   height: 30px;
   max-width: min(190px, 44vw);

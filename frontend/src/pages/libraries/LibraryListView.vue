@@ -58,12 +58,13 @@ const pagination = ref({ count: 0, next: null, previous: null })
 const isLoading = ref(false)
 const error = ref(null)
 const locationMessage = ref('')
+const sigunguMessage = ref('')
 const currentLocation = ref(readStoredLocation())
 const showLocationPanel = ref(false)
 const isLocationLoading = ref(false)
 const filters = reactive({
   q: '',
-  sigungu: '',
+  sigungu: [],
   library_type: '',
   purpose: '',
   lat: '',
@@ -85,7 +86,7 @@ const needsLocation = computed(() => filters.purpose === 'nearby' && (!filters.l
 const hasFilter = computed(() =>
   Boolean(
     filters.q ||
-      filters.sigungu ||
+      filters.sigungu.length ||
       filters.library_type ||
       filters.purpose ||
       filters.min_book_count ||
@@ -114,7 +115,8 @@ function readSingleQueryValue(name, allowedValues) {
 
 function syncFromRoute() {
   filters.q = readStringQuery(route, 'q')
-  filters.sigungu = readSingleQueryValue('sigungu', SIGUNGU_OPTIONS)
+  filters.sigungu = readMultiQuery('sigungu', SIGUNGU_OPTIONS).slice(0, 3)
+  sigunguMessage.value = ''
   filters.library_type = readSingleQueryValue(
     'library_type',
     LIBRARY_TYPE_OPTIONS.map((item) => item.value),
@@ -202,7 +204,7 @@ function applyFilters() {
     name: 'library-list',
     query: {
       q: filters.q || undefined,
-      sigungu: filters.sigungu || undefined,
+      sigungu: filters.sigungu.length ? filters.sigungu.join(',') : undefined,
       library_type: filters.library_type || undefined,
       purpose: purpose || undefined,
       lat: purpose ? filters.lat || undefined : undefined,
@@ -272,6 +274,19 @@ function togglePurpose(value) {
 
 function toggleSingleFilter(field, value) {
   filters[field] = filters[field] === value ? '' : value
+}
+
+function toggleSigungu(sigungu) {
+  sigunguMessage.value = ''
+  if (filters.sigungu.includes(sigungu)) {
+    filters.sigungu = filters.sigungu.filter((item) => item !== sigungu)
+    return
+  }
+  if (filters.sigungu.length >= 3) {
+    sigunguMessage.value = '지역은 최대 3개까지 선택할 수 있습니다.'
+    return
+  }
+  filters.sigungu = [...filters.sigungu, sigungu]
 }
 
 function toggleHolidayStatus(value) {
@@ -362,20 +377,24 @@ onMounted(() => {
       </div>
 
       <div class="filter-group">
-        <p class="filter-group-title">지역</p>
+        <p class="filter-group-title">
+          지역
+          <span class="filter-group-note">최대 3개</span>
+        </p>
         <div class="filter-chip-grid">
           <button
             v-for="sigungu in SIGUNGU_OPTIONS"
             :key="sigungu"
             class="filter-chip"
-            :class="{ active: filters.sigungu === sigungu }"
+            :class="{ active: filters.sigungu.includes(sigungu) }"
             type="button"
-            :aria-pressed="filters.sigungu === sigungu"
-            @click="toggleSingleFilter('sigungu', sigungu)"
+            :aria-pressed="filters.sigungu.includes(sigungu)"
+            @click="toggleSigungu(sigungu)"
           >
             <span>{{ sigungu }}</span>
           </button>
         </div>
+        <p v-if="sigunguMessage" class="field-error mb-0">{{ sigunguMessage }}</p>
       </div>
 
       <div class="filter-group">
