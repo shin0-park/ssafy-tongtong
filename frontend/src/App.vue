@@ -19,8 +19,8 @@ async function handleLogout() {
     <nav class="navbar navbar-expand-lg">
       <div class="container-fluid app-nav-container">
         <RouterLink class="navbar-brand app-brand" to="/">
-          <span class="brand-mark" aria-hidden="true">▰</span>
-          <span>도서관 나들이</span>
+          <img class="brand-icon" src="/brand/logo-icon.png" alt="" aria-hidden="true" />
+          <img class="brand-wordmark" src="/brand/logo-wordmark.png" alt="도서관 나들이" />
         </RouterLink>
 
         <button
