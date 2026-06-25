@@ -122,49 +122,31 @@ onMounted(loadProgram)
         </div>
       </section>
 
-      <div class="row g-4">
-        <div class="col-lg-7">
-          <section class="content-panel p-4 h-100">
-            <h2 class="section-title">운영/신청 정보</h2>
-            <dl class="row mb-0">
-              <dt class="col-sm-4">신청 기간</dt>
-              <dd class="col-sm-8">{{ formatPeriod(program.application_start_date, program.application_end_date) }}</dd>
-              <dt class="col-sm-4">운영 기간</dt>
-              <dd class="col-sm-8">{{ formatPeriod(program.operation_start_date, program.operation_end_date) }}</dd>
-              <dt class="col-sm-4">신청 상태</dt>
-              <dd class="col-sm-8">{{ applicationText }}</dd>
-              <dt class="col-sm-4">운영 상태</dt>
-              <dd class="col-sm-8">{{ operationText }}</dd>
-              <dt class="col-sm-4">신청 필요</dt>
-              <dd class="col-sm-8">
-                {{
-                  program.application_required === null || program.application_required === undefined
-                    ? '정보 없음'
-                    : program.application_required
-                      ? '필요'
-                      : '불필요'
-                }}
-              </dd>
-            </dl>
-          </section>
-        </div>
-
-        <div class="col-lg-5">
-          <section class="content-panel p-4 h-100">
-            <h2 class="section-title">원문 정보</h2>
-            <dl class="row mb-0">
-              <dt class="col-sm-4">게시판</dt>
-              <dd class="col-sm-8">{{ program.source_board || '정보 없음' }}</dd>
-              <dt class="col-sm-4">게시일</dt>
-              <dd class="col-sm-8">{{ formatDate(program.post_date) }}</dd>
-              <dt class="col-sm-4">수집일</dt>
-              <dd class="col-sm-8">{{ formatDate(program.collected_at) }}</dd>
-              <dt class="col-sm-4">외부 ID</dt>
-              <dd class="col-sm-8">{{ program.external_program_key || '정보 없음' }}</dd>
-            </dl>
-          </section>
-        </div>
-      </div>
+      <section class="content-panel p-4">
+        <h2 class="section-title">운영/신청 정보</h2>
+        <dl class="row mb-0">
+          <dt class="col-sm-3">신청 기간</dt>
+          <dd class="col-sm-9">{{ formatPeriod(program.application_start_date, program.application_end_date) }}</dd>
+          <dt class="col-sm-3">운영 기간</dt>
+          <dd class="col-sm-9">{{ formatPeriod(program.operation_start_date, program.operation_end_date) }}</dd>
+          <dt class="col-sm-3">신청 상태</dt>
+          <dd class="col-sm-9">{{ applicationText }}</dd>
+          <dt class="col-sm-3">운영 상태</dt>
+          <dd class="col-sm-9">{{ operationText }}</dd>
+          <dt class="col-sm-3">신청 필요</dt>
+          <dd class="col-sm-9">
+            {{
+              program.application_required === null || program.application_required === undefined
+                ? '정보 없음'
+                : program.application_required
+                  ? '필요'
+                  : '불필요'
+            }}
+          </dd>
+          <dt class="col-sm-3">게시일</dt>
+          <dd class="col-sm-9">{{ formatDate(program.post_date) }}</dd>
+        </dl>
+      </section>
     </template>
   </section>
 </template>

@@ -28,9 +28,9 @@ const locationText = computed(() =>
 )
 const typeText = computed(() => LIBRARY_TYPE_LABELS[props.library.library_type] || props.library.library_type || '도서관')
 const operationText = computed(() => {
-  if (props.library.open_now === true) return '지금 운영 중'
   if (props.library.open_today === true) return '오늘 운영'
   if (props.library.open_today === false) return '오늘 휴관'
+  if (props.library.open_now === true) return '오늘 운영'
   return '운영 확인 필요'
 })
 const statisticChips = computed(() => {

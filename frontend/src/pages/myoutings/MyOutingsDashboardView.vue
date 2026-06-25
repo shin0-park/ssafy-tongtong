@@ -44,13 +44,37 @@ const axisItems = computed(() =>
     }))
     .sort((a, b) => b.value - a.value),
 )
-const countCards = computed(() => [
-  { label: '저장한 도서관', value: profileSummary.value.saved_library_count, to: '/my-outings/libraries' },
-  { label: '저장한 책', value: profileSummary.value.saved_book_count, to: '/my-outings/books' },
-  { label: '저장한 프로그램', value: profileSummary.value.saved_program_count, to: '/my-outings/programs' },
-  { label: '내가 쓴 후기', value: profileSummary.value.review_count, to: '/my-outings/reviews' },
-  { label: '좋아요한 후기', value: profileSummary.value.liked_review_count, to: '/my-outings/liked-reviews' },
-  { label: '분석 신호', value: signalCount.value, to: null },
+const outingListCards = computed(() => [
+  {
+    label: '저장한 도서관',
+    description: '찜한 도서관 목록',
+    value: profileSummary.value.saved_library_count,
+    to: '/my-outings/libraries',
+  },
+  {
+    label: '저장한 책',
+    description: '관심 도서 목록',
+    value: profileSummary.value.saved_book_count,
+    to: '/my-outings/books',
+  },
+  {
+    label: '저장한 문화 프로그램',
+    description: '관심 프로그램 목록',
+    value: profileSummary.value.saved_program_count,
+    to: '/my-outings/programs',
+  },
+  {
+    label: '좋아요한 후기',
+    description: '공감한 후기 목록',
+    value: profileSummary.value.liked_review_count,
+    to: '/my-outings/liked-reviews',
+  },
+  {
+    label: '내가 쓴 후기',
+    description: '작성한 후기 목록',
+    value: profileSummary.value.review_count,
+    to: '/my-outings/reviews',
+  },
 ])
 const interestGroups = computed(() => [
   { title: '내가 많이 접한 태그', items: preferenceSummary.value.top_review_tags ?? [] },
@@ -108,40 +132,18 @@ onMounted(loadDashboard)
         </article>
 
         <article class="content-panel p-4">
-          <p class="eyebrow">최근 활동 기준</p>
-          <h2 class="section-title">{{ formatNumber(signalCount, '0') }}개 활동 신호</h2>
-          <p class="meta-text mb-0">
-            저장 {{ formatNumber(activitySummary.total_saved_count, '0') }}개 · 후기
-            {{ formatNumber(activitySummary.total_review_count, '0') }}개 · 좋아요
-            {{ formatNumber(activitySummary.total_like_count, '0') }}개
-          </p>
-        </article>
-      </section>
-
-      <div class="dashboard-grid mb-4">
-        <RouterLink
-          v-for="item in countCards"
-          :key="item.label"
-          class="summary-card metric-card text-decoration-none"
-          :to="item.to || '/my-outings/dashboard'"
-        >
-          <p class="meta-text mb-1">{{ item.label }}</p>
-          <h2>{{ formatNumber(item.value, '0') }}</h2>
-        </RouterLink>
-      </div>
-
-      <section class="content-panel p-4 mb-4">
-        <h2 class="section-title">나의 나들이 성향</h2>
-        <div v-if="axisItems.length" class="outing-score-list">
-          <div v-for="item in axisItems" :key="item.code" class="outing-score-row">
-            <span>{{ item.label }}</span>
-            <div class="outing-score-track" aria-hidden="true">
-              <span :style="{ width: `${Math.min(item.value, 100)}%` }"></span>
+          <h2 class="section-title">나의 나들이 성향</h2>
+          <div v-if="axisItems.length" class="outing-score-list">
+            <div v-for="item in axisItems" :key="item.code" class="outing-score-row">
+              <span>{{ item.label }}</span>
+              <div class="outing-score-track" aria-hidden="true">
+                <span :style="{ width: `${Math.min(item.value, 100)}%` }"></span>
+              </div>
+              <strong>{{ item.value.toFixed(1) }}%</strong>
             </div>
-            <strong>{{ item.value.toFixed(1) }}%</strong>
           </div>
-        </div>
-        <p v-else class="meta-text mb-0">성향 분석을 위한 활동이 아직 부족합니다.</p>
+          <p v-else class="meta-text mb-0">성향 분석을 위한 활동이 아직 부족합니다.</p>
+        </article>
       </section>
 
       <section class="content-panel p-4 mb-4">
@@ -163,25 +165,17 @@ onMounted(loadDashboard)
       <section class="content-panel p-4">
         <h2 class="section-title">저장·후기 목록</h2>
         <div class="theme-card-grid">
-          <RouterLink class="theme-card-button text-decoration-none" to="/my-outings/libraries">
-            <strong>저장한 도서관</strong>
-            <span class="meta-text">찜한 도서관 목록</span>
-          </RouterLink>
-          <RouterLink class="theme-card-button text-decoration-none" to="/my-outings/books">
-            <strong>저장한 책</strong>
-            <span class="meta-text">관심 도서 목록</span>
-          </RouterLink>
-          <RouterLink class="theme-card-button text-decoration-none" to="/my-outings/programs">
-            <strong>저장한 문화 프로그램</strong>
-            <span class="meta-text">관심 프로그램 목록</span>
-          </RouterLink>
-          <RouterLink class="theme-card-button text-decoration-none" to="/my-outings/liked-reviews">
-            <strong>좋아요한 후기</strong>
-            <span class="meta-text">공감한 후기 목록</span>
-          </RouterLink>
-          <RouterLink class="theme-card-button text-decoration-none" to="/my-outings/reviews">
-            <strong>내가 쓴 후기</strong>
-            <span class="meta-text">작성한 후기 목록</span>
+          <RouterLink
+            v-for="item in outingListCards"
+            :key="item.label"
+            class="theme-card-button outing-list-card text-decoration-none"
+            :to="item.to"
+          >
+            <span class="outing-list-card-title">
+              <strong>{{ item.label }}</strong>
+              <strong>{{ formatNumber(item.value, '0') }}</strong>
+            </span>
+            <span class="meta-text">{{ item.description }}</span>
           </RouterLink>
         </div>
       </section>
