@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import F, Prefetch, Q
+from django.db.models import Count, F, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.exceptions import PermissionDenied
@@ -17,35 +17,44 @@ from .models import (
     ReviewProgramReference,
     ReviewTag,
     UserReview,
+    UserReviewComment,
     UserReviewImage,
     UserReviewLike,
 )
-from .serializers import UserReviewSerializer, UserReviewWriteSerializer
+from .serializers import UserReviewCommentSerializer, UserReviewSerializer, UserReviewWriteSerializer
 
 
 def review_response_queryset():
-    return UserReview.objects.select_related("user", "library").prefetch_related(
-        Prefetch(
-            "tag_links",
-            queryset=ReviewTag.objects.select_related("tag").order_by("created_at", "id"),
-            to_attr="prefetched_tag_links",
-        ),
-        Prefetch(
-            "book_references",
-            queryset=ReviewBookReference.objects.select_related("book").order_by("display_order", "id"),
-            to_attr="prefetched_book_references",
-        ),
-        Prefetch(
-            "program_references",
-            queryset=ReviewProgramReference.objects.select_related("program__library").order_by("display_order", "id"),
-            to_attr="prefetched_program_references",
-        ),
-        Prefetch(
-            "images",
-            queryset=UserReviewImage.objects.order_by("display_order", "id"),
-            to_attr="prefetched_images",
-        ),
+    return (
+        UserReview.objects.select_related("user", "library")
+        .annotate(comment_count=Count("comments", distinct=True))
+        .prefetch_related(
+            Prefetch(
+                "tag_links",
+                queryset=ReviewTag.objects.select_related("tag").order_by("created_at", "id"),
+                to_attr="prefetched_tag_links",
+            ),
+            Prefetch(
+                "book_references",
+                queryset=ReviewBookReference.objects.select_related("book").order_by("display_order", "id"),
+                to_attr="prefetched_book_references",
+            ),
+            Prefetch(
+                "program_references",
+                queryset=ReviewProgramReference.objects.select_related("program__library").order_by("display_order", "id"),
+                to_attr="prefetched_program_references",
+            ),
+            Prefetch(
+                "images",
+                queryset=UserReviewImage.objects.order_by("display_order", "id"),
+                to_attr="prefetched_images",
+            ),
+        )
     )
+
+
+def visible_review_queryset():
+    return UserReview.objects.filter(moderation_status=ReviewModerationStatus.VISIBLE)
 
 
 class UserReviewQueryMixin:
@@ -199,3 +208,71 @@ class ReviewLikeAPIView(APIView):
                 "like_count": review.like_count,
             }
         )
+
+
+class ReviewCommentListAPIView(generics.ListCreateAPIView):
+    serializer_class = UserReviewCommentSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+    pagination_class = StandardPageNumberPagination
+
+    def get_review(self):
+        return get_object_or_404(visible_review_queryset(), pk=self.kwargs["review_id"])
+
+    def get_queryset(self):
+        return (
+            UserReviewComment.objects.filter(
+                review_id=self.kwargs["review_id"],
+                review__moderation_status=ReviewModerationStatus.VISIBLE,
+            )
+            .select_related("user", "review")
+            .order_by("created_at", "id")
+        )
+
+    def list(self, request, *args, **kwargs):
+        self.get_review()
+        return super().list(request, *args, **kwargs)
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        review = self.get_review()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        comment = serializer.save(user=request.user, review=review)
+        return Response(self.get_serializer(comment).data, status=201)
+
+
+class ReviewCommentDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = UserReviewCommentSerializer
+    lookup_url_kwarg = "comment_id"
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+    http_method_names = ["get", "patch", "delete", "head", "options"]
+
+    def get_queryset(self):
+        return (
+            UserReviewComment.objects.filter(
+                review_id=self.kwargs["review_id"],
+                review__moderation_status=ReviewModerationStatus.VISIBLE,
+            )
+            .select_related("user", "review")
+            .order_by("created_at", "id")
+        )
+
+    def ensure_owner(self, comment):
+        if comment.user_id != self.request.user.id:
+            raise PermissionDenied("You do not have permission to modify this comment.")
+
+    @transaction.atomic
+    def partial_update(self, request, *args, **kwargs):
+        comment = self.get_object()
+        self.ensure_owner(comment)
+        serializer = self.get_serializer(comment, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        comment = serializer.save()
+        return Response(self.get_serializer(comment).data)
+
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        comment = self.get_object()
+        self.ensure_owner(comment)
+        comment.delete()
+        return Response(status=204)

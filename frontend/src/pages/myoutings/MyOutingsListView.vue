@@ -13,6 +13,7 @@ import PaginationBar from '@/components/navigation/PaginationBar.vue'
 import ResultCount from '@/components/navigation/ResultCount.vue'
 import {
   fetchLikedReviews,
+  fetchMyComments,
   fetchMyReviews,
   fetchSavedBooks,
   fetchSavedLibraries,
@@ -40,6 +41,7 @@ const errorMessage = ref('')
 const pageQuery = computed(() => readPageQuery(route))
 const page = computed(() => pageQuery.value.page)
 const pageSize = computed(() => pageQuery.value.page_size || 12)
+const reviewActivityTab = computed(() => (route.query.tab === 'comments' ? 'comments' : 'reviews'))
 
 const meta = computed(() => {
   const map = {
@@ -65,11 +67,11 @@ const meta = computed(() => {
       description: '관심 있는 프로그램을 저장하면 이곳에서 다시 볼 수 있어요.',
     },
     reviews: {
-      title: '내가 쓴 후기',
+      title: '내가 쓴 후기/댓글',
       label: '개',
-      fetcher: fetchMyReviews,
-      empty: '작성한 후기가 없어요.',
-      description: '도서관 이용 경험을 남기면 이곳에 모입니다.',
+      fetcher: reviewActivityTab.value === 'comments' ? fetchMyComments : fetchMyReviews,
+      empty: reviewActivityTab.value === 'comments' ? '작성한 댓글이 없어요.' : '작성한 후기가 없어요.',
+      description: '내가 남긴 후기와 댓글을 한곳에서 확인합니다.',
     },
     'liked-reviews': {
       title: '좋아요한 후기',
@@ -85,6 +87,10 @@ const meta = computed(() => {
 
 function targetItem(item) {
   return item.library ?? item.book ?? item.program ?? item.review ?? item
+}
+
+function isCommentItem(item) {
+  return props.kind === 'reviews' && reviewActivityTab.value === 'comments' && Boolean(item.review)
 }
 
 function itemKey(item, index) {
@@ -153,7 +159,24 @@ onMounted(loadItems)
       <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/books">책</RouterLink>
       <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/programs">프로그램</RouterLink>
       <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/liked-reviews">좋아요 후기</RouterLink>
-      <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/reviews">내 후기</RouterLink>
+      <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/reviews">내 후기/댓글</RouterLink>
+    </div>
+
+    <div v-if="kind === 'reviews'" class="myoutings-nav mb-4" aria-label="내가 쓴 후기와 댓글 보기">
+      <RouterLink
+        class="btn btn-outline-primary btn-sm"
+        :class="{ active: reviewActivityTab === 'reviews' }"
+        :to="{ path: '/my-outings/reviews', query: { page: 1, page_size: pageSize !== 12 ? pageSize : undefined } }"
+      >
+        후기
+      </RouterLink>
+      <RouterLink
+        class="btn btn-outline-primary btn-sm"
+        :class="{ active: reviewActivityTab === 'comments' }"
+        :to="{ path: '/my-outings/reviews', query: { tab: 'comments', page: 1, page_size: pageSize !== 12 ? pageSize : undefined } }"
+      >
+        댓글
+      </RouterLink>
     </div>
 
     <LoadingState v-if="isLoading" :title="`${meta.title}을 불러오는 중입니다.`" />
@@ -182,6 +205,10 @@ onMounted(loadItems)
       <div v-else class="stack-list">
         <div v-for="(item, index) in items" :key="itemKey(item, index)" class="saved-item-shell">
           <p v-if="itemMetaText(item)" class="meta-text mb-2">{{ itemMetaText(item) }}</p>
+          <div v-if="isCommentItem(item)" class="content-panel-soft p-3 mb-3">
+            <p class="mb-2">{{ item.content }}</p>
+            <p class="meta-text mb-0">댓글 작성 {{ formatDate(item.created_at) }}</p>
+          </div>
           <ReviewCard :review="targetItem(item)" />
         </div>
       </div>

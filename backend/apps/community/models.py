@@ -85,6 +85,32 @@ class UserReviewLike(models.Model):
         return f"{self.user_id}:{self.review_id}"
 
 
+class UserReviewComment(TimeStampedModel):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="review_comments",
+    )
+    review = models.ForeignKey(
+        "community.UserReview",
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+    content = models.CharField(max_length=200)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=~Q(content=""), name="review_comment_content_not_empty"),
+        ]
+        indexes = [
+            models.Index(fields=["review", "created_at"], name="idx_review_comment_review"),
+            models.Index(fields=["user", "-created_at"], name="idx_review_comment_user"),
+        ]
+
+    def __str__(self):
+        return f"{self.user_id}:{self.review_id}:{self.created_at:%Y-%m-%d}"
+
+
 class UserReviewImage(models.Model):
     review = models.ForeignKey(
         "community.UserReview",

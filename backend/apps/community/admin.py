@@ -5,6 +5,7 @@ from .models import (
     ReviewProgramReference,
     ReviewTag,
     UserReview,
+    UserReviewComment,
     UserReviewImage,
     UserReviewLike,
 )
@@ -25,6 +26,15 @@ class UserReviewLikeAdmin(admin.ModelAdmin):
     list_filter = ("created_at",)
     search_fields = ("user__email", "user__nickname", "review__content", "review__library__name")
     readonly_fields = ("created_at",)
+    ordering = ("-created_at",)
+
+
+@admin.register(UserReviewComment)
+class UserReviewCommentAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "review", "created_at", "updated_at")
+    list_filter = ("created_at", "updated_at")
+    search_fields = ("content", "user__email", "user__nickname", "review__content", "review__library__name")
+    readonly_fields = ("created_at", "updated_at")
     ordering = ("-created_at",)
 
 

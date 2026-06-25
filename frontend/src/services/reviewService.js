@@ -38,3 +38,29 @@ export async function unlikeReview(reviewId) {
   const { data } = await apiClient.delete(`/reviews/${reviewId}/like/`)
   return data
 }
+
+export async function fetchReviewComments(reviewId, params = {}) {
+  const { data } = await apiClient.get(`/reviews/${reviewId}/comments/`, {
+    params: cleanParams(params, ['page', 'page_size']),
+  })
+  return data
+}
+
+export async function fetchReviewCommentDetail(reviewId, commentId) {
+  const { data } = await apiClient.get(`/reviews/${reviewId}/comments/${commentId}/`)
+  return data
+}
+
+export async function createReviewComment(reviewId, payload) {
+  const { data } = await apiClient.post(`/reviews/${reviewId}/comments/`, payload)
+  return data
+}
+
+export async function updateReviewComment(reviewId, commentId, payload) {
+  const { data } = await apiClient.patch(`/reviews/${reviewId}/comments/${commentId}/`, payload)
+  return data
+}
+
+export async function deleteReviewComment(reviewId, commentId) {
+  await apiClient.delete(`/reviews/${reviewId}/comments/${commentId}/`)
+}
