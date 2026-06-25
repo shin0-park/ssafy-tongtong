@@ -214,16 +214,6 @@ onMounted(loadPageData)
   <section class="page-shell">
     <BackLink to="/community" label="커뮤니티로 돌아가기" />
 
-    <div class="page-header">
-      <p class="eyebrow">커뮤니티</p>
-      <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
-        <div>
-          <h1>후기 상세</h1>
-          <p class="page-description mb-0">도서관 경험과 연결된 책, 프로그램 정보를 확인합니다.</p>
-        </div>
-      </div>
-    </div>
-
     <LoadingState v-if="isLoading" title="후기를 불러오는 중입니다." />
     <EmptyState
       v-else-if="notFound"
@@ -235,17 +225,15 @@ onMounted(loadPageData)
       <article class="review-detail-shell">
         <header class="review-detail-header">
           <div>
+            <p class="eyebrow">커뮤니티 후기</p>
             <p class="review-detail-library-line mb-2">
               <RouterLink v-if="library?.id" class="text-decoration-none" :to="`/libraries/${library.id}`">
                 {{ library.name }}
               </RouterLink>
               <span v-else>{{ library?.name || '도서관 정보 없음' }}</span>
               <span class="meta-text">{{ library?.sigungu || library?.road_address || '위치 정보 없음' }}</span>
-              <RouterLink v-if="library?.id" class="btn btn-outline-primary btn-sm" :to="`/libraries/${library.id}`">
-                상세 보기
-              </RouterLink>
             </p>
-            <h2>{{ authorName }}님의 후기</h2>
+            <h1 class="review-detail-title">{{ authorName }}님의 도서관 기록</h1>
             <div class="review-detail-meta">
               <span>작성 {{ formatDate(review.created_at) }}</span>
               <span v-if="review.updated_at && review.updated_at !== review.created_at">수정 {{ formatDate(review.updated_at) }}</span>
@@ -266,7 +254,9 @@ onMounted(loadPageData)
         <div class="review-detail-layout">
           <div class="review-detail-main">
             <p class="review-detail-content">{{ review.content || '후기 내용이 없습니다.' }}</p>
+          </div>
 
+          <aside class="review-detail-aside">
             <section v-if="books.length || programs.length" class="review-detail-section review-detail-related-section">
               <h3>관련 책과 프로그램</h3>
               <div class="related-mini-list">
@@ -274,9 +264,7 @@ onMounted(loadPageData)
                 <RelatedProgramMiniCard v-for="program in programs" :key="program.id" :program="program" />
               </div>
             </section>
-          </div>
 
-          <aside class="review-detail-aside">
             <section v-if="images.length" class="review-detail-section">
               <h3>사진</h3>
               <div class="review-detail-image-grid">

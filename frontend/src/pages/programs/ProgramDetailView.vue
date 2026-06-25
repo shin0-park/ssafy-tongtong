@@ -118,9 +118,6 @@ onMounted(loadProgram)
           >
             원문 게시글 보기
           </a>
-          <RouterLink v-if="libraryTo" class="btn btn-outline-secondary btn-sm" :to="libraryTo">
-            도서관 상세 보기
-          </RouterLink>
           <SaveButton resource-type="program" :resource-id="program.id" />
         </div>
       </section>

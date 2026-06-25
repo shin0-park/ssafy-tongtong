@@ -195,7 +195,7 @@ onMounted(loadHome)
       description="추천 데이터가 준비되면 이곳에 표시됩니다."
     />
 
-    <div v-else class="d-grid gap-5">
+    <div v-else class="home-section-stack">
       <section v-if="todayItems.length">
         <div class="section-header-row">
           <div>
@@ -208,7 +208,7 @@ onMounted(loadHome)
           </div>
           <RouterLink class="btn btn-outline-primary btn-sm" to="/libraries">더보기</RouterLink>
         </div>
-        <div class="responsive-card-grid-three">
+        <div class="home-feature-grid">
           <LibraryCard
             v-for="library in todayItems"
             :key="library.id"
@@ -235,7 +235,7 @@ onMounted(loadHome)
           </div>
           <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/dashboard">나의 나들이</RouterLink>
         </div>
-        <div class="responsive-card-grid-three">
+        <div class="home-feature-grid home-feature-grid-secondary">
           <LibraryCard
             v-for="library in personalItems.slice(0, 3)"
             :key="library.id"

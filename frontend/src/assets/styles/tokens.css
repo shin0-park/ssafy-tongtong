@@ -43,7 +43,7 @@
   --color-text-muted: var(--color-gray-600);
   --color-text-inverse: #ffffff;
 
-  --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-family-base: "S-Core Dream", "Noto Sans KR", "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-size-13: 0.8125rem;
   --font-size-14: 0.875rem;
   --font-size-15: 0.9375rem;
@@ -54,9 +54,9 @@
   --line-height-title: 1.35;
   --line-height-body: 1.6;
   --line-height-card: 1.5;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
+  --font-weight-medium: 300;
+  --font-weight-semibold: 400;
+  --font-weight-bold: 400;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -90,4 +90,36 @@
   --lo-border: var(--color-border-subtle);
   --lo-surface: var(--color-bg-card);
   --lo-accent: var(--color-primary-700);
+}
+
+@font-face {
+  font-family: "S-Core Dream";
+  src: url("@/assets/fonts/SCDream1.otf") format("opentype");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "S-Core Dream";
+  src: url("@/assets/fonts/SCDream2.otf") format("opentype");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "S-Core Dream";
+  src: url("@/assets/fonts/SCDream3.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "S-Core Dream";
+  src: url("@/assets/fonts/SCDream4.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
