@@ -168,6 +168,49 @@
   font-weight: var(--font-weight-semibold);
 }
 
+.book-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.book-search-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.book-result-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.book-sort-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.book-sort-select {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+
+.book-sort-select .form-select {
+  width: auto;
+  min-width: 132px;
+}
+
 .review-form-shell {
   width: min(1180px, 100%);
 }
@@ -1256,6 +1299,19 @@ button.filter-chip:focus-visible {
 
   .review-detail-image-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .book-search-row {
+    grid-template-columns: 1fr;
+  }
+
+  .book-search-actions,
+  .book-sort-controls {
+    justify-content: flex-start;
+  }
+
+  .book-result-toolbar {
+    align-items: flex-start;
   }
 
   .book-detail-layout {

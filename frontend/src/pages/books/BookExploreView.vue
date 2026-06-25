@@ -20,6 +20,16 @@ const SEARCH_TYPES = [
   { value: 'isbn', label: 'ISBN' },
 ]
 const SEARCH_TYPE_VALUES = new Set(SEARCH_TYPES.map((type) => type.value))
+const SORT_OPTIONS = [
+  { value: 'title', label: '도서명' },
+  { value: 'author', label: '저자' },
+  { value: 'pub', label: '출판사' },
+  { value: 'pubYear', label: '출판연도' },
+]
+const ORDER_OPTIONS = [
+  { value: 'asc', label: '오름차순' },
+  { value: 'desc', label: '내림차순' },
+]
 const DEFAULT_PAGE_SIZE = 12
 
 const books = ref([])
@@ -160,6 +170,36 @@ function resetSearch() {
   router.push({ name: 'book-list' })
 }
 
+function applySort() {
+  if (!hasSearchQuery.value) return
+
+  router.push({
+    name: 'book-list',
+    query: {
+      ...route.query,
+      sort: filters.sort || undefined,
+      order: filters.order || undefined,
+      page: 1,
+    },
+  })
+}
+
+function resetSort() {
+  if (!hasSearchQuery.value) return
+
+  filters.sort = ''
+  filters.order = ''
+  router.push({
+    name: 'book-list',
+    query: {
+      ...route.query,
+      sort: undefined,
+      order: undefined,
+      page: 1,
+    },
+  })
+}
+
 function scrollPopularBooks(direction) {
   if (!popularRail.value) return
 
@@ -255,7 +295,7 @@ onMounted(() => {
           <span>{{ type.label }}</span>
         </label>
       </div>
-      <div class="filter-grid">
+      <div class="book-search-row">
         <label class="form-field">
           <span>검색어</span>
           <input
@@ -265,30 +305,10 @@ onMounted(() => {
             placeholder="도서명, 저자, ISBN을 입력해주세요"
           />
         </label>
-        <label class="form-field">
-          <span>정렬 기준</span>
-          <select v-model="filters.sort" class="form-select">
-            <option value="">기본</option>
-            <option value="loan">대출</option>
-            <option value="title">도서명</option>
-            <option value="author">저자</option>
-            <option value="pub">출판사</option>
-            <option value="pubYear">출판연도</option>
-            <option value="isbn">ISBN</option>
-          </select>
-        </label>
-        <label class="form-field">
-          <span>정렬 방향</span>
-          <select v-model="filters.order" class="form-select">
-            <option value="">기본</option>
-            <option value="asc">오름차순</option>
-            <option value="desc">내림차순</option>
-          </select>
-        </label>
-      </div>
-      <div class="d-flex justify-content-end gap-2 mt-3">
-        <button class="btn btn-outline-secondary" type="button" @click="resetSearch">초기화</button>
-        <button class="btn btn-primary" type="submit">검색</button>
+        <div class="book-search-actions">
+          <button class="btn btn-outline-secondary" type="button" @click="resetSearch">초기화</button>
+          <button class="btn btn-primary" type="submit">검색</button>
+        </div>
       </div>
     </form>
 
@@ -311,7 +331,30 @@ onMounted(() => {
     />
 
     <template v-else>
-      <ResultCount class="mb-3" :count="responseMeta.num_found" label="권" />
+      <div class="book-result-toolbar mb-3">
+        <ResultCount :count="responseMeta.num_found" label="권" />
+        <div class="book-sort-controls" aria-label="검색 결과 정렬">
+          <label class="book-sort-select">
+            <span>정렬 기준</span>
+            <select v-model="filters.sort" class="form-select form-select-sm" @change="applySort">
+              <option value="" disabled>선택</option>
+              <option v-for="option in SORT_OPTIONS" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+          <label class="book-sort-select">
+            <span>정렬 방향</span>
+            <select v-model="filters.order" class="form-select form-select-sm" @change="applySort">
+              <option value="" disabled>선택</option>
+              <option v-for="option in ORDER_OPTIONS" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+          <button class="btn btn-outline-secondary btn-sm" type="button" @click="resetSort">정렬 초기화</button>
+        </div>
+      </div>
       <div class="book-result-grid">
         <BookCard v-for="book in books" :key="book.isbn13" :book="book" />
       </div>
