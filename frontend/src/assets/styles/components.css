@@ -876,7 +876,21 @@
 }
 
 .saved-item-shell {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
   min-width: 0;
+}
+
+.saved-item-shell > .meta-text {
+  margin: 0;
+}
+
+.saved-item-shell > .library-card,
+.saved-item-shell > .book-card,
+.saved-item-shell > .program-card,
+.saved-item-shell > .review-card {
+  height: auto;
 }
 
 .responsive-image {

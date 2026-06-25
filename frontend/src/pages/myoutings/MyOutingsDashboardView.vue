@@ -77,11 +77,11 @@ const outingListCards = computed(() => [
   },
 ])
 const interestGroups = computed(() => [
-  { title: '내가 많이 접한 태그', items: preferenceSummary.value.top_review_tags ?? [] },
-  { title: '도서 주제', items: preferenceSummary.value.top_book_subjects ?? [] },
-  { title: '프로그램 분야', items: preferenceSummary.value.top_program_categories ?? [] },
-  { title: '자주 찾는 지역', items: preferenceSummary.value.top_regions ?? [] },
-  { title: '선호 시설', items: preferenceSummary.value.top_library_facilities ?? [] },
+  { title: '내가 많이 접한 태그', items: mergeInterestItems(preferenceSummary.value.top_review_tags ?? []) },
+  { title: '도서 주제', items: mergeInterestItems(preferenceSummary.value.top_book_subjects ?? []) },
+  { title: '프로그램 분야', items: mergeInterestItems(preferenceSummary.value.top_program_categories ?? []) },
+  { title: '자주 찾는 지역', items: mergeInterestItems(preferenceSummary.value.top_regions ?? []) },
+  { title: '선호 시설', items: mergeInterestItems(preferenceSummary.value.top_library_facilities ?? []) },
 ])
 
 async function loadDashboard() {
@@ -103,6 +103,37 @@ function itemLabel(item) {
   if (item.sigungu) return item.sigungu
   if (item.code && FACILITY_LABELS[item.code]) return FACILITY_LABELS[item.code]
   return item.label || item.name || item.subject || item.code || '정보 없음'
+}
+
+function itemCount(item) {
+  if (!item || typeof item === 'string') return 0
+  const count = Number(item.count)
+  if (Number.isFinite(count)) return count
+  const score = Number(item.score)
+  return Number.isFinite(score) ? score : 0
+}
+
+function mergeInterestItems(items) {
+  const merged = new Map()
+
+  items.forEach((item) => {
+    const label = itemLabel(item)
+    const count = itemCount(item)
+    const current = merged.get(label)
+
+    if (current) {
+      current.count += count
+      return
+    }
+
+    merged.set(label, {
+      ...item,
+      label,
+      count,
+    })
+  })
+
+  return Array.from(merged.values()).sort((a, b) => itemCount(b) - itemCount(a))
 }
 
 onMounted(loadDashboard)
