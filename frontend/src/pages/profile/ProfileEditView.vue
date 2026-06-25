@@ -16,6 +16,8 @@ import {
 const router = useRouter()
 const authStore = useAuthStore()
 
+const DEFAULT_PROFILE_IMAGE_URL = '/static/media_assets/placeholders/default_profile.png'
+
 const form = reactive({
   nickname: '',
   bio: '',
@@ -29,6 +31,11 @@ const isSubmitting = ref(false)
 const error = ref(null)
 
 const fieldErrors = computed(() => error.value?.fields ?? {})
+const previewImageSrc = computed(() => {
+  if (selectedImagePreview.value) return selectedImagePreview.value
+  if (form.remove_profile_image) return DEFAULT_PROFILE_IMAGE_URL
+  return authStore.user?.profile_image_url || DEFAULT_PROFILE_IMAGE_URL
+})
 
 function firstFieldError(fieldName) {
   const fieldError = fieldErrors.value[fieldName]
@@ -190,11 +197,10 @@ onBeforeUnmount(revokeSelectedImagePreview)
         </div>
 
         <ResponsiveImage
-          v-if="selectedImagePreview || authStore.user?.profile_image_url"
           class="profile-avatar profile-avatar-preview"
-          :src="selectedImagePreview || authStore.user?.profile_image_url"
+          :src="previewImageSrc"
           :alt="form.profile_image_alt || '프로필 이미지 미리보기'"
-          fallback-label="이미지 없음"
+          fallback-label="기본 프로필 이미지"
         />
 
         <label class="form-check">
