@@ -249,7 +249,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="page-shell page-shell-narrow">
+  <section class="page-shell review-form-shell">
     <div class="page-header">
       <p class="eyebrow">커뮤니티</p>
       <h1 class="page-title">{{ isEdit ? '후기 수정' : '후기 작성' }}</h1>
@@ -265,108 +265,149 @@ onMounted(async () => {
       <div v-if="validationMessage" class="alert alert-warning" role="alert">{{ validationMessage }}</div>
       <div v-if="errorMessage" class="alert alert-danger" role="alert">{{ errorMessage }}</div>
 
-      <section class="content-panel-soft mb-3">
-        <label class="form-field mb-2">
-          <span>도서관 선택</span>
-          <div class="d-flex gap-2">
-            <input
-              v-model.trim="librarySearchQuery"
-              class="form-control"
-              type="search"
-              placeholder="도서관명 검색"
-              @keyup.enter="searchLibraries"
-            />
-            <button class="btn btn-outline-primary" type="button" @click="searchLibraries">검색</button>
-          </div>
-        </label>
-        <p v-if="form.library_name" class="meta-text mb-2">선택됨: {{ form.library_name }}</p>
-        <p v-if="firstFieldError('library_id')" class="field-error">{{ firstFieldError('library_id') }}</p>
-        <div v-if="librarySearchResults.length" class="selection-list mt-3">
-          <button
-            v-for="library in librarySearchResults"
-            :key="library.id"
-            class="selection-row text-start"
-            type="button"
-            @click="selectLibrary(library)"
-          >
-            <span></span>
-            <span>
-              <strong>{{ library.name }}</strong>
-              <span class="meta-text d-block">{{ library.sigungu }} · {{ library.road_address }}</span>
-            </span>
-          </button>
+      <div class="review-form-layout">
+        <div class="review-form-mobile-library">
+          <section class="content-panel-soft review-form-side-panel">
+            <label class="form-field mb-2">
+              <span>도서관 선택</span>
+              <div class="d-flex gap-2">
+                <input
+                  v-model.trim="librarySearchQuery"
+                  class="form-control"
+                  type="search"
+                  placeholder="도서관명 검색"
+                  @keyup.enter="searchLibraries"
+                />
+                <button class="btn btn-outline-primary" type="button" @click="searchLibraries">검색</button>
+              </div>
+            </label>
+            <p v-if="form.library_name" class="meta-text mb-2">선택됨: {{ form.library_name }}</p>
+            <p v-if="firstFieldError('library_id')" class="field-error">{{ firstFieldError('library_id') }}</p>
+            <div v-if="librarySearchResults.length" class="selection-list mt-3">
+              <button
+                v-for="library in librarySearchResults"
+                :key="library.id"
+                class="selection-row text-start"
+                type="button"
+                @click="selectLibrary(library)"
+              >
+                <span></span>
+                <span>
+                  <strong>{{ library.name }}</strong>
+                  <span class="meta-text d-block">{{ library.sigungu }} · {{ library.road_address }}</span>
+                </span>
+              </button>
+            </div>
+          </section>
         </div>
-      </section>
 
-      <label class="form-field mb-3">
-        <span>후기 본문</span>
-        <textarea v-model="form.content" class="form-control" rows="5" maxlength="200" required />
-        <span class="meta-text">{{ form.content.trim().length }}/200</span>
-        <p v-if="firstFieldError('content')" class="field-error">{{ firstFieldError('content') }}</p>
-      </label>
-
-      <section class="mb-3">
-        <p class="filter-group-title mb-2">후기 태그 {{ selectedTagCount }}/5</p>
-        <div class="filter-chip-grid">
-          <label v-for="tag in TAG_OPTIONS" :key="tag.code" class="filter-chip">
-            <input v-model="form.tag_codes" type="checkbox" :value="tag.code" :disabled="!form.tag_codes.includes(tag.code) && selectedTagCount >= 5" />
-            <span>{{ tag.label }}</span>
+        <div class="review-form-main">
+          <label class="form-field review-form-body">
+            <span>후기 본문</span>
+            <textarea v-model="form.content" class="form-control" rows="8" maxlength="200" required />
+            <span class="meta-text">{{ form.content.trim().length }}/200</span>
+            <p v-if="firstFieldError('content')" class="field-error">{{ firstFieldError('content') }}</p>
           </label>
-        </div>
-        <p v-if="firstFieldError('tag_codes')" class="field-error">{{ firstFieldError('tag_codes') }}</p>
-      </section>
 
-      <section class="content-panel-soft mb-3">
-        <div class="d-flex gap-2">
-          <input
-            v-model.trim="bookSearchQuery"
-            class="form-control"
-            type="search"
-            placeholder="관련 책 검색"
-            @keydown.enter.prevent="searchRelatedBooks"
-          />
-          <button class="btn btn-outline-primary" type="button" :disabled="isBookSearching" @click="searchRelatedBooks">
-            {{ isBookSearching ? '검색 중' : '검색' }}
-          </button>
+          <section class="review-form-tags">
+            <p class="filter-group-title mb-2">후기 태그 {{ selectedTagCount }}/5</p>
+            <div class="filter-chip-grid">
+              <label v-for="tag in TAG_OPTIONS" :key="tag.code" class="filter-chip">
+                <input v-model="form.tag_codes" type="checkbox" :value="tag.code" :disabled="!form.tag_codes.includes(tag.code) && selectedTagCount >= 5" />
+                <span>{{ tag.label }}</span>
+              </label>
+            </div>
+            <p v-if="firstFieldError('tag_codes')" class="field-error">{{ firstFieldError('tag_codes') }}</p>
+          </section>
         </div>
-        <p v-if="bookSearchMessage" class="meta-text mt-2 mb-0">{{ bookSearchMessage }}</p>
-        <div v-if="bookSearchResults.length" class="selection-list selection-list-scroll mt-3">
-          <label v-for="book in bookSearchResults" :key="book.local_book_id || book.id || book.isbn13" class="selection-row">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              :disabled="getBookSelectionValue(book) === null"
-              :checked="form.book_ids.includes(getBookSelectionValue(book))"
-              @change="toggleBookSelection(book, $event.target.checked)"
-            />
-            <span>
-              <strong>{{ book.title || '제목 정보 없음' }}</strong>
-              <span class="meta-text d-block">{{ book.authors_text || '저자 정보 없음' }}</span>
-            </span>
-          </label>
-        </div>
-        <p v-if="firstFieldError('book_ids')" class="field-error">{{ firstFieldError('book_ids') }}</p>
-      </section>
 
-      <section class="content-panel-soft mb-4">
-        <p class="filter-group-title mb-2">관련 프로그램</p>
-        <p v-if="!form.library_id" class="meta-text mb-0">도서관을 선택하면 관련 프로그램을 고를 수 있어요.</p>
-        <p v-else-if="!relatedPrograms.length" class="meta-text mb-0">선택 가능한 관련 프로그램이 없어요.</p>
-        <div v-else class="selection-list">
-          <label v-for="program in relatedPrograms" :key="program.id" class="selection-row">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              :checked="form.program_ids.includes(Number(program.id))"
-              @change="toggleSelection('program_ids', program.id, $event.target.checked)"
-            />
-            <span>
-              <strong>{{ program.title || '프로그램명 정보 없음' }}</strong>
-              <span class="meta-text d-block">{{ program.category_display || '분류 정보 없음' }}</span>
-            </span>
-          </label>
-        </div>
-      </section>
+        <aside class="review-form-side">
+          <section class="content-panel-soft review-form-side-panel review-form-desktop-library">
+            <label class="form-field mb-2">
+              <span>도서관 선택</span>
+              <div class="d-flex gap-2">
+                <input
+                  v-model.trim="librarySearchQuery"
+                  class="form-control"
+                  type="search"
+                  placeholder="도서관명 검색"
+                  @keyup.enter="searchLibraries"
+                />
+                <button class="btn btn-outline-primary" type="button" @click="searchLibraries">검색</button>
+              </div>
+            </label>
+            <p v-if="form.library_name" class="meta-text mb-2">선택됨: {{ form.library_name }}</p>
+            <p v-if="firstFieldError('library_id')" class="field-error">{{ firstFieldError('library_id') }}</p>
+            <div v-if="librarySearchResults.length" class="selection-list mt-3">
+              <button
+                v-for="library in librarySearchResults"
+                :key="library.id"
+                class="selection-row text-start"
+                type="button"
+                @click="selectLibrary(library)"
+              >
+                <span></span>
+                <span>
+                  <strong>{{ library.name }}</strong>
+                  <span class="meta-text d-block">{{ library.sigungu }} · {{ library.road_address }}</span>
+                </span>
+              </button>
+            </div>
+          </section>
+
+          <section class="content-panel-soft review-form-side-panel review-form-book">
+            <div class="d-flex gap-2">
+              <input
+                v-model.trim="bookSearchQuery"
+                class="form-control"
+                type="search"
+                placeholder="관련 책 검색"
+                @keydown.enter.prevent="searchRelatedBooks"
+              />
+              <button class="btn btn-outline-primary" type="button" :disabled="isBookSearching" @click="searchRelatedBooks">
+                {{ isBookSearching ? '검색 중' : '검색' }}
+              </button>
+            </div>
+            <p v-if="bookSearchMessage" class="meta-text mt-2 mb-0">{{ bookSearchMessage }}</p>
+            <div v-if="bookSearchResults.length" class="selection-list selection-list-scroll mt-3">
+              <label v-for="book in bookSearchResults" :key="book.local_book_id || book.id || book.isbn13" class="selection-row">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  :disabled="getBookSelectionValue(book) === null"
+                  :checked="form.book_ids.includes(getBookSelectionValue(book))"
+                  @change="toggleBookSelection(book, $event.target.checked)"
+                />
+                <span>
+                  <strong>{{ book.title || '제목 정보 없음' }}</strong>
+                  <span class="meta-text d-block">{{ book.authors_text || '저자 정보 없음' }}</span>
+                </span>
+              </label>
+            </div>
+            <p v-if="firstFieldError('book_ids')" class="field-error">{{ firstFieldError('book_ids') }}</p>
+          </section>
+
+          <section class="content-panel-soft review-form-side-panel review-form-program">
+            <p class="filter-group-title mb-2">관련 프로그램</p>
+            <p v-if="!form.library_id" class="meta-text mb-0">도서관을 선택하면 관련 프로그램을 고를 수 있어요.</p>
+            <p v-else-if="!relatedPrograms.length" class="meta-text mb-0">선택 가능한 관련 프로그램이 없어요.</p>
+            <div v-else class="selection-list">
+              <label v-for="program in relatedPrograms" :key="program.id" class="selection-row">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  :checked="form.program_ids.includes(Number(program.id))"
+                  @change="toggleSelection('program_ids', program.id, $event.target.checked)"
+                />
+                <span>
+                  <strong>{{ program.title || '프로그램명 정보 없음' }}</strong>
+                  <span class="meta-text d-block">{{ program.category_display || '분류 정보 없음' }}</span>
+                </span>
+              </label>
+            </div>
+          </section>
+        </aside>
+      </div>
 
       <div class="d-flex flex-wrap justify-content-end gap-2">
         <RouterLink class="btn btn-outline-secondary" to="/community">취소</RouterLink>
