@@ -86,10 +86,9 @@ onMounted(loadDashboard)
 
 <template>
   <section class="page-shell">
-    <div class="page-hero">
+    <div class="page-hero page-hero-banner page-hero-myoutings">
       <h1>나의 나들이</h1>
       <p>저장한 도서관, 책, 문화 프로그램과 후기 활동을 모아 보고 나의 이용 성향을 확인합니다.</p>
-      <div class="page-hero-visual" aria-hidden="true">▧</div>
     </div>
 
     <LoadingState v-if="isLoading" title="나의 나들이를 불러오는 중입니다." />
