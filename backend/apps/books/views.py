@@ -1,3 +1,7 @@
+import json
+from hashlib import sha256
+
+from django.core.cache import cache
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -36,6 +40,7 @@ ALLOWED_ORDER_VALUES = {"asc", "desc"}
 MAX_SEARCH_PAGE_SIZE = 100
 DEFAULT_POPULAR_BOOK_LIMIT = 10
 MAX_POPULAR_BOOK_LIMIT = 50
+DATA4LIBRARY_CACHE_SECONDS = 60 * 60 * 6
 
 
 class BookQueryMixin:
@@ -120,7 +125,11 @@ class BookSearchAPIView(APIView):
             search_params["order"] = order
 
         try:
-            payload = Data4LibraryClient().search_books(search_params)
+            payload = get_cached_data4library_payload(
+                "book-search",
+                search_params,
+                lambda: Data4LibraryClient().search_books(search_params),
+            )
         except Data4LibraryConfigurationError:
             return Response(
                 {"detail": "Data4Library API key is not configured."},
@@ -154,11 +163,20 @@ class BookHoldingLibraryListAPIView(APIView):
         page_size = min(parse_positive_int(request.query_params.get("page_size"), default=20), MAX_SEARCH_PAGE_SIZE)
 
         try:
-            payload = Data4LibraryClient().get_book_libraries(
-                isbn13=isbn13,
-                page=page,
-                page_size=page_size,
-                region="21",
+            payload = get_cached_data4library_payload(
+                "book-holdings",
+                {
+                    "isbn13": isbn13,
+                    "page": page,
+                    "page_size": page_size,
+                    "region": "21",
+                },
+                lambda: Data4LibraryClient().get_book_libraries(
+                    isbn13=isbn13,
+                    page=page,
+                    page_size=page_size,
+                    region="21",
+                ),
             )
         except Data4LibraryConfigurationError:
             return Response(
@@ -221,3 +239,19 @@ def parse_limited_positive_int(value, *, default, maximum):
     if parsed <= 0:
         raise ValueError("Expected positive integer.")
     return min(parsed, maximum)
+
+
+def get_cached_data4library_payload(scope, params, fetcher):
+    cache_key = build_data4library_cache_key(scope, params)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+    payload = fetcher()
+    cache.set(cache_key, payload, DATA4LIBRARY_CACHE_SECONDS)
+    return payload
+
+
+def build_data4library_cache_key(scope, params):
+    encoded = json.dumps(params, ensure_ascii=False, sort_keys=True, default=str)
+    digest = sha256(encoded.encode("utf-8")).hexdigest()
+    return f"data4library:{scope}:{digest}"

@@ -6,6 +6,7 @@ from django.db.models import Max, Prefetch, Q
 from django.utils import timezone
 
 from apps.integrations.data4library import Data4LibraryBook, Data4LibraryBookDetail
+from apps.libraries.data4library_identifiers import match_library, normalize_address, normalize_name, normalize_phone
 from apps.libraries.models import Library, LibraryExternalIdentifier, LibraryImage, LibraryStatisticSnapshot
 from apps.libraries.serializers import LibraryListSerializer, library_thumbnail_image_queryset
 
@@ -302,6 +303,8 @@ def serialize_book_holding_libraries(holding_libraries):
 
     for holding_library in holding_libraries:
         library = library_by_external_code.get(holding_library.external_library_key)
+        if library is None:
+            library = match_holding_library(holding_library)
         results.append(
             {
                 "matched": library is not None,
@@ -312,6 +315,52 @@ def serialize_book_holding_libraries(holding_libraries):
         )
 
     return results
+
+
+def match_holding_library(holding_library):
+    matched_library, _, _ = match_library(holding_library)
+    if matched_library:
+        return matched_library
+    candidates = find_holding_library_candidates(holding_library)
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def find_holding_library_candidates(holding_library):
+    external_name = normalize_name(holding_library.name)
+    external_address = normalize_address(holding_library.address)
+    external_phone = normalize_phone(holding_library.phone)
+    if not external_name and not external_address and not external_phone:
+        return []
+
+    candidates = []
+    libraries = Library.objects.filter(is_active=True).only(
+        "id",
+        "name",
+        "normalized_name",
+        "normalized_address",
+        "phone",
+    ).order_by("id")
+    for library in libraries:
+        if external_phone and normalize_phone(library.phone) != external_phone:
+            continue
+        if external_name and not names_are_compatible(external_name, library.normalized_name):
+            continue
+        if external_address and not addresses_are_compatible(external_address, library.normalized_address):
+            continue
+        candidates.append(library)
+    return candidates
+
+
+def names_are_compatible(external_name, local_name):
+    if not external_name or not local_name:
+        return False
+    return external_name == local_name or external_name.endswith(local_name) or local_name.endswith(external_name)
+
+
+def addresses_are_compatible(external_address, local_address):
+    if not external_address or not local_address:
+        return False
+    return external_address == local_address or external_address.startswith(local_address) or local_address.startswith(external_address)
 
 
 def get_library_by_external_code(holding_libraries):
