@@ -59,8 +59,8 @@ const error = ref(null)
 const locationMessage = ref('')
 const filters = reactive({
   q: '',
-  sigungu: [],
-  library_type: [],
+  sigungu: '',
+  library_type: '',
   purpose: '',
   lat: '',
   lng: '',
@@ -82,8 +82,8 @@ const needsLocation = computed(() => filters.purpose === 'nearby' && (!filters.l
 const hasFilter = computed(() =>
   Boolean(
     filters.q ||
-      filters.sigungu.length ||
-      filters.library_type.length ||
+      filters.sigungu ||
+      filters.library_type ||
       filters.purpose ||
       filters.min_book_count ||
       filters.min_reading_seat_count ||
@@ -106,10 +106,14 @@ function readMultiQuery(name, allowedValues = null) {
   return allowedValues ? normalized.filter((value) => allowedValues.includes(value)) : normalized
 }
 
+function readSingleQueryValue(name, allowedValues) {
+  return readMultiQuery(name, allowedValues)[0] ?? ''
+}
+
 function syncFromRoute() {
   filters.q = readStringQuery(route, 'q')
-  filters.sigungu = readMultiQuery('sigungu', SIGUNGU_OPTIONS)
-  filters.library_type = readMultiQuery(
+  filters.sigungu = readSingleQueryValue('sigungu', SIGUNGU_OPTIONS)
+  filters.library_type = readSingleQueryValue(
     'library_type',
     LIBRARY_TYPE_OPTIONS.map((item) => item.value),
   )
@@ -137,8 +141,8 @@ function buildRequestParams() {
 
   return {
     q: filters.q,
-    sigungu: filters.sigungu.join(','),
-    library_type: filters.library_type.join(','),
+    sigungu: filters.sigungu,
+    library_type: filters.library_type,
     purpose,
     lat: purpose ? filters.lat : '',
     lng: purpose ? filters.lng : '',
@@ -189,8 +193,8 @@ function applyFilters() {
     name: 'library-list',
     query: {
       q: filters.q || undefined,
-      sigungu: filters.sigungu.length ? filters.sigungu.join(',') : undefined,
-      library_type: filters.library_type.length ? filters.library_type.join(',') : undefined,
+      sigungu: filters.sigungu || undefined,
+      library_type: filters.library_type || undefined,
       purpose: purpose || undefined,
       lat: purpose ? filters.lat || undefined : undefined,
       lng: purpose ? filters.lng || undefined : undefined,
@@ -230,6 +234,10 @@ function togglePurpose(value) {
   if (!filters.lat || !filters.lng) {
     locationMessage.value = '가까운 도서관을 보려면 현재 위치를 적용해 주세요.'
   }
+}
+
+function toggleSingleFilter(field, value) {
+  filters[field] = filters[field] === value ? '' : value
 }
 
 function toggleHolidayStatus(value) {
@@ -321,20 +329,34 @@ onMounted(() => {
       <div class="filter-group">
         <p class="filter-group-title">지역</p>
         <div class="filter-chip-grid">
-          <label v-for="sigungu in SIGUNGU_OPTIONS" :key="sigungu" class="filter-chip">
-            <input v-model="filters.sigungu" type="checkbox" :value="sigungu" />
+          <button
+            v-for="sigungu in SIGUNGU_OPTIONS"
+            :key="sigungu"
+            class="filter-chip"
+            :class="{ active: filters.sigungu === sigungu }"
+            type="button"
+            :aria-pressed="filters.sigungu === sigungu"
+            @click="toggleSingleFilter('sigungu', sigungu)"
+          >
             <span>{{ sigungu }}</span>
-          </label>
+          </button>
         </div>
       </div>
 
       <div class="filter-group">
         <p class="filter-group-title">도서관 유형</p>
         <div class="filter-chip-grid">
-          <label v-for="type in LIBRARY_TYPE_OPTIONS" :key="type.value" class="filter-chip">
-            <input v-model="filters.library_type" type="checkbox" :value="type.value" />
+          <button
+            v-for="type in LIBRARY_TYPE_OPTIONS"
+            :key="type.value"
+            class="filter-chip"
+            :class="{ active: filters.library_type === type.value }"
+            type="button"
+            :aria-pressed="filters.library_type === type.value"
+            @click="toggleSingleFilter('library_type', type.value)"
+          >
             <span>{{ type.label }}</span>
-          </label>
+          </button>
         </div>
       </div>
 

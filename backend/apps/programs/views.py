@@ -46,10 +46,8 @@ class ProgramQueryMixin:
 
         target_values = self.split_query_values(params.get("target"))
         if target_values:
-            target_query = Q()
             for target_value in target_values:
-                target_query |= Q(target_codes__icontains=target_value)
-            queryset = queryset.filter(target_query)
+                queryset = queryset.filter(target_codes__icontains=target_value)
 
         application_status_values = self.split_query_values(params.get("application_status"))
         if application_status_values:

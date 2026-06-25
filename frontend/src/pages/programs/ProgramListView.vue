@@ -75,18 +75,22 @@ function splitQuery(value, allowed = null) {
   return allowed ? normalized.filter((item) => allowed.includes(item)) : normalized
 }
 
+function readSingleQueryValue(value, allowed) {
+  return splitQuery(value, allowed)[0] ?? ''
+}
+
 function readFiltersFromRoute() {
   return {
     q: normalizeText(route.query.q),
     library_id: normalizeText(route.query.library_id),
-    sigungu: splitQuery(route.query.sigungu, allowedValues?.sigungu ?? SIGUNGU_OPTIONS),
-    category: splitQuery(route.query.category, allowedValues?.category ?? CATEGORY_OPTIONS.map((item) => item.value)),
+    sigungu: readSingleQueryValue(route.query.sigungu, allowedValues?.sigungu ?? SIGUNGU_OPTIONS),
+    category: readSingleQueryValue(route.query.category, allowedValues?.category ?? CATEGORY_OPTIONS.map((item) => item.value)),
     target: splitQuery(route.query.target, allowedValues?.target ?? TARGET_OPTIONS.map((item) => item.value)),
-    application_status: splitQuery(
+    application_status: readSingleQueryValue(
       route.query.application_status,
       allowedValues?.application_status ?? APPLICATION_OPTIONS.map((item) => item.value),
     ),
-    operation_status: splitQuery(
+    operation_status: readSingleQueryValue(
       route.query.operation_status,
       allowedValues?.operation_status ?? OPERATION_OPTIONS.map((item) => item.value),
     ),
@@ -104,11 +108,11 @@ function buildRequestParams() {
     page_size: pageQuery.page_size || DEFAULT_PAGE_SIZE,
     q: filters.q,
     library_id: filters.library_id,
-    sigungu: filters.sigungu.join(','),
-    category: filters.category.join(','),
+    sigungu: filters.sigungu,
+    category: filters.category,
     target: filters.target.join(','),
-    application_status: filters.application_status.join(','),
-    operation_status: filters.operation_status.join(','),
+    application_status: filters.application_status,
+    operation_status: filters.operation_status,
   }
 }
 
@@ -138,11 +142,11 @@ function applyFilters() {
     query: {
       q: filters.q || undefined,
       library_id: filters.library_id || undefined,
-      sigungu: filters.sigungu.length ? filters.sigungu.join(',') : undefined,
-      category: filters.category.length ? filters.category.join(',') : undefined,
+      sigungu: filters.sigungu || undefined,
+      category: filters.category || undefined,
       target: filters.target.length ? filters.target.join(',') : undefined,
-      application_status: filters.application_status.length ? filters.application_status.join(',') : undefined,
-      operation_status: filters.operation_status.length ? filters.operation_status.join(',') : undefined,
+      application_status: filters.application_status || undefined,
+      operation_status: filters.operation_status || undefined,
       page: 1,
       page_size: readPageQuery(route).page_size || DEFAULT_PAGE_SIZE,
     },
@@ -151,6 +155,10 @@ function applyFilters() {
 
 function clearFilters() {
   router.push({ name: 'program-list' })
+}
+
+function toggleSingleFilter(field, value) {
+  filters[field] = filters[field] === value ? '' : value
 }
 
 function goToPage(page) {
@@ -196,20 +204,34 @@ onMounted(loadPrograms)
       <div class="filter-group">
         <p class="filter-group-title">지역</p>
         <div class="filter-chip-grid">
-          <label v-for="sigungu in SIGUNGU_OPTIONS" :key="sigungu" class="filter-chip">
-            <input v-model="filters.sigungu" type="checkbox" :value="sigungu" />
+          <button
+            v-for="sigungu in SIGUNGU_OPTIONS"
+            :key="sigungu"
+            class="filter-chip"
+            :class="{ active: filters.sigungu === sigungu }"
+            type="button"
+            :aria-pressed="filters.sigungu === sigungu"
+            @click="toggleSingleFilter('sigungu', sigungu)"
+          >
             <span>{{ sigungu }}</span>
-          </label>
+          </button>
         </div>
       </div>
 
       <div class="filter-group">
         <p class="filter-group-title">프로그램 유형</p>
         <div class="filter-chip-grid">
-          <label v-for="category in CATEGORY_OPTIONS" :key="category.value" class="filter-chip">
-            <input v-model="filters.category" type="checkbox" :value="category.value" />
+          <button
+            v-for="category in CATEGORY_OPTIONS"
+            :key="category.value"
+            class="filter-chip"
+            :class="{ active: filters.category === category.value }"
+            type="button"
+            :aria-pressed="filters.category === category.value"
+            @click="toggleSingleFilter('category', category.value)"
+          >
             <span>{{ category.label }}</span>
-          </label>
+          </button>
         </div>
       </div>
 
@@ -226,20 +248,34 @@ onMounted(loadPrograms)
       <div class="filter-group">
         <p class="filter-group-title">신청 상태</p>
         <div class="filter-chip-grid">
-          <label v-for="status in APPLICATION_OPTIONS" :key="status.value" class="filter-chip">
-            <input v-model="filters.application_status" type="checkbox" :value="status.value" />
+          <button
+            v-for="status in APPLICATION_OPTIONS"
+            :key="status.value"
+            class="filter-chip"
+            :class="{ active: filters.application_status === status.value }"
+            type="button"
+            :aria-pressed="filters.application_status === status.value"
+            @click="toggleSingleFilter('application_status', status.value)"
+          >
             <span>{{ status.label }}</span>
-          </label>
+          </button>
         </div>
       </div>
 
       <div class="filter-group">
         <p class="filter-group-title">운영 상태</p>
         <div class="filter-chip-grid">
-          <label v-for="status in OPERATION_OPTIONS" :key="status.value" class="filter-chip">
-            <input v-model="filters.operation_status" type="checkbox" :value="status.value" />
+          <button
+            v-for="status in OPERATION_OPTIONS"
+            :key="status.value"
+            class="filter-chip"
+            :class="{ active: filters.operation_status === status.value }"
+            type="button"
+            :aria-pressed="filters.operation_status === status.value"
+            @click="toggleSingleFilter('operation_status', status.value)"
+          >
             <span>{{ status.label }}</span>
-          </label>
+          </button>
         </div>
       </div>
 
