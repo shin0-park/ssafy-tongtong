@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from apps.integrations.data4library import Data4LibraryBook, Data4LibraryBookDetail
 from apps.libraries.models import Library, LibraryExternalIdentifier, LibraryImage, LibraryStatisticSnapshot
-from apps.libraries.serializers import LibraryListSerializer
+from apps.libraries.serializers import LibraryListSerializer, library_thumbnail_image_queryset
 
 from .models import Book, PopularBookItem, PopularBookScopeType, PopularBookSnapshot
 
@@ -361,10 +361,8 @@ def get_libraries_for_cards(library_ids):
             ),
             Prefetch(
                 "images",
-                queryset=LibraryImage.objects.filter(is_active=True, is_main=True)
-                .select_related("media_asset")
-                .order_by("display_order", "id"),
-                to_attr="active_main_images",
+                queryset=library_thumbnail_image_queryset(LibraryImage.objects.all()),
+                to_attr="thumbnail_images",
             ),
         )
     )

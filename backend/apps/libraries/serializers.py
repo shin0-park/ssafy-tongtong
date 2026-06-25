@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.templatetags.static import static
 from rest_framework import serializers
 
@@ -50,12 +51,20 @@ def get_current_statistic(library):
     )
 
 
-def get_main_library_image(library):
-    return get_prefetched_first(
-        library,
-        "active_main_images",
-        library.images.filter(is_active=True, is_main=True).select_related("media_asset").order_by("display_order", "id"),
+def library_thumbnail_image_queryset(queryset):
+    return (
+        queryset.filter(media_asset__is_active=True)
+        .filter(Q(media_asset__original_url__gt="") | Q(media_asset__file__gt=""))
+        .select_related("media_asset")
+        .order_by("-is_active", "-is_main", "display_order", "id")
     )
+
+
+def get_library_thumbnail_images(library):
+    prefetched = getattr(library, "thumbnail_images", None)
+    if prefetched is not None:
+        return prefetched
+    return library_thumbnail_image_queryset(library.images.all())
 
 
 def resolve_media_asset_payload(media_asset):
@@ -93,8 +102,7 @@ def resolve_library_placeholder_payload(library_type):
 
 
 def resolve_library_thumbnail_payload(library):
-    image = get_main_library_image(library)
-    if image:
+    for image in get_library_thumbnail_images(library):
         media_asset_payload = resolve_media_asset_payload(image.media_asset)
         if media_asset_payload:
             return media_asset_payload

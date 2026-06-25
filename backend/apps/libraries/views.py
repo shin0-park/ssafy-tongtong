@@ -7,7 +7,12 @@ from rest_framework.views import APIView
 from apps.common.pagination import StandardPageNumberPagination
 
 from .models import Library, LibraryClosureRule, LibraryDailySchedule, LibraryImage, LibraryOpeningHour, LibraryStatisticSnapshot
-from .serializers import LibraryDetailSerializer, LibraryListSerializer, SimilarLibrarySerializer
+from .serializers import (
+    LibraryDetailSerializer,
+    LibraryListSerializer,
+    SimilarLibrarySerializer,
+    library_thumbnail_image_queryset,
+)
 from .services import (
     apply_advanced_library_filters,
     calculate_similar_libraries,
@@ -34,8 +39,8 @@ class LibraryQueryMixin:
                 ),
                 Prefetch(
                     "images",
-                    queryset=LibraryImage.objects.filter(is_active=True, is_main=True).select_related("media_asset").order_by("display_order", "id"),
-                    to_attr="active_main_images",
+                    queryset=library_thumbnail_image_queryset(LibraryImage.objects.all()),
+                    to_attr="thumbnail_images",
                 ),
                 Prefetch(
                     "opening_hours",
