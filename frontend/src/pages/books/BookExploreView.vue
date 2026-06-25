@@ -14,12 +14,6 @@ import { readPageQuery } from '@/utils/query'
 const route = useRoute()
 const router = useRouter()
 
-const SEARCH_TYPES = [
-  { value: 'title', label: '도서명' },
-  { value: 'author', label: '저자' },
-  { value: 'isbn', label: 'ISBN' },
-]
-const SEARCH_TYPE_VALUES = new Set(SEARCH_TYPES.map((type) => type.value))
 const SORT_OPTIONS = [
   { value: 'title', label: '도서명' },
   { value: 'author', label: '저자' },
@@ -44,7 +38,6 @@ const error = ref(null)
 const popularError = ref(null)
 const popularRail = ref(null)
 const filters = reactive({
-  search_type: normalizeSearchType(route.query.search_type),
   q: normalizeText(route.query.q),
   sort: normalizeSort(route.query.sort),
   order: normalizeOrder(route.query.order),
@@ -71,10 +64,6 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function normalizeSearchType(value) {
-  return SEARCH_TYPE_VALUES.has(value) ? value : 'title'
-}
-
 function normalizeSort(value) {
   return SORT_OPTIONS.some((option) => option.value === value) ? value : DEFAULT_SORT
 }
@@ -93,10 +82,10 @@ function isData4LibraryConfigError(requestError) {
 
 function buildRequestParams() {
   const pageQuery = readPageQuery(route)
+  const query = normalizeText(route.query.q)
 
   return {
-    search_type: normalizeSearchType(route.query.search_type),
-    q: normalizeText(route.query.q),
+    keyword: query,
     page: pageQuery.page,
     page_size: pageQuery.page_size || DEFAULT_PAGE_SIZE,
     sort: normalizeSort(route.query.sort),
@@ -161,7 +150,6 @@ function applySearch() {
     name: 'book-list',
     query: nextQuery
       ? {
-          search_type: normalizeSearchType(filters.search_type),
           q: nextQuery,
           sort: filters.sort === DEFAULT_SORT ? undefined : filters.sort,
           order: filters.order === DEFAULT_ORDER ? undefined : filters.order,
@@ -173,7 +161,6 @@ function applySearch() {
 }
 
 function resetSearch() {
-  filters.search_type = 'title'
   filters.q = ''
   filters.sort = DEFAULT_SORT
   filters.order = DEFAULT_ORDER
@@ -216,7 +203,6 @@ function goToPage(page) {
 watch(
   () => route.query,
   () => {
-    filters.search_type = normalizeSearchType(route.query.search_type)
     filters.q = normalizeText(route.query.q)
     filters.sort = normalizeSort(route.query.sort)
     filters.order = normalizeOrder(route.query.order)
@@ -283,12 +269,6 @@ onMounted(() => {
     </section>
 
     <form class="content-panel p-4 mb-4" @submit.prevent="applySearch">
-      <div class="filter-chip-grid mb-3" role="tablist" aria-label="검색 기준">
-        <label v-for="type in SEARCH_TYPES" :key="type.value" class="filter-chip">
-          <input v-model="filters.search_type" type="radio" :value="type.value" />
-          <span>{{ type.label }}</span>
-        </label>
-      </div>
       <div class="book-search-row">
         <label class="form-field">
           <span>검색어</span>
@@ -321,7 +301,7 @@ onMounted(() => {
     <EmptyState
       v-else-if="!hasBooks"
       title="검색 결과가 없습니다."
-      description="검색어를 바꾸거나 다른 검색 기준을 선택해보세요."
+      description="검색어를 바꿔 다시 찾아보세요."
     />
 
     <template v-else>
