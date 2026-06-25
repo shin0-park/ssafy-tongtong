@@ -100,8 +100,14 @@
 }
 
 .popular-book-item {
+  display: flex;
   min-width: 0;
   scroll-snap-align: start;
+}
+
+.popular-book-item .book-card {
+  min-height: 244px;
+  width: 100%;
 }
 
 .carousel-arrow {
@@ -196,6 +202,7 @@
 .book-card {
   display: grid;
   grid-template-columns: 128px minmax(0, 1fr);
+  align-items: stretch;
 }
 
 .book-cover-link {
@@ -244,8 +251,19 @@
 }
 
 .book-card-body {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   padding: var(--space-4);
+}
+
+.book-card-save {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  flex: 1 1 auto;
 }
 
 .book-card-title,
