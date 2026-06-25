@@ -68,7 +68,6 @@ const filters = reactive({
   min_reading_seat_count: '',
   ordering: '',
   open_today: false,
-  open_now: false,
   weekend_open: false,
   late_open: false,
   holiday_status: '',
@@ -89,7 +88,6 @@ const hasFilter = computed(() =>
       filters.min_book_count ||
       filters.min_reading_seat_count ||
       filters.open_today ||
-      filters.open_now ||
       filters.weekend_open ||
       filters.late_open ||
       filters.holiday_status ||
@@ -127,7 +125,6 @@ function syncFromRoute() {
     ? readStringQuery(route, 'holiday_status')
     : ''
   filters.open_today = route.query.open_today === 'true'
-  filters.open_now = route.query.open_now === 'true'
   filters.weekend_open = route.query.weekend_open === 'true'
   filters.late_open = route.query.late_open_after === LATE_OPEN_AFTER
   filters.facilities = FACILITY_OPTIONS.map((item) => item.value).filter((key) => route.query[key] === 'true')
@@ -149,7 +146,6 @@ function buildRequestParams() {
     min_reading_seat_count: filters.min_reading_seat_count,
     ordering,
     open_today: filters.open_today ? true : undefined,
-    open_now: filters.open_now ? true : undefined,
     weekend_open: filters.weekend_open ? true : undefined,
     late_open_after: filters.late_open ? LATE_OPEN_AFTER : undefined,
     holiday_status: filters.holiday_status,
@@ -202,7 +198,6 @@ function applyFilters() {
       min_reading_seat_count: filters.min_reading_seat_count || undefined,
       ordering: ordering || undefined,
       open_today: filters.open_today ? 'true' : undefined,
-      open_now: filters.open_now ? 'true' : undefined,
       weekend_open: filters.weekend_open ? 'true' : undefined,
       late_open_after: filters.late_open ? LATE_OPEN_AFTER : undefined,
       holiday_status: filters.holiday_status || undefined,
@@ -371,10 +366,6 @@ onMounted(() => {
           <label class="filter-chip">
             <input v-model="filters.open_today" type="checkbox" />
             <span>오늘 운영</span>
-          </label>
-          <label class="filter-chip">
-            <input v-model="filters.open_now" type="checkbox" />
-            <span>지금 운영</span>
           </label>
           <label class="filter-chip">
             <input v-model="filters.weekend_open" type="checkbox" />

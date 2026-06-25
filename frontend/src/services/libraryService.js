@@ -25,7 +25,6 @@ const LIBRARY_LIST_QUERY_KEYS = [
   'min_reading_seat_count',
   'ordering',
   'open_today',
-  'open_now',
   'weekend_open',
   'late_open_after',
   'holiday_status',
