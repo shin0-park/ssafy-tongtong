@@ -7,6 +7,7 @@ import LoadingState from '@/components/feedback/LoadingState.vue'
 import { searchBooks } from '@/services/bookService'
 import { fetchPrograms } from '@/services/programService'
 import { createReview, fetchReviewDetail, updateReview } from '@/services/reviewService'
+import { useAuthStore } from '@/stores/auth'
 import { extractErrorMessage, normalizeApiError } from '@/utils/apiError'
 import {
   DEFAULT_MAX_IMAGE_SIZE_MB,
@@ -17,6 +18,7 @@ import {
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const isEdit = computed(() => route.name === 'review-edit')
 const isLoading = ref(false)
@@ -145,6 +147,12 @@ async function loadReview() {
 
   try {
     const review = await fetchReviewDetail(route.params.id)
+
+    if (review.user?.id && authStore.user?.id && review.user.id !== authStore.user.id) {
+      await router.replace('/403')
+      return
+    }
+
     form.library_id = review.library?.id ? String(review.library.id) : ''
     form.content = review.content || ''
     form.tag_codes = (review.tags ?? []).map((tag) => tag.code || tag.name).filter(Boolean).join(', ')
