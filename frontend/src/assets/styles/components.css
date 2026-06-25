@@ -628,11 +628,17 @@
   font-weight: var(--font-weight-medium);
 }
 
+button.filter-chip {
+  cursor: pointer;
+}
+
 .filter-chip input {
   margin: 0;
 }
 
-.filter-chip:has(input:checked) {
+.filter-chip:has(input:checked),
+.filter-chip.active,
+.filter-chip[aria-pressed='true'] {
   border-color: var(--color-primary-300);
   background: var(--color-primary-100);
   color: var(--color-primary-800);

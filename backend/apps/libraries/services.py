@@ -51,7 +51,6 @@ FACILITY_TAG_CODES = {
 SUPPORTED_PURPOSES = {"study", "book", "kids", "mood", "nearby"}
 UNSUPPORTED_LIBRARY_FILTERS = {
     "radius_km",
-    "late_open_after",
 }
 OPERATION_FILTER_PARAMS = {"open_today", "open_now", "weekend_open"}
 HOLIDAY_STATUS_VALUES = {ScheduleStatus.OPEN, ScheduleStatus.CLOSED, ScheduleStatus.UNKNOWN}
@@ -91,6 +90,7 @@ def validate_library_filter_params(params):
 
     parse_non_negative_int(params.get("min_book_count"), "min_book_count")
     parse_non_negative_int(params.get("min_reading_seat_count"), "min_reading_seat_count")
+    parse_time_param(params.get("late_open_after"), "late_open_after")
 
     purpose_code = params.get("purpose", "").strip()
     if purpose_code:
@@ -128,6 +128,15 @@ def parse_non_negative_int(value, field_name):
     if parsed < 0:
         raise ValidationError({field_name: "Enter a non-negative integer."})
     return parsed
+
+
+def parse_time_param(value, field_name):
+    if value in (None, ""):
+        return None
+    try:
+        return time.fromisoformat(value)
+    except (TypeError, ValueError):
+        raise ValidationError({field_name: "Enter a valid time in HH:MM format."})
 
 
 def parse_limit(value, default=3, maximum=10):
@@ -237,6 +246,9 @@ def filter_by_operation_status(libraries, params):
         ]
     if params.get("weekend_open") == "true":
         libraries = [library for library in libraries if is_weekend_open(library)]
+    late_open_after = parse_time_param(params.get("late_open_after"), "late_open_after")
+    if late_open_after:
+        libraries = [library for library in libraries if is_open_after(library, late_open_after)]
     if params.get("holiday_status"):
         libraries = filter_by_holiday_status(libraries, params)
     return libraries
@@ -427,6 +439,17 @@ def is_weekend_open(library, at=None):
         resolve_library_operation_status(library, at=current_at, target_date=date)["open_today"] is True
         for date in (saturday, sunday)
     )
+
+
+def is_open_after(library, threshold):
+    operation_status = resolve_library_operation_status(library)
+    if operation_status["open_today"] is not True:
+        return False
+    today_hours = operation_status.get("today_hours") or {}
+    if today_hours.get("closes_next_day"):
+        return True
+    close_time = parse_time_param(today_hours.get("close"), "late_open_after")
+    return close_time is not None and close_time >= threshold
 
 
 def validate_holiday_status_params(params, at=None):

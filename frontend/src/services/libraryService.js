@@ -27,6 +27,7 @@ const LIBRARY_LIST_QUERY_KEYS = [
   'open_today',
   'open_now',
   'weekend_open',
+  'late_open_after',
   'holiday_status',
   'holiday_date',
 ]

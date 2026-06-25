@@ -41,12 +41,16 @@ const LIBRARY_TYPE_OPTIONS = [
 const PURPOSE_OPTIONS = Object.entries(PURPOSE_LABELS).map(([value, label]) => ({ value, label }))
 const FACILITY_OPTIONS = Object.entries(FACILITY_LABELS).map(([value, label]) => ({ value, label }))
 const ORDERING_OPTIONS = [
-  { value: '', label: '추천순' },
-  { value: 'name', label: '이름순' },
+  { value: '', label: '이름순' },
   { value: '-book_count', label: '장서 많은 순' },
   { value: '-reading_seat_count', label: '좌석 많은 순' },
   { value: 'purpose_score', label: '테마 적합순' },
 ]
+const HOLIDAY_STATUS_OPTIONS = [
+  { value: 'open', label: '공휴일 운영' },
+  { value: 'closed', label: '공휴일 휴관' },
+]
+const LATE_OPEN_AFTER = '18:00'
 
 const libraries = ref([])
 const pagination = ref({ count: 0, next: null, previous: null })
@@ -66,6 +70,7 @@ const filters = reactive({
   open_today: false,
   open_now: false,
   weekend_open: false,
+  late_open: false,
   holiday_status: '',
   facilities: [],
 })
@@ -86,32 +91,45 @@ const hasFilter = computed(() =>
       filters.open_today ||
       filters.open_now ||
       filters.weekend_open ||
+      filters.late_open ||
       filters.holiday_status ||
       filters.facilities.length,
   ),
 )
 
-function readMultiQuery(name) {
+function readMultiQuery(name, allowedValues = null) {
   const raw = route.query[name]
-  if (Array.isArray(raw)) return raw.flatMap((item) => String(item).split(',')).filter(Boolean)
-  if (typeof raw === 'string') return raw.split(',').map((item) => item.trim()).filter(Boolean)
-  return []
+  const values = Array.isArray(raw)
+    ? raw.flatMap((item) => String(item).split(','))
+    : typeof raw === 'string'
+      ? raw.split(',')
+      : []
+  const normalized = values.map((item) => item.trim()).filter(Boolean)
+  return allowedValues ? normalized.filter((value) => allowedValues.includes(value)) : normalized
 }
 
 function syncFromRoute() {
   filters.q = readStringQuery(route, 'q')
-  filters.sigungu = readMultiQuery('sigungu')
-  filters.library_type = readMultiQuery('library_type')
-  filters.purpose = readStringQuery(route, 'purpose')
+  filters.sigungu = readMultiQuery('sigungu', SIGUNGU_OPTIONS)
+  filters.library_type = readMultiQuery(
+    'library_type',
+    LIBRARY_TYPE_OPTIONS.map((item) => item.value),
+  )
+  filters.purpose = PURPOSE_LABELS[route.query.purpose] ? readStringQuery(route, 'purpose') : ''
   filters.lat = readStringQuery(route, 'lat')
   filters.lng = readStringQuery(route, 'lng')
   filters.min_book_count = readStringQuery(route, 'min_book_count')
   filters.min_reading_seat_count = readStringQuery(route, 'min_reading_seat_count')
-  filters.ordering = readStringQuery(route, 'ordering')
-  filters.holiday_status = readStringQuery(route, 'holiday_status')
+  filters.ordering = ORDERING_OPTIONS.some((item) => item.value === route.query.ordering)
+    ? readStringQuery(route, 'ordering')
+    : ''
+  filters.holiday_status = HOLIDAY_STATUS_OPTIONS.some((item) => item.value === route.query.holiday_status)
+    ? readStringQuery(route, 'holiday_status')
+    : ''
   filters.open_today = route.query.open_today === 'true'
   filters.open_now = route.query.open_now === 'true'
   filters.weekend_open = route.query.weekend_open === 'true'
+  filters.late_open = route.query.late_open_after === LATE_OPEN_AFTER
   filters.facilities = FACILITY_OPTIONS.map((item) => item.value).filter((key) => route.query[key] === 'true')
 }
 
@@ -125,14 +143,15 @@ function buildRequestParams() {
     sigungu: filters.sigungu.join(','),
     library_type: filters.library_type.join(','),
     purpose,
-    lat: filters.lat,
-    lng: filters.lng,
+    lat: purpose ? filters.lat : '',
+    lng: purpose ? filters.lng : '',
     min_book_count: filters.min_book_count,
     min_reading_seat_count: filters.min_reading_seat_count,
     ordering,
     open_today: filters.open_today ? true : undefined,
     open_now: filters.open_now ? true : undefined,
     weekend_open: filters.weekend_open ? true : undefined,
+    late_open_after: filters.late_open ? LATE_OPEN_AFTER : undefined,
     holiday_status: filters.holiday_status,
     page: page.value,
     page_size: pageSize.value,
@@ -153,6 +172,7 @@ async function loadLibraries() {
       previous: data.previous ?? null,
     }
   } catch (requestError) {
+    libraries.value = []
     error.value = requestError
   } finally {
     isLoading.value = false
@@ -160,8 +180,13 @@ async function loadLibraries() {
 }
 
 function applyFilters() {
+  if (needsLocation.value) {
+    locationMessage.value = '가까운 도서관을 보려면 현재 위치를 먼저 적용해 주세요.'
+    return
+  }
+
   const facilityQuery = Object.fromEntries(filters.facilities.map((key) => [key, 'true']))
-  const purpose = needsLocation.value ? '' : filters.purpose
+  const purpose = filters.purpose
   const ordering = filters.ordering === 'purpose_score' && !purpose ? '' : filters.ordering
 
   router.push({
@@ -171,17 +196,19 @@ function applyFilters() {
       sigungu: filters.sigungu.length ? filters.sigungu.join(',') : undefined,
       library_type: filters.library_type.length ? filters.library_type.join(',') : undefined,
       purpose: purpose || undefined,
-      lat: filters.lat || undefined,
-      lng: filters.lng || undefined,
+      lat: purpose ? filters.lat || undefined : undefined,
+      lng: purpose ? filters.lng || undefined : undefined,
       min_book_count: filters.min_book_count || undefined,
       min_reading_seat_count: filters.min_reading_seat_count || undefined,
       ordering: ordering || undefined,
       open_today: filters.open_today ? 'true' : undefined,
       open_now: filters.open_now ? 'true' : undefined,
       weekend_open: filters.weekend_open ? 'true' : undefined,
+      late_open_after: filters.late_open ? LATE_OPEN_AFTER : undefined,
       holiday_status: filters.holiday_status || undefined,
       ...facilityQuery,
       page: 1,
+      page_size: pageSize.value,
     },
   })
 }
@@ -189,6 +216,29 @@ function applyFilters() {
 function resetFilters() {
   locationMessage.value = ''
   router.push({ name: 'library-list' })
+}
+
+function togglePurpose(value) {
+  locationMessage.value = ''
+  if (filters.purpose === value) {
+    filters.purpose = ''
+    filters.lat = ''
+    filters.lng = ''
+    return
+  }
+  filters.purpose = value
+  if (value !== 'nearby') {
+    filters.lat = ''
+    filters.lng = ''
+    return
+  }
+  if (!filters.lat || !filters.lng) {
+    locationMessage.value = '가까운 도서관을 보려면 현재 위치를 적용해 주세요.'
+  }
+}
+
+function toggleHolidayStatus(value) {
+  filters.holiday_status = filters.holiday_status === value ? '' : value
 }
 
 function requestNearby() {
@@ -204,11 +254,14 @@ function requestNearby() {
     (position) => {
       filters.lat = position.coords.latitude.toFixed(7)
       filters.lng = position.coords.longitude.toFixed(7)
+      locationMessage.value = ''
       applyFilters()
     },
     () => {
-      locationMessage.value = '위치 권한을 사용할 수 없어 가까운 곳 필터를 적용하지 않았습니다.'
+      locationMessage.value = '위치 권한을 사용할 수 없어 가까운 도서관 필터를 적용하지 않았습니다.'
       filters.purpose = ''
+      filters.lat = ''
+      filters.lng = ''
     },
     { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
   )
@@ -243,19 +296,14 @@ onMounted(() => {
     <div class="page-hero">
       <h1>도서관 찾기</h1>
       <p>지역, 테마, 운영 조건, 시설 정보를 조합해 오늘 가기 좋은 부산 도서관을 찾아보세요.</p>
-      <div class="page-hero-visual" aria-hidden="true">⌕</div>
+      <div class="page-hero-visual" aria-hidden="true"></div>
     </div>
 
     <form class="content-panel p-4 mb-4 filter-panel" @submit.prevent="applyFilters">
       <div class="filter-grid">
         <label class="form-field">
           <span>검색</span>
-          <input
-            v-model.trim="filters.q"
-            class="form-control"
-            type="search"
-            placeholder="도서관명, 지역, 키워드 검색"
-          />
+          <input v-model.trim="filters.q" class="form-control" type="search" placeholder="도서관명, 지역, 주소 검색" />
         </label>
         <label class="form-field">
           <span>정렬</span>
@@ -266,7 +314,7 @@ onMounted(() => {
           </select>
         </label>
         <label class="form-field">
-          <span>최소 자료 수</span>
+          <span>최소 장서 수</span>
           <input v-model.trim="filters.min_book_count" class="form-control" type="number" min="0" />
         </label>
         <label class="form-field">
@@ -298,15 +346,23 @@ onMounted(() => {
       <div class="filter-group">
         <p class="filter-group-title">테마</p>
         <div class="filter-chip-grid">
-          <label v-for="purpose in PURPOSE_OPTIONS" :key="purpose.value" class="filter-chip">
-            <input v-model="filters.purpose" type="radio" :value="purpose.value" />
+          <button
+            v-for="purpose in PURPOSE_OPTIONS"
+            :key="purpose.value"
+            class="filter-chip"
+            :class="{ active: filters.purpose === purpose.value }"
+            type="button"
+            :aria-pressed="filters.purpose === purpose.value"
+            @click="togglePurpose(purpose.value)"
+          >
             <span>{{ purpose.label }}</span>
-          </label>
-          <button class="btn btn-outline-primary btn-sm" type="button" @click="requestNearby">
-            가까운 곳 위치 적용
           </button>
         </div>
-        <p v-if="locationMessage" class="meta-text mb-0">{{ locationMessage }}</p>
+        <div v-if="filters.purpose === 'nearby' && needsLocation" class="alert alert-info mt-3 mb-0">
+          <span>가까운 도서관을 보려면 현재 위치를 적용해 주세요.</span>
+          <button class="btn btn-sm btn-primary ms-2" type="button" @click="requestNearby">현재 위치 적용</button>
+        </div>
+        <p v-else-if="locationMessage" class="meta-text mb-0">{{ locationMessage }}</p>
       </div>
 
       <div class="filter-group">
@@ -325,15 +381,21 @@ onMounted(() => {
             <span>주말 운영</span>
           </label>
           <label class="filter-chip">
-            <input v-model="filters.holiday_status" type="radio" value="open" />
-            <span>공휴일 운영</span>
+            <input v-model="filters.late_open" type="checkbox" />
+            <span>18시 이후 운영</span>
           </label>
-          <label class="filter-chip">
-            <input v-model="filters.holiday_status" type="radio" value="closed" />
-            <span>공휴일 휴관</span>
-          </label>
+          <button
+            v-for="option in HOLIDAY_STATUS_OPTIONS"
+            :key="option.value"
+            class="filter-chip"
+            :class="{ active: filters.holiday_status === option.value }"
+            type="button"
+            :aria-pressed="filters.holiday_status === option.value"
+            @click="toggleHolidayStatus(option.value)"
+          >
+            <span>{{ option.label }}</span>
+          </button>
         </div>
-        <p class="meta-text mb-0">“늦게까지 운영”은 별도 query 없이 현재 운영 및 오늘 운영시간 표시로 안내합니다.</p>
       </div>
 
       <div class="filter-group">
@@ -362,13 +424,13 @@ onMounted(() => {
     <EmptyState
       v-else-if="!hasLibraries"
       title="조건에 맞는 도서관이 없습니다."
-      description="검색어나 필터를 조정해보세요."
+      description="검색어나 필터를 조정해 보세요."
     />
 
     <template v-else>
       <div class="section-header-row">
         <ResultCount :count="pagination.count" label="곳" />
-        <p class="meta-text mb-0">{{ hasFilter ? '검색/필터 결과입니다.' : '전체 도서관 목록입니다.' }}</p>
+        <p class="meta-text mb-0">{{ hasFilter ? '검색 필터 결과입니다.' : '전체 도서관 목록입니다.' }}</p>
       </div>
       <div class="library-result-grid">
         <LibraryCard v-for="library in libraries" :key="library.id" :library="library" />

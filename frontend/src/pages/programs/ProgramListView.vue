@@ -21,68 +21,75 @@ const route = useRoute()
 const router = useRouter()
 
 const DEFAULT_PAGE_SIZE = 12
-const SIGUNGU_OPTIONS = ['강서구', '금정구', '남구', '동래구', '부산진구', '북구', '사상구', '수영구', '연제구', '해운대구']
-const CATEGORY_OPTIONS = [
-  { value: 'lecture', label: '강연/인문학' },
-  { value: 'reading', label: '독서/글쓰기' },
-  { value: 'art', label: '문화/예술' },
-  { value: 'education', label: '체험/교육' },
-  { value: 'exhibition', label: '전시' },
-  { value: 'etc', label: '기타' },
+const SIGUNGU_OPTIONS = [
+  '강서구',
+  '금정구',
+  '기장군',
+  '남구',
+  '동구',
+  '동래구',
+  '부산진구',
+  '북구',
+  '사상구',
+  '사하구',
+  '서구',
+  '수영구',
+  '연제구',
+  '영도구',
+  '중구',
+  '해운대구',
 ]
-const TARGET_OPTIONS = [
-  { value: 'infant', label: '유아' },
-  { value: 'child', label: '초등' },
-  { value: 'teen', label: '청소년' },
-  { value: 'adult', label: '성인' },
-  { value: 'senior', label: '시니어' },
-  { value: 'family', label: '가족/기타' },
-]
-const APPLICATION_OPTIONS = [
-  { value: 'available', label: APPLICATION_STATUS_LABELS.available },
-  { value: 'open', label: APPLICATION_STATUS_LABELS.open },
-  { value: 'closed', label: APPLICATION_STATUS_LABELS.closed },
-  { value: 'scheduled', label: APPLICATION_STATUS_LABELS.scheduled },
-  { value: 'none', label: APPLICATION_STATUS_LABELS.none },
-]
-const OPERATION_OPTIONS = [
-  { value: 'upcoming', label: OPERATION_STATUS_LABELS.upcoming },
-  { value: 'scheduled', label: OPERATION_STATUS_LABELS.scheduled },
-  { value: 'ongoing', label: OPERATION_STATUS_LABELS.ongoing },
-  { value: 'ended', label: OPERATION_STATUS_LABELS.ended },
-]
+const CATEGORY_OPTIONS = Object.entries(PROGRAM_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
+const TARGET_OPTIONS = Object.entries(PROGRAM_TARGET_LABELS)
+  .filter(([value]) => value !== 'all')
+  .map(([value, label]) => ({ value, label }))
+const APPLICATION_OPTIONS = Object.entries(APPLICATION_STATUS_LABELS).map(([value, label]) => ({ value, label }))
+const OPERATION_OPTIONS = Object.entries(OPERATION_STATUS_LABELS).map(([value, label]) => ({ value, label }))
 
 const programs = ref([])
 const pagination = ref({ count: 0, next: null, previous: null })
 const isLoading = ref(false)
 const error = ref(null)
-const filters = reactive(readFiltersFromRoute())
 
 const hasPrograms = computed(() => programs.value.length > 0)
 const currentPage = computed(() => readPageQuery(route).page)
+const allowedValues = {
+  sigungu: SIGUNGU_OPTIONS,
+  category: CATEGORY_OPTIONS.map((item) => item.value),
+  target: TARGET_OPTIONS.map((item) => item.value),
+  application_status: APPLICATION_OPTIONS.map((item) => item.value),
+  operation_status: OPERATION_OPTIONS.map((item) => item.value),
+}
+const filters = reactive(readFiltersFromRoute())
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function splitQuery(value) {
+function splitQuery(value, allowed = null) {
   if (!value) return []
-  if (Array.isArray(value)) return value.flatMap((item) => String(item).split(',')).filter(Boolean)
-  return String(value)
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
+  const values = Array.isArray(value)
+    ? value.flatMap((item) => String(item).split(','))
+    : String(value).split(',')
+  const normalized = values.map((item) => item.trim()).filter(Boolean)
+  return allowed ? normalized.filter((item) => allowed.includes(item)) : normalized
 }
 
 function readFiltersFromRoute() {
   return {
     q: normalizeText(route.query.q),
     library_id: normalizeText(route.query.library_id),
-    sigungu: splitQuery(route.query.sigungu),
-    category: splitQuery(route.query.category),
-    target: splitQuery(route.query.target),
-    application_status: splitQuery(route.query.application_status),
-    operation_status: splitQuery(route.query.operation_status),
+    sigungu: splitQuery(route.query.sigungu, allowedValues?.sigungu ?? SIGUNGU_OPTIONS),
+    category: splitQuery(route.query.category, allowedValues?.category ?? CATEGORY_OPTIONS.map((item) => item.value)),
+    target: splitQuery(route.query.target, allowedValues?.target ?? TARGET_OPTIONS.map((item) => item.value)),
+    application_status: splitQuery(
+      route.query.application_status,
+      allowedValues?.application_status ?? APPLICATION_OPTIONS.map((item) => item.value),
+    ),
+    operation_status: splitQuery(
+      route.query.operation_status,
+      allowedValues?.operation_status ?? OPERATION_OPTIONS.map((item) => item.value),
+    ),
   }
 }
 
@@ -91,9 +98,10 @@ function syncFiltersFromRoute() {
 }
 
 function buildRequestParams() {
+  const pageQuery = readPageQuery(route)
   return {
-    ...readPageQuery(route),
-    page_size: readPageQuery(route).page_size || DEFAULT_PAGE_SIZE,
+    ...pageQuery,
+    page_size: pageQuery.page_size || DEFAULT_PAGE_SIZE,
     q: filters.q,
     library_id: filters.library_id,
     sigungu: filters.sigungu.join(','),
@@ -136,7 +144,7 @@ function applyFilters() {
       application_status: filters.application_status.length ? filters.application_status.join(',') : undefined,
       operation_status: filters.operation_status.length ? filters.operation_status.join(',') : undefined,
       page: 1,
-      page_size: route.query.page_size || DEFAULT_PAGE_SIZE,
+      page_size: readPageQuery(route).page_size || DEFAULT_PAGE_SIZE,
     },
   })
 }
@@ -170,7 +178,7 @@ onMounted(loadPrograms)
   <section class="page-shell">
     <div class="page-hero page-hero-banner page-hero-programs">
       <h1>문화 프로그램</h1>
-      <p>도서관에서 열리는 강연, 독서, 전시, 체험 프로그램을 검색하고 해당 도서관으로 이동해보세요.</p>
+      <p>도서관에서 열리는 강연, 독서, 전시, 체험 프로그램을 검색하고 해당 도서관으로 이동해 보세요.</p>
     </div>
 
     <form class="content-panel p-4 mb-4 filter-panel" @submit.prevent="applyFilters">
@@ -200,7 +208,7 @@ onMounted(loadPrograms)
         <div class="filter-chip-grid">
           <label v-for="category in CATEGORY_OPTIONS" :key="category.value" class="filter-chip">
             <input v-model="filters.category" type="checkbox" :value="category.value" />
-            <span>{{ category.label || PROGRAM_CATEGORY_LABELS[category.value] }}</span>
+            <span>{{ category.label }}</span>
           </label>
         </div>
       </div>
@@ -210,7 +218,7 @@ onMounted(loadPrograms)
         <div class="filter-chip-grid">
           <label v-for="target in TARGET_OPTIONS" :key="target.value" class="filter-chip">
             <input v-model="filters.target" type="checkbox" :value="target.value" />
-            <span>{{ target.label || PROGRAM_TARGET_LABELS[target.value] }}</span>
+            <span>{{ target.label }}</span>
           </label>
         </div>
       </div>
@@ -251,7 +259,7 @@ onMounted(loadPrograms)
     <EmptyState
       v-else-if="!hasPrograms"
       title="현재 표시할 문화 프로그램이 없습니다."
-      description="프로그램 데이터가 추가되면 이곳에서 확인할 수 있어요."
+      description="검색어나 필터를 조정해 보세요."
     />
 
     <template v-else>

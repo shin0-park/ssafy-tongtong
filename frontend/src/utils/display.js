@@ -35,43 +35,33 @@ export const FACILITY_LABELS = {
 }
 
 export const PROGRAM_CATEGORY_LABELS = {
-  lecture: '강연/인문학',
-  humanities: '강연/인문학',
-  reading: '독서/글쓰기',
-  writing: '독서/글쓰기',
-  art: '문화/예술',
+  lecture_humanities: '강연/인문',
+  reading_writing: '독서/글쓰기',
   culture_art: '문화/예술',
-  education: '체험/교육',
-  experience: '체험/교육',
+  experience_education: '체험/교육',
   exhibition: '전시',
-  etc: '기타',
   other: '기타',
 }
 
 export const PROGRAM_TARGET_LABELS = {
-  infant: '유아',
-  child: '초등',
-  children: '초등',
-  teen: '청소년',
-  youth: '청소년',
-  adult: '성인',
-  senior: '시니어',
-  family: '가족/기타',
+  for_infant: '유아',
+  for_elementary: '초등',
+  for_teen: '청소년',
+  for_adult: '성인',
+  for_senior: '시니어',
+  for_family: '가족',
   all: '전체',
 }
 
 export const APPLICATION_STATUS_LABELS = {
-  available: '신청가능',
-  open: '신청가능',
-  closed: '신청마감',
-  scheduled: '신청예정',
-  none: '신청없음',
+  available: '신청 가능',
+  closed: '신청 마감',
+  not_required: '신청 없음',
 }
 
 export const OPERATION_STATUS_LABELS = {
   upcoming: '예정',
-  scheduled: '예정',
-  ongoing: '진행중',
+  ongoing: '진행 중',
   ended: '종료',
 }
 
