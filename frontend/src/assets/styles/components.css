@@ -921,9 +921,55 @@ button.filter-chip:focus-visible {
   background: var(--color-bg-soft);
 }
 
+.map-panel-content {
+  display: grid;
+  gap: var(--space-3);
+}
+
 .map-fallback {
+  gap: var(--space-2);
+  border: var(--border-subtle);
   padding: var(--space-4);
+  color: var(--color-text-secondary);
   text-align: center;
+}
+
+.map-fallback strong {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-18);
+}
+
+.library-detail-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.library-detail-info-grid > .content-panel {
+  height: 100%;
+}
+
+.library-detail-dl {
+  display: grid;
+  grid-template-columns: minmax(78px, 0.8fr) minmax(0, 1.2fr);
+  gap: 10px 14px;
+}
+
+.library-detail-dl dt {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.library-detail-dl dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.library-detail-dl-numeric dd {
+  text-align: right;
 }
 
 .status-badge {
@@ -1039,6 +1085,10 @@ button.filter-chip:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .library-detail-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .review-detail-aside {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(220px, 0.7fr);
@@ -1055,6 +1105,15 @@ button.filter-chip:focus-visible {
   .book-result-grid,
   .program-result-grid {
     grid-template-columns: 1fr;
+  }
+
+  .library-detail-info-grid,
+  .library-detail-dl {
+    grid-template-columns: 1fr;
+  }
+
+  .library-detail-dl-numeric dd {
+    text-align: left;
   }
 
   .book-card,

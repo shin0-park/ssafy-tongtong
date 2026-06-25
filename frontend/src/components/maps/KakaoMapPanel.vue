@@ -68,7 +68,7 @@ async function renderMap() {
 
   if (!hasCoordinates.value) {
     status.value = 'fallback'
-    errorMessage.value = '좌표 정보가 없어 주소로 위치를 확인할 수 있어요.'
+    errorMessage.value = '위치 좌표가 아직 등록되지 않았어요.'
     return
   }
 
@@ -97,9 +97,7 @@ async function renderMap() {
     })
   } catch {
     status.value = 'fallback'
-    errorMessage.value = kakaoJavascriptKey
-      ? '지도를 불러오지 못했어요. 주소로 위치를 확인해주세요.'
-      : '지도 설정이 없어 주소로 위치를 확인해주세요.'
+    errorMessage.value = kakaoJavascriptKey ? '지도를 불러오지 못했어요.' : '지도 설정이 아직 준비되지 않았어요.'
   }
 }
 
@@ -108,7 +106,7 @@ onMounted(renderMap)
 </script>
 
 <template>
-  <section class="content-panel p-4">
+  <section class="map-panel-content">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
       <h2 class="section-title mb-0">위치</h2>
       <a class="btn btn-outline-primary btn-sm" :href="externalMapUrl" target="_blank" rel="noopener noreferrer">
@@ -121,8 +119,11 @@ onMounted(renderMap)
     </div>
 
     <div v-if="status === 'fallback'" class="map-fallback">
-      <p class="meta-text mb-2">{{ errorMessage }}</p>
-      <p class="mb-0">{{ address || '주소 정보 없음' }}</p>
+      <strong>{{ errorMessage }}</strong>
+      <p class="meta-text mb-0">
+        {{ address ? '주소로 위치를 확인할 수 있어요.' : '주소 정보 없음' }}
+      </p>
+      <p v-if="address" class="mb-0">{{ address }}</p>
     </div>
   </section>
 </template>

@@ -1,3 +1,5 @@
+import hashlib
+
 from django.db.models import Q
 from django.templatetags.static import static
 from rest_framework import serializers
@@ -27,13 +29,31 @@ FACILITY_FIELDS = (
     "has_outdoor_space",
 )
 
-LIBRARY_PLACEHOLDER_IMAGES = {
-    "public": "media_assets/placeholders/default_library_public.png",
-    "small": "media_assets/placeholders/default_library_small.png",
-    "children": "media_assets/placeholders/default_library_children.png",
-    "other": "media_assets/placeholders/default_library_public.png",
-}
-DEFAULT_LIBRARY_PLACEHOLDER_TYPE = "public"
+LIBRARY_PLACEHOLDER_IMAGES = (
+    "media_assets/placeholders/default_library_public.png",
+    "media_assets/placeholders/default_library_small.png",
+    "media_assets/placeholders/default_library_children.png",
+    "media_assets/placeholders/libraries/library_fallback_01.png",
+    "media_assets/placeholders/libraries/library_fallback_02.png",
+    "media_assets/placeholders/libraries/library_fallback_03.png",
+    "media_assets/placeholders/libraries/library_fallback_04.png",
+    "media_assets/placeholders/libraries/library_fallback_05.png",
+    "media_assets/placeholders/libraries/library_fallback_06.png",
+    "media_assets/placeholders/libraries/library_fallback_07.png",
+    "media_assets/placeholders/libraries/library_fallback_08.png",
+    "media_assets/placeholders/libraries/library_fallback_09.png",
+    "media_assets/placeholders/libraries/library_fallback_10.png",
+    "media_assets/placeholders/libraries/library_fallback_11.png",
+    "media_assets/placeholders/libraries/library_fallback_12.png",
+    "media_assets/placeholders/libraries/library_fallback_13.png",
+    "media_assets/placeholders/libraries/library_fallback_14.png",
+    "media_assets/placeholders/libraries/library_fallback_15.png",
+    "media_assets/placeholders/libraries/library_fallback_16.png",
+    "media_assets/placeholders/libraries/library_fallback_17.png",
+    "media_assets/placeholders/libraries/library_fallback_18.png",
+    "media_assets/placeholders/libraries/library_fallback_19.png",
+    "media_assets/placeholders/libraries/library_fallback_20.png",
+)
 
 
 def get_prefetched_first(instance, attr_name, fallback_queryset):
@@ -90,12 +110,14 @@ def resolve_media_asset_payload(media_asset):
     }
 
 
-def resolve_library_placeholder_payload(library_type):
-    placeholder_type = library_type if library_type in LIBRARY_PLACEHOLDER_IMAGES else DEFAULT_LIBRARY_PLACEHOLDER_TYPE
+def resolve_library_placeholder_payload(library):
+    seed = str(library.id or library.normalized_name or library.name)
+    digest = hashlib.sha256(seed.encode("utf-8")).hexdigest()
+    placeholder_index = int(digest, 16) % len(LIBRARY_PLACEHOLDER_IMAGES)
     return {
-        "url": static(LIBRARY_PLACEHOLDER_IMAGES[placeholder_type]),
+        "url": static(LIBRARY_PLACEHOLDER_IMAGES[placeholder_index]),
         "is_fallback": True,
-        "fallback_key": f"library/{placeholder_type}",
+        "fallback_key": f"library/random/{placeholder_index + 1:02d}",
         "license_code": "internal",
         "attribution_text": None,
     }
@@ -106,7 +128,7 @@ def resolve_library_thumbnail_payload(library):
         media_asset_payload = resolve_media_asset_payload(image.media_asset)
         if media_asset_payload:
             return media_asset_payload
-    return resolve_library_placeholder_payload(library.library_type)
+    return resolve_library_placeholder_payload(library)
 
 
 class LibraryStatisticSummarySerializer(serializers.ModelSerializer):

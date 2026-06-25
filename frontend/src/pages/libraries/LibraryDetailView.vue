@@ -242,80 +242,7 @@ onMounted(loadLibrary)
         </div>
       </section>
 
-      <div class="row g-4 mb-4">
-        <div class="col-lg-6">
-          <section class="content-panel p-4 h-100">
-            <h2 class="section-title">기본 정보</h2>
-            <dl class="row mb-0">
-              <dt class="col-sm-4">도로명주소</dt>
-              <dd class="col-sm-8">{{ library.road_address || '주소 정보 없음' }}</dd>
-              <dt class="col-sm-4">전화번호</dt>
-              <dd class="col-sm-8">{{ library.phone || '전화 정보 없음' }}</dd>
-              <dt class="col-sm-4">홈페이지</dt>
-              <dd class="col-sm-8">
-                <a v-if="library.homepage_url" :href="library.homepage_url" target="_blank" rel="noopener">
-                  홈페이지 열기
-                </a>
-                <span v-else>홈페이지 정보 없음</span>
-              </dd>
-              <dt class="col-sm-4">운영기관</dt>
-              <dd class="col-sm-8">{{ library.operating_agency || '운영기관 정보 없음' }}</dd>
-            </dl>
-          </section>
-        </div>
-        <div class="col-lg-6">
-          <section class="content-panel p-4 h-100">
-            <h2 class="section-title">운영 정보</h2>
-            <dl class="row mb-0">
-              <dt class="col-sm-4">오늘 운영</dt>
-              <dd class="col-sm-8">{{ todayOperationText }}</dd>
-              <template v-for="hour in displayOpeningHours" :key="hour.key">
-                <dt class="col-sm-4">{{ hour.label }}</dt>
-                <dd class="col-sm-8">{{ hour.text }}</dd>
-              </template>
-              <dt class="col-sm-4">휴관일</dt>
-              <dd class="col-sm-8">
-                <span v-if="closureText">{{ closureText }}</span>
-                <span v-else>휴관 정보 없음</span>
-              </dd>
-            </dl>
-          </section>
-        </div>
-      </div>
-
-      <div class="row g-4 mb-4">
-        <div class="col-lg-6">
-          <section class="content-panel p-4 h-100">
-            <h2 class="section-title">장서/열람·공간 규모</h2>
-            <dl class="row mb-0">
-              <dt class="col-6">도서 자료 수</dt>
-              <dd class="col-6 text-end">{{ formatNumber(stat.book_count ?? library.book_count) }}</dd>
-              <dt class="col-6">비도서 수</dt>
-              <dd class="col-6 text-end">{{ formatNumber(stat.non_book_count) }}</dd>
-              <dt class="col-6">연속간행물 수</dt>
-              <dd class="col-6 text-end">{{ formatNumber(stat.serial_count) }}</dd>
-              <dt class="col-6">열람좌석 수</dt>
-              <dd class="col-6 text-end">{{ formatNumber(stat.reading_seat_count ?? library.reading_seat_count) }}</dd>
-              <dt class="col-6">부지면적</dt>
-              <dd class="col-6 text-end">{{ formatNumber(stat.site_area) }}</dd>
-              <dt class="col-6">건물면적</dt>
-              <dd class="col-6 text-end">{{ formatNumber(stat.building_area) }}</dd>
-            </dl>
-          </section>
-        </div>
-        <div class="col-lg-6">
-          <section class="content-panel p-4 h-100">
-            <h2 class="section-title">시설/공간 정보</h2>
-            <p v-if="!library.facility_profile" class="meta-text mb-0">시설 데이터가 아직 수집되지 않았습니다.</p>
-            <p v-else-if="!facilityItems.length" class="meta-text mb-0">명시적으로 확인된 시설이 없습니다.</p>
-            <div v-else class="chip-row">
-              <span v-for="facility in facilityItems" :key="facility.key" class="facility-chip">{{ facility.label }}</span>
-            </div>
-          </section>
-        </div>
-      </div>
-
-      <section class="content-panel p-4 mb-5">
+      <section class="content-panel p-4 mb-4">
         <h2 class="section-title">위치 정보</h2>
         <KakaoMapPanel
           :latitude="library.latitude"
@@ -324,6 +251,71 @@ onMounted(loadLibrary)
           :address="library.road_address"
         />
       </section>
+
+      <div class="library-detail-info-grid mb-5">
+        <section class="content-panel p-4">
+          <h2 class="section-title">기본 정보</h2>
+          <dl class="library-detail-dl mb-0">
+            <dt>도로명주소</dt>
+            <dd>{{ library.road_address || '주소 정보 없음' }}</dd>
+            <dt>전화번호</dt>
+            <dd>{{ library.phone || '전화 정보 없음' }}</dd>
+            <dt>홈페이지</dt>
+            <dd>
+              <a v-if="library.homepage_url" :href="library.homepage_url" target="_blank" rel="noopener">
+                홈페이지 열기
+              </a>
+              <span v-else>홈페이지 정보 없음</span>
+            </dd>
+            <dt>운영기관</dt>
+            <dd>{{ library.operating_agency || '운영기관 정보 없음' }}</dd>
+          </dl>
+        </section>
+
+        <section class="content-panel p-4">
+          <h2 class="section-title">운영 정보</h2>
+          <dl class="library-detail-dl mb-0">
+            <dt>오늘 운영</dt>
+            <dd>{{ todayOperationText }}</dd>
+            <template v-for="hour in displayOpeningHours" :key="hour.key">
+              <dt>{{ hour.label }}</dt>
+              <dd>{{ hour.text }}</dd>
+            </template>
+            <dt>휴관일</dt>
+            <dd>
+              <span v-if="closureText">{{ closureText }}</span>
+              <span v-else>휴관 정보 없음</span>
+            </dd>
+          </dl>
+        </section>
+
+        <section class="content-panel p-4">
+          <h2 class="section-title">장서/열람·공간 규모</h2>
+          <dl class="library-detail-dl library-detail-dl-numeric mb-0">
+            <dt>도서 자료 수</dt>
+            <dd>{{ formatNumber(stat.book_count ?? library.book_count) }}</dd>
+            <dt>비도서 수</dt>
+            <dd>{{ formatNumber(stat.non_book_count) }}</dd>
+            <dt>연속간행물 수</dt>
+            <dd>{{ formatNumber(stat.serial_count) }}</dd>
+            <dt>열람좌석 수</dt>
+            <dd>{{ formatNumber(stat.reading_seat_count ?? library.reading_seat_count) }}</dd>
+            <dt>부지면적</dt>
+            <dd>{{ formatNumber(stat.site_area) }}</dd>
+            <dt>건물면적</dt>
+            <dd>{{ formatNumber(stat.building_area) }}</dd>
+          </dl>
+        </section>
+
+        <section class="content-panel p-4">
+          <h2 class="section-title">시설/공간 정보</h2>
+          <p v-if="!library.facility_profile" class="meta-text mb-0">시설 데이터가 아직 수집되지 않았습니다.</p>
+          <p v-else-if="!facilityItems.length" class="meta-text mb-0">명시적으로 확인된 시설이 없습니다.</p>
+          <div v-else class="chip-row">
+            <span v-for="facility in facilityItems" :key="facility.key" class="facility-chip">{{ facility.label }}</span>
+          </div>
+        </section>
+      </div>
 
       <section class="mb-5">
         <div class="section-header-row">
