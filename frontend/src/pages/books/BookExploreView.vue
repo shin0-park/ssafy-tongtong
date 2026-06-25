@@ -30,6 +30,7 @@ const isLoading = ref(false)
 const isPopularLoading = ref(false)
 const error = ref(null)
 const popularError = ref(null)
+const popularRail = ref(null)
 const filters = reactive({
   search_type: normalizeSearchType(route.query.search_type),
   q: normalizeText(route.query.q),
@@ -159,6 +160,15 @@ function resetSearch() {
   router.push({ name: 'book-list' })
 }
 
+function scrollPopularBooks(direction) {
+  if (!popularRail.value) return
+
+  popularRail.value.scrollBy({
+    left: direction * popularRail.value.clientWidth * 0.85,
+    behavior: 'smooth',
+  })
+}
+
 function goToPage(page) {
   router.push({
     name: 'book-list',
@@ -205,6 +215,24 @@ onMounted(() => {
             }}
           </p>
         </div>
+        <div v-if="popularBooks.length" class="carousel-controls" aria-label="인기 도서 이동">
+          <button
+            class="carousel-arrow"
+            type="button"
+            aria-label="이전 인기 도서 보기"
+            @click="scrollPopularBooks(-1)"
+          >
+            ‹
+          </button>
+          <button
+            class="carousel-arrow"
+            type="button"
+            aria-label="다음 인기 도서 보기"
+            @click="scrollPopularBooks(1)"
+          >
+            ›
+          </button>
+        </div>
       </div>
       <LoadingState v-if="isPopularLoading" title="인기 도서를 불러오는 중입니다." />
       <p v-else-if="popularError" class="meta-text">인기 도서를 불러오지 못했어요.</p>
@@ -213,13 +241,12 @@ onMounted(() => {
         title="인기 도서가 아직 없습니다."
         description="집계 데이터가 준비되면 이곳에 표시됩니다."
       />
-      <div v-else class="book-result-grid">
-        <BookCard
-          v-for="(book, index) in popularBooks.slice(0, 6)"
-          :key="book.isbn13 || index"
-          :book="book"
-          :rank="index + 1"
-        />
+      <div v-else class="popular-book-carousel">
+        <div ref="popularRail" class="popular-book-rail" tabindex="0" aria-label="이번 주 인기 도서 목록">
+          <div v-for="(book, index) in popularBooks" :key="book.isbn13 || index" class="popular-book-item">
+            <BookCard :book="book" :rank="index + 1" />
+          </div>
+        </div>
       </div>
     </section>
 

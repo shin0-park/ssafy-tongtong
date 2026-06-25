@@ -72,6 +72,66 @@
   gap: var(--space-4);
 }
 
+.popular-book-carousel {
+  position: relative;
+}
+
+.popular-book-rail {
+  display: grid;
+  grid-auto-columns: minmax(300px, 360px);
+  grid-auto-flow: column;
+  gap: var(--space-4);
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding: var(--space-1) var(--space-1) var(--space-3);
+  scroll-behavior: smooth;
+  scroll-padding-inline: var(--space-1);
+  scroll-snap-type: inline mandatory;
+  scrollbar-width: thin;
+}
+
+.popular-book-rail:focus-visible {
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+  outline: none;
+}
+
+.popular-book-item {
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.carousel-controls {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.carousel-arrow {
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  font-size: 1.6rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+}
+
+.carousel-arrow:hover,
+.carousel-arrow:focus-visible {
+  border-color: var(--color-primary-300);
+  background: var(--color-primary-100);
+  color: var(--color-primary-800);
+  outline: none;
+}
+
 .program-result-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -923,6 +983,10 @@ button.filter-chip:focus-visible {
 }
 
 @media (max-width: 575.98px) {
+  .popular-book-rail {
+    grid-auto-columns: minmax(260px, 86vw);
+  }
+
   .library-result-grid,
   .book-result-grid,
   .program-result-grid {
