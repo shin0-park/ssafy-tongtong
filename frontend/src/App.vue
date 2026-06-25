@@ -21,8 +21,8 @@ async function handleLogout() {
     <nav class="navbar navbar-expand-lg">
       <div class="container-fluid app-nav-container">
         <RouterLink class="navbar-brand app-brand" to="/">
-          <img class="brand-icon" src="/brand/logo-icon.png" alt="" aria-hidden="true" />
-          <img class="brand-wordmark" src="/brand/logo-wordmark.png" alt="도서관 나들이" />
+          <img class="brand-icon" src="/brand/logo-icon-clean.png" alt="" aria-hidden="true" />
+          <img class="brand-wordmark" src="/brand/logo-wordmark-clean.png" alt="도서관 나들이" />
         </RouterLink>
 
         <button
@@ -69,7 +69,6 @@ async function handleLogout() {
                 />
                 <span class="visually-hidden">{{ user?.nickname || '프로필' }}</span>
               </RouterLink>
-              <button class="btn btn-link btn-sm" type="button" @click="handleLogout">로그아웃</button>
             </template>
             <template v-else>
               <RouterLink class="btn btn-primary btn-sm" to="/auth/login">로그인</RouterLink>
@@ -84,4 +83,19 @@ async function handleLogout() {
   <main>
     <RouterView />
   </main>
+
+  <footer class="app-footer">
+    <div class="app-footer-inner">
+      <div>
+        <strong>도서관 나들이</strong>
+        <p>도서관, 책, 문화 프로그램을 둘러보는 생활형 탐색 서비스</p>
+      </div>
+      <nav aria-label="하단 링크">
+        <RouterLink to="/libraries">도서관 찾기</RouterLink>
+        <RouterLink to="/books">책 둘러보기</RouterLink>
+        <RouterLink to="/community">커뮤니티</RouterLink>
+        <button v-if="isAuthenticated" type="button" @click="handleLogout">로그아웃</button>
+      </nav>
+    </div>
+  </footer>
 </template>

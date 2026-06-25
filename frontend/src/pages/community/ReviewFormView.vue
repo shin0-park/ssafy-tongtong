@@ -362,6 +362,7 @@ onMounted(async () => {
           </section>
 
           <section class="content-panel-soft review-form-side-panel review-form-book">
+            <p class="filter-group-title mb-2">관련 책</p>
             <div class="d-flex gap-2">
               <input
                 v-model.trim="bookSearchQuery"

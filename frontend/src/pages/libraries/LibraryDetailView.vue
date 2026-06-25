@@ -350,7 +350,7 @@ onMounted(loadLibrary)
         </div>
         <p v-if="sectionErrors.similar" class="meta-text">{{ sectionErrors.similar }}</p>
         <EmptyState v-else-if="!similarLibraries.length" title="비슷한 도서관 정보가 없어요." />
-        <div v-else class="responsive-card-grid-three">
+        <div v-else class="responsive-card-grid-three similar-library-grid">
           <LibraryCard v-for="item in similarLibraries.slice(0, 3)" :key="item.id" :library="item" />
         </div>
       </section>

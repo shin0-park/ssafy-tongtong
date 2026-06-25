@@ -249,7 +249,8 @@ onMounted(loadPrograms)
       <p>도서관에서 열리는 강연, 독서, 전시, 체험 프로그램을 검색하고 해당 도서관으로 이동해 보세요.</p>
     </div>
 
-    <form class="content-panel p-4 mb-4 filter-panel" @submit.prevent="applyFilters">
+    <div class="explore-layout explore-layout-programs">
+    <form class="content-panel p-4 filter-panel explore-filter-panel" @submit.prevent="applyFilters">
       <div class="filter-grid">
         <label class="form-field">
           <span>프로그램명 또는 도서관명</span>
@@ -346,42 +347,45 @@ onMounted(loadPrograms)
       </div>
     </form>
 
-    <LoadingState v-if="isLoading" title="문화 프로그램을 불러오는 중입니다." />
-    <ErrorState
-      v-else-if="error"
-      title="문화 프로그램을 불러오지 못했습니다."
-      :message="error.message"
-      @retry="loadPrograms"
-    />
-    <EmptyState
-      v-else-if="!hasPrograms"
-      title="현재 표시할 문화 프로그램이 없습니다."
-      description="검색어나 필터를 조정해 보세요."
-    />
-
-    <template v-else>
-      <div class="result-toolbar mb-3">
-        <ResultCount :count="pagination.count" label="개" />
-        <div class="result-sort-controls" aria-label="문화 프로그램 목록 정렬">
-          <label class="result-sort-select">
-            <span>정렬</span>
-            <select v-model="filters.ordering" class="form-select form-select-sm" @change="applySort">
-              <option v-for="option in ORDERING_OPTIONS" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
-          </label>
-        </div>
-      </div>
-      <div class="program-result-grid">
-        <ProgramCard v-for="program in programs" :key="program.id" :program="program" />
-      </div>
-      <PaginationBar
-        :current-page="currentPage"
-        :has-previous="Boolean(pagination.previous)"
-        :has-next="Boolean(pagination.next)"
-        @change="goToPage"
+    <div class="explore-results">
+      <LoadingState v-if="isLoading" title="문화 프로그램을 불러오는 중입니다." />
+      <ErrorState
+        v-else-if="error"
+        title="문화 프로그램을 불러오지 못했습니다."
+        :message="error.message"
+        @retry="loadPrograms"
       />
-    </template>
+      <EmptyState
+        v-else-if="!hasPrograms"
+        title="현재 표시할 문화 프로그램이 없습니다."
+        description="검색어나 필터를 조정해 보세요."
+      />
+
+      <template v-else>
+        <div class="result-toolbar mb-3">
+          <ResultCount :count="pagination.count" label="개" />
+          <div class="result-sort-controls" aria-label="문화 프로그램 목록 정렬">
+            <label class="result-sort-select">
+              <span>정렬</span>
+              <select v-model="filters.ordering" class="form-select form-select-sm" @change="applySort">
+                <option v-for="option in ORDERING_OPTIONS" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="program-result-grid">
+          <ProgramCard v-for="program in programs" :key="program.id" :program="program" />
+        </div>
+        <PaginationBar
+          :current-page="currentPage"
+          :has-previous="Boolean(pagination.previous)"
+          :has-next="Boolean(pagination.next)"
+          @change="goToPage"
+        />
+      </template>
+    </div>
+    </div>
   </section>
 </template>

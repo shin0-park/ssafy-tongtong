@@ -341,10 +341,11 @@ onMounted(() => {
   <section class="page-shell">
     <div class="page-hero page-hero-banner page-hero-libraries">
       <h1>도서관 찾기</h1>
-      <p>지역, 테마, 운영 조건, 시설 정보를 조합해 오늘 가기 좋은 부산 도서관을 찾아보세요.</p>
+      <p>지역, 테마, 운영 조건, 시설 정보를 조합해 오늘 가기 좋은 도서관을 찾아보세요.</p>
     </div>
 
-    <form class="content-panel p-4 mb-4 filter-panel" @submit.prevent="applyFilters">
+    <div class="explore-layout">
+    <form class="content-panel p-4 filter-panel explore-filter-panel" @submit.prevent="applyFilters">
       <div class="filter-grid">
         <label class="form-field">
           <span>검색</span>
@@ -461,50 +462,53 @@ onMounted(() => {
       </div>
     </form>
 
-    <LoadingState v-if="isLoading" title="도서관 목록을 불러오는 중입니다." />
-    <ErrorState
-      v-else-if="error"
-      title="도서관 목록을 불러오지 못했습니다."
-      :message="error.message"
-      @retry="loadLibraries"
-    />
-    <EmptyState
-      v-else-if="!hasLibraries"
-      title="조건에 맞는 도서관이 없습니다."
-      description="검색어나 필터를 조정해 보세요."
-    />
-
-    <template v-else>
-      <div class="result-toolbar mb-3">
-        <div>
-          <ResultCount :count="pagination.count" label="곳" />
-          <p class="meta-text mb-0">{{ hasFilter ? '검색 필터 결과입니다.' : '전체 도서관 목록입니다.' }}</p>
-        </div>
-        <div class="result-sort-controls" aria-label="도서관 목록 정렬">
-          <label class="result-sort-select">
-            <span>정렬</span>
-            <select v-model="filters.ordering" class="form-select form-select-sm" @change="applySort">
-              <option
-                v-for="option in ORDERING_OPTIONS"
-                :key="option.value"
-                :value="option.value"
-                :disabled="option.value === 'purpose_score' && !filters.purpose"
-              >
-                {{ option.label }}
-              </option>
-            </select>
-          </label>
-        </div>
-      </div>
-      <div class="library-result-grid">
-        <LibraryCard v-for="library in libraries" :key="library.id" :library="library" />
-      </div>
-      <PaginationBar
-        :current-page="page"
-        :has-previous="Boolean(pagination.previous)"
-        :has-next="Boolean(pagination.next)"
-        @change="goToPage"
+    <div class="explore-results">
+      <LoadingState v-if="isLoading" title="도서관 목록을 불러오는 중입니다." />
+      <ErrorState
+        v-else-if="error"
+        title="도서관 목록을 불러오지 못했습니다."
+        :message="error.message"
+        @retry="loadLibraries"
       />
-    </template>
+      <EmptyState
+        v-else-if="!hasLibraries"
+        title="조건에 맞는 도서관이 없습니다."
+        description="검색어나 필터를 조정해 보세요."
+      />
+
+      <template v-else>
+        <div class="result-toolbar mb-3">
+          <div>
+            <ResultCount :count="pagination.count" label="곳" />
+            <p class="meta-text mb-0">{{ hasFilter ? '검색 필터 결과입니다.' : '전체 도서관 목록입니다.' }}</p>
+          </div>
+          <div class="result-sort-controls" aria-label="도서관 목록 정렬">
+            <label class="result-sort-select">
+              <span>정렬</span>
+              <select v-model="filters.ordering" class="form-select form-select-sm" @change="applySort">
+                <option
+                  v-for="option in ORDERING_OPTIONS"
+                  :key="option.value"
+                  :value="option.value"
+                  :disabled="option.value === 'purpose_score' && !filters.purpose"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="library-result-grid">
+          <LibraryCard v-for="library in libraries" :key="library.id" :library="library" />
+        </div>
+        <PaginationBar
+          :current-page="page"
+          :has-previous="Boolean(pagination.previous)"
+          :has-next="Boolean(pagination.next)"
+          @change="goToPage"
+        />
+      </template>
+    </div>
+    </div>
   </section>
 </template>

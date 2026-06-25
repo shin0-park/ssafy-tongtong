@@ -122,7 +122,7 @@ onMounted(loadPage)
     <EmptyState v-else-if="!book" title="책 정보가 없습니다." />
 
     <template v-else>
-      <div class="book-detail-layout mb-4">
+      <div class="book-detail-layout content-panel p-4 mb-4">
         <div class="book-detail-cover">
           <ResponsiveImage :src="book.cover_image_url" :alt="`${book.title} 표지`" fallback-label="표지 없음" />
         </div>

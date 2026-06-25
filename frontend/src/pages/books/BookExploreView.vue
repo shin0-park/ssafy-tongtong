@@ -220,7 +220,7 @@ onMounted(() => {
   <section class="page-shell">
     <div class="page-hero page-hero-banner page-hero-books">
       <h1>책 둘러보기</h1>
-      <p>읽고 싶은 책을 찾고, 부산에서 그 책을 소장한 도서관을 함께 확인해보세요.</p>
+      <p>읽고 싶은 책을 찾고, 그 책을 소장한 도서관을 함께 확인해보세요.</p>
     </div>
 
     <section class="mb-5">
