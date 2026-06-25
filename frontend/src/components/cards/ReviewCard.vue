@@ -26,6 +26,8 @@ const libraryTo = computed(() =>
 )
 const authorName = computed(() => props.review.user?.nickname || props.review.author?.nickname || '익명')
 const images = computed(() => props.review.images ?? [])
+const previewImages = computed(() => images.value.slice(0, 3))
+const hiddenImageCount = computed(() => Math.max(images.value.length - previewImages.value.length, 0))
 const tags = computed(() => props.review.tags ?? [])
 const books = computed(() => props.review.books ?? props.review.related_books ?? [])
 const programs = computed(() => props.review.programs ?? props.review.related_programs ?? [])
@@ -71,14 +73,15 @@ function tagLabel(tag) {
       {{ review.content || '후기 내용이 없습니다.' }}
     </p>
 
-    <div v-if="images.length" class="review-image-grid">
+    <div v-if="previewImages.length" class="review-image-strip">
       <ResponsiveImage
-        v-for="image in images"
+        v-for="image in previewImages"
         :key="image.id || image.image_url || image.url"
         class="review-image-thumb"
         :src="image.image_url || image.url"
         :alt="image.alt_text || `${authorName} 후기 이미지`"
       />
+      <span v-if="hiddenImageCount" class="review-image-more">+{{ hiddenImageCount }}</span>
     </div>
 
     <div v-if="tags.length" class="chip-row">
