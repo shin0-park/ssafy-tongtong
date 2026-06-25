@@ -10,6 +10,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
 import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
+import BackLink from '@/components/navigation/BackLink.vue'
 import PaginationBar from '@/components/navigation/PaginationBar.vue'
 import {
   createReviewComment,
@@ -211,6 +212,8 @@ onMounted(loadPageData)
 
 <template>
   <section class="page-shell">
+    <BackLink to="/community" label="커뮤니티로 돌아가기" />
+
     <div class="page-header">
       <p class="eyebrow">커뮤니티</p>
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
@@ -218,7 +221,6 @@ onMounted(loadPageData)
           <h1>후기 상세</h1>
           <p class="page-description mb-0">도서관 경험과 연결된 책, 프로그램 정보를 확인합니다.</p>
         </div>
-        <RouterLink class="btn btn-outline-secondary" to="/community">목록으로</RouterLink>
       </div>
     </div>
 
@@ -291,8 +293,7 @@ onMounted(loadPageData)
         </div>
       </article>
 
-      <div class="d-flex flex-wrap justify-content-between gap-2 mt-3">
-        <RouterLink class="btn btn-outline-secondary" to="/community">목록으로</RouterLink>
+      <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
         <div v-if="canEdit" class="d-flex flex-wrap gap-2">
           <RouterLink class="btn btn-outline-primary" :to="`/reviews/${review.id}/edit`">수정</RouterLink>
           <button class="btn btn-outline-danger" type="button" :disabled="isDeleting" @click="handleDelete">

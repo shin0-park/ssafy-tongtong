@@ -9,6 +9,7 @@ import ReviewCard from '@/components/cards/ReviewCard.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
+import BackLink from '@/components/navigation/BackLink.vue'
 import PaginationBar from '@/components/navigation/PaginationBar.vue'
 import ResultCount from '@/components/navigation/ResultCount.vue'
 import {
@@ -147,19 +148,12 @@ onMounted(loadItems)
 
 <template>
   <section class="page-shell">
+    <BackLink to="/my-outings/dashboard" label="나의 나들이 요약으로 돌아가기" />
+
     <div class="page-header">
       <p class="eyebrow">나의 나들이</p>
       <h1 class="page-title">{{ meta.title }}</h1>
       <p class="page-description mb-0">{{ meta.description }}</p>
-    </div>
-
-    <div class="myoutings-nav mb-4">
-      <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/dashboard">요약</RouterLink>
-      <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/libraries">도서관</RouterLink>
-      <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/books">책</RouterLink>
-      <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/programs">프로그램</RouterLink>
-      <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/liked-reviews">좋아요 후기</RouterLink>
-      <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/reviews">내 후기/댓글</RouterLink>
     </div>
 
     <div v-if="kind === 'reviews'" class="myoutings-nav mb-4" aria-label="내가 쓴 후기와 댓글 보기">

@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
 import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
+import BackLink from '@/components/navigation/BackLink.vue'
 import { useAuthStore } from '@/stores/auth'
 import {
   DEFAULT_MAX_IMAGE_SIZE_MB,
@@ -135,6 +136,8 @@ onBeforeUnmount(revokeSelectedImagePreview)
     <LoadingState v-if="isLoading" title="프로필을 불러오는 중입니다." />
 
     <div v-else class="auth-card content-panel p-4">
+      <BackLink to="/profile" label="프로필로 돌아가기" />
+
       <div class="mb-4">
         <h1 class="page-title">프로필 수정</h1>
         <p class="page-subtitle">닉네임, 소개, 프로필 이미지를 관리합니다.</p>
