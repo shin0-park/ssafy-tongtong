@@ -14,14 +14,23 @@ const isLoading = ref(false)
 const error = ref(null)
 const locationMessage = ref('')
 
-const todayItems = computed(() => homeData.value?.today_recommendations?.items ?? [])
-const themeGroups = computed(() => homeData.value?.theme_recommendations ?? [])
+const PUBLIC_THEME_CODES = new Set(['study', 'book', 'kids', 'mood', 'nearby'])
+
+const todayItems = computed(() => (homeData.value?.today_recommendations?.items ?? []).slice(0, 3))
+const themeGroups = computed(() =>
+  (homeData.value?.theme_recommendations ?? []).filter((group) =>
+    PUBLIC_THEME_CODES.has(group.purpose?.code),
+  ),
+)
 const personalItems = computed(() => homeData.value?.personal_recommendations?.items ?? [])
 const personalRecommendations = computed(() => homeData.value?.personal_recommendations ?? {})
+const showPersonalRecommendations = computed(
+  () => personalRecommendations.value.available === true && personalItems.value.length > 0,
+)
 const hasContent = computed(
   () =>
     todayItems.value.length > 0 ||
-    personalItems.value.length > 0 ||
+    showPersonalRecommendations.value ||
     themeGroups.value.some((group) => group.items?.length),
 )
 
@@ -121,7 +130,7 @@ onMounted(loadHome)
         </div>
       </section>
 
-      <section>
+      <section v-if="showPersonalRecommendations">
         <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
           <div>
             <h2 class="section-title mb-1">

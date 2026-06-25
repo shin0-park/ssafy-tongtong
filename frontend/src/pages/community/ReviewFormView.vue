@@ -8,7 +8,12 @@ import { searchBooks } from '@/services/bookService'
 import { fetchPrograms } from '@/services/programService'
 import { createReview, fetchReviewDetail, updateReview } from '@/services/reviewService'
 import { extractErrorMessage, normalizeApiError } from '@/utils/apiError'
-import { buildMultipartPayload, hasFiles } from '@/utils/formData'
+import {
+  DEFAULT_MAX_IMAGE_SIZE_MB,
+  buildMultipartPayload,
+  findInvalidImage,
+  hasFiles,
+} from '@/utils/formData'
 
 const route = useRoute()
 const router = useRouter()
@@ -83,8 +88,13 @@ function validate() {
     return '이미지는 최대 5장까지 선택할 수 있어요.'
   }
 
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
-  if (selectedImages.value.some((file) => !allowedTypes.includes(file.type))) {
+  const invalidImage = findInvalidImage(selectedImages.value)
+
+  if (invalidImage && invalidImage.size > DEFAULT_MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+    return `이미지는 1장당 ${DEFAULT_MAX_IMAGE_SIZE_MB}MB 이하로 선택할 수 있어요.`
+  }
+
+  if (invalidImage) {
     return '이미지는 jpg, png, webp 형식만 사용할 수 있어요.'
   }
 

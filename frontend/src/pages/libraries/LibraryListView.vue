@@ -40,6 +40,9 @@ const hasLibraries = computed(() => libraries.value.length > 0)
 const pageQuery = computed(() => readPageQuery(route))
 const page = computed(() => pageQuery.value.page)
 const pageSize = computed(() => pageQuery.value.page_size || 12)
+const nearbyNeedsLocation = computed(
+  () => filters.purpose === 'nearby' && (!filters.lat || !filters.lng),
+)
 
 const facilityOptions = [
   { value: 'has_reading_room', label: '열람실' },
@@ -77,12 +80,13 @@ function syncFromRoute() {
 
 function buildRequestParams() {
   const facilityParams = Object.fromEntries(filters.facilities.map((key) => [key, true]))
+  const purpose = nearbyNeedsLocation.value ? '' : filters.purpose
 
   return {
     q: filters.q,
     sigungu: filters.sigungu,
     library_type: filters.library_type,
-    purpose: filters.purpose,
+    purpose,
     lat: filters.lat,
     lng: filters.lng,
     min_book_count: filters.min_book_count,
@@ -120,6 +124,7 @@ async function loadLibraries() {
 
 function applyFilters() {
   const facilityQuery = Object.fromEntries(filters.facilities.map((key) => [key, 'true']))
+  const purpose = nearbyNeedsLocation.value ? '' : filters.purpose
 
   router.push({
     name: 'library-list',
@@ -127,7 +132,7 @@ function applyFilters() {
       q: filters.q || undefined,
       sigungu: filters.sigungu || undefined,
       library_type: filters.library_type || undefined,
-      purpose: filters.purpose || undefined,
+      purpose: purpose || undefined,
       lat: filters.lat || undefined,
       lng: filters.lng || undefined,
       min_book_count: filters.min_book_count || undefined,
@@ -242,6 +247,10 @@ onMounted(() => {
           <span class="form-check-label">주말 운영</span>
         </label>
       </div>
+
+      <p v-if="nearbyNeedsLocation" class="alert alert-info py-2 mb-3">
+        가까운 도서관 목적은 위도와 경도가 있을 때만 적용됩니다. 좌표가 없으면 일반 도서관 검색으로 조회합니다.
+      </p>
 
       <fieldset class="preference-fieldset mb-3">
         <legend>확인된 시설</legend>

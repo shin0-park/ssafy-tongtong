@@ -6,7 +6,12 @@ import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
 import ResponsiveImage from '@/components/media/ResponsiveImage.vue'
 import { useAuthStore } from '@/stores/auth'
-import { buildMultipartPayload, hasFiles } from '@/utils/formData'
+import {
+  DEFAULT_MAX_IMAGE_SIZE_MB,
+  buildMultipartPayload,
+  findInvalidImage,
+  hasFiles,
+} from '@/utils/formData'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -62,10 +67,13 @@ function validateImage() {
     return ''
   }
 
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
-  return allowedTypes.includes(selectedImage.value.type)
-    ? ''
-    : '프로필 이미지는 jpg, png, webp 형식만 사용할 수 있어요.'
+  const invalidImage = findInvalidImage(selectedImage.value)
+
+  if (invalidImage && invalidImage.size > DEFAULT_MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+    return `프로필 이미지는 ${DEFAULT_MAX_IMAGE_SIZE_MB}MB 이하로 선택할 수 있어요.`
+  }
+
+  return invalidImage ? '프로필 이미지는 jpg, png, webp 형식만 사용할 수 있어요.' : ''
 }
 
 async function submitProfile() {
