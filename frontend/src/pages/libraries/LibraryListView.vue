@@ -370,7 +370,7 @@ onMounted(() => {
         <ResultCount :count="pagination.count" label="곳" />
         <p class="meta-text mb-0">{{ hasFilter ? '검색/필터 결과입니다.' : '전체 도서관 목록입니다.' }}</p>
       </div>
-      <div class="responsive-card-grid">
+      <div class="library-result-grid">
         <LibraryCard v-for="library in libraries" :key="library.id" :library="library" />
       </div>
       <PaginationBar
