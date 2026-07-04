@@ -87,6 +87,7 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, trim_whitespace=False)
 
     def validate(self, attrs):
+        # Django authenticate는 username 인자를 쓰지만, 현재 User.USERNAME_FIELD는 email이다.
         user = authenticate(
             request=self.context.get("request"),
             username=attrs["email"],

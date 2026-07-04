@@ -341,6 +341,7 @@ def build_summary_sentence(axis_scores, counters, signal_count):
 def build_enhanced_summary_sentence(axis_scores, counters, signal_count, rule_sentence):
     if signal_count == 0:
         return rule_sentence
+    # GMS는 규칙 기반 결과를 문장으로 다듬는 보조 단계이며, 점수나 사실 필드는 바꾸지 않는다.
     enhanced = enhance_summary_sentence(
         {
             "top_axis": top_axis_code(axis_scores),

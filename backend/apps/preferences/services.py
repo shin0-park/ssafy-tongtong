@@ -69,6 +69,7 @@ def mark_user_preference_pending(user):
 
 
 def schedule_user_preference_pending(user):
+    # 저장/좋아요/후기 변경이 rollback되면 성향 상태도 바꾸지 않도록 commit 이후에 예약한다.
     transaction.on_commit(lambda: mark_user_preference_pending(user))
 
 
@@ -187,6 +188,7 @@ def _rebuild_user_preference(user, preference):
     signal_count = sum(signal_counts.values())
     items = build_preference_items(preference, contributions)
 
+    # 현재 알고리즘 버전의 결과만 유지해 이전 계산과 새 계산이 섞이지 않게 한다.
     UserPreferenceItem.objects.filter(user_preference=preference).delete()
     if items:
         UserPreferenceItem.objects.bulk_create(items)

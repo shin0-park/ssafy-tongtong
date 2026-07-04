@@ -39,6 +39,7 @@ export const useInteractionStore = defineStore('interaction', () => {
         myOutingsService.fetchLikedReviews(),
       ])
 
+      // 응답 카드에 is_saved/is_liked가 없어서 나의 나들이 목록으로 초기 상호작용 상태를 맞춘다.
       savedLibraryIds.clear()
       ;(libraries.results ?? []).forEach((item) => {
         if (item.library?.id) savedLibraryIds.add(item.library.id)

@@ -51,6 +51,7 @@ def _token_response(user, response_status=status.HTTP_200_OK):
         },
         status=response_status,
     )
+    # refresh token은 JS에서 읽지 못하는 cookie로만 내려 access token 재발급에 사용한다.
     _set_refresh_cookie(response, refresh)
     return response
 

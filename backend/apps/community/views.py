@@ -129,6 +129,7 @@ class UserReviewDetailAPIView(UserReviewQueryMixin, generics.RetrieveUpdateDestr
     @transaction.atomic
     def retrieve(self, request, *args, **kwargs):
         review = self.get_object()
+        # 조회수는 상세 조회마다 DB에서 직접 증가시켜 동시 요청의 덮어쓰기를 피한다.
         UserReview.objects.filter(pk=review.pk).update(view_count=F("view_count") + 1)
         review = review_response_queryset().get(pk=review.pk)
         return Response(UserReviewSerializer(review).data)
@@ -182,6 +183,7 @@ class ReviewLikeAPIView(APIView):
         review = self.get_review()
         _, created = UserReviewLike.objects.get_or_create(user=request.user, review=review)
         if created:
+            # UserReviewLike가 원본 관계이고 like_count는 목록 정렬용 집계 캐시다.
             UserReview.objects.filter(pk=review.pk).update(like_count=F("like_count") + 1)
             schedule_user_preference_pending(request.user)
         review.refresh_from_db(fields=["like_count"])

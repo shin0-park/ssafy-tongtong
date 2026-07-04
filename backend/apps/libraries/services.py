@@ -171,6 +171,7 @@ def apply_advanced_library_filters(queryset, params):
 
     for field in FACILITY_FIELDS:
         if params.get(field) == "true":
+            # 시설 필터는 미수집(NULL/행 없음)을 False로 단정하지 않고 명시적 True만 통과시킨다.
             queryset = queryset.filter(**{f"facility_profile__{field}": True})
 
     libraries = list(queryset)
@@ -409,6 +410,7 @@ def build_today_hours(opening_hour):
     if not opening_hour.open_time or not opening_hour.close_time:
         return None
     if opening_hour.open_time == time(0, 0) and opening_hour.close_time == time(0, 0):
+        # 원천의 00:00~00:00은 24시간 운영으로 확정하지 않고 시간 미상으로 둔다.
         return None
     return {
         "open": opening_hour.open_time.strftime("%H:%M"),
@@ -733,6 +735,7 @@ def get_true_facility_set(library):
         facility_profile = library.facility_profile
     except Exception:
         return set()
+    # 유사도와 목적 점수도 시설 미수집과 False를 섞지 않기 위해 True 필드만 사용한다.
     return {field for field in FACILITY_FIELDS if getattr(facility_profile, field) is True}
 
 

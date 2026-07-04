@@ -54,6 +54,7 @@ apiClient.interceptors.response.use(
       const authStore = await getAuthStore()
 
       if (!refreshRequest) {
+        // 동시에 여러 요청이 401을 받아도 refresh 요청은 하나만 보내고 그 결과를 공유한다.
         refreshRequest = authStore.refreshAccessToken().finally(() => {
           refreshRequest = null
         })

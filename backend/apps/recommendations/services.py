@@ -134,6 +134,7 @@ def build_today_recommendations(libraries, stat_max, date):
     if not themes:
         return {"theme": None, "items": []}
 
+    # 저장된 추천 세트가 없을 때만 날짜 기준 테마를 선택해 홈이 매일 같은 규칙으로 재현되게 한다.
     theme = themes[date.toordinal() % len(themes)]
     items = rank_libraries(
         libraries,
@@ -206,6 +207,7 @@ def build_personal_recommendations(user, libraries, stat_max):
     region_values = {preference.sigungu for preference in preferred_regions if preference.sigungu}
     purpose_codes = [preference.purpose.code for preference in preferred_purposes]
     tag_codes = [preference.tag.code for preference in preferred_tags]
+    # 사용자가 직접 고른 선호와 행동 기반 성향은 원본을 섞어 저장하지 않고 점수 계산에서만 결합한다.
     items = rank_libraries(
         libraries,
         lambda library: score_personal_with_behavior(
