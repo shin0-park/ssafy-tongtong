@@ -1306,6 +1306,16 @@ Fallback:
 - fallback 결과도 동일한 response schema를 유지한다.
 - 기존 rule-based 추천은 주 추천기가 아니라 AI 실패 시의 baseline/fallback이다.
 
+#### book_* bridge 보류
+
+v4 추천에서 `book_*` 태그는 현재 도서관 후보 점수 bridge에 사용하지 않는다. 현재 로컬/demo DB에는 `BookTag`와 `LibraryHolding` 연결 데이터가 없어, `book_literature`, `book_science` 같은 주제 선호를 특정 도서관의 소장 사실로 안전하게 연결할 수 없기 때문이다.
+
+`book_*`를 `rich_collection` 같은 일반 장서 수로만 연결하면 주제 선호의 의미가 흐려지므로 현재 MVP에서는 사용하지 않는다.
+
+향후 `LibraryHolding` 적재 또는 도서관별 KDC/주제별 장서 집계가 확보되면 `Book.kdc_class_no` → `book_*` 매핑 → 도서관별 주제 보유량 집계 → 추천 점수/evidence 반영 순서로 확장한다.
+
+현재 v4 개인 추천 bridge는 `review_*`, `facility_*`, `operation`, `program_*`, `for_*` 중심으로 동작한다.
+
 ### 9.3 프로그램 loader/provider
 
 현재 JSON 데이터 형식에 맞는 loader를 우선 구현한다.

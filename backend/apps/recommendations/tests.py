@@ -19,14 +19,20 @@ from apps.libraries.models import (
     LibraryType,
     ScheduleStatus,
 )
-from apps.recommendations.providers import RecommendationProviderError, RuleBasedFallbackRecommendationProvider
+from apps.recommendations.providers import (
+    MockRecommendationProvider,
+    RecommendationProviderError,
+    RuleBasedFallbackRecommendationProvider,
+)
 from apps.recommendations.services import (
+    build_program_bridge_score_map,
     build_personal_recommendations_v4,
     build_stat_max,
     get_candidate_libraries,
     retrieve_personal_candidates,
     score_preferred_tag,
 )
+from apps.programs.models import ApplicationStatus, OperationStatus, Program, ProgramCategory, ProgramTag
 from apps.tags.models import Tag, TagGroup, TagSemanticKind
 
 
@@ -640,6 +646,393 @@ class HomeRecommendationV4APITestCase(TestCase):
         self.assertGreater(score_preferred_tag(feature_library, "review_stay_friendly", stat_max), 0)
         self.assertEqual(score_preferred_tag(no_feature_library, "review_stay_friendly", stat_max), 0)
 
+    def test_program_reading_writing_bridge_creates_candidate_without_programtag_or_librarytag(self):
+        program_tag = self.create_program_bridge_tag(
+            "program_reading_writing",
+            "독서·글쓰기 프로그램",
+            TagGroup.PROGRAM_TYPE,
+        )
+        library = self.create_open_library("독서프로그램도서관", "기장군")
+        self.create_program(
+            library,
+            category_code=ProgramCategory.READING_WRITING,
+            operation_status=OperationStatus.UPCOMING,
+        )
+        before_library_tag_count = LibraryTag.objects.count()
+        before_program_tag_count = ProgramTag.objects.count()
+
+        candidates = self.retrieve_candidates_for_tags(["program_reading_writing"])
+
+        self.assertIn(library.id, [candidate["library_id"] for candidate in candidates])
+        self.assertEqual(ProgramTag.objects.filter(tag=program_tag).count(), 0)
+        self.assertEqual(ProgramTag.objects.count(), before_program_tag_count)
+        self.assertEqual(LibraryTag.objects.count(), before_library_tag_count)
+
+    def test_program_bridge_excludes_ended_programs(self):
+        self.create_program_bridge_tag("program_reading_writing", "독서·글쓰기 프로그램", TagGroup.PROGRAM_TYPE)
+        library = self.create_open_library("종료프로그램도서관", "동래구")
+        self.create_program(
+            library,
+            category_code=ProgramCategory.READING_WRITING,
+            operation_status=OperationStatus.ENDED,
+        )
+
+        score_map = build_program_bridge_score_map([library.id], ["program_reading_writing"])
+
+        self.assertEqual(score_map, {})
+
+    def test_program_bridge_scores_ongoing_upcoming_unknown_and_available_statuses(self):
+        self.create_program_bridge_tag("program_reading_writing", "독서·글쓰기 프로그램", TagGroup.PROGRAM_TYPE)
+        upcoming_library = self.create_open_library("예정프로그램도서관", "사하구")
+        ongoing_library = self.create_open_library("진행프로그램도서관", "사하구")
+        unknown_library = self.create_open_library("상태빈프로그램도서관", "사하구")
+        available_library = self.create_open_library("신청가능프로그램도서관", "사하구")
+        closed_library = self.create_open_library("신청마감프로그램도서관", "사하구")
+        self.create_program(
+            upcoming_library,
+            category_code=ProgramCategory.READING_WRITING,
+            operation_status=OperationStatus.UPCOMING,
+        )
+        self.create_program(
+            ongoing_library,
+            category_code=ProgramCategory.READING_WRITING,
+            operation_status=OperationStatus.ONGOING,
+        )
+        self.create_program(
+            unknown_library,
+            category_code=ProgramCategory.READING_WRITING,
+            operation_status="",
+        )
+        self.create_program(
+            available_library,
+            category_code=ProgramCategory.READING_WRITING,
+            operation_status=OperationStatus.UPCOMING,
+            application_status=ApplicationStatus.AVAILABLE,
+        )
+        self.create_program(
+            closed_library,
+            category_code=ProgramCategory.READING_WRITING,
+            operation_status=OperationStatus.UPCOMING,
+            application_status=ApplicationStatus.CLOSED,
+        )
+
+        score_map = build_program_bridge_score_map(
+            [
+                upcoming_library.id,
+                ongoing_library.id,
+                unknown_library.id,
+                available_library.id,
+                closed_library.id,
+            ],
+            ["program_reading_writing"],
+        )
+
+        upcoming_score = score_map[upcoming_library.id]["program_reading_writing"]
+        ongoing_score = score_map[ongoing_library.id]["program_reading_writing"]
+        unknown_score = score_map[unknown_library.id]["program_reading_writing"]
+        available_score = score_map[available_library.id]["program_reading_writing"]
+        closed_score = score_map[closed_library.id]["program_reading_writing"]
+        self.assertGreater(upcoming_score, 0)
+        self.assertGreater(ongoing_score, 0)
+        self.assertLess(unknown_score, upcoming_score)
+        self.assertGreater(available_score, upcoming_score)
+        self.assertLess(closed_score, upcoming_score)
+
+    def test_for_elementary_bridge_uses_program_target_codes(self):
+        self.create_program_bridge_tag("for_elementary", "초등학생 대상", TagGroup.PROGRAM_TARGET)
+        library = self.create_open_library("초등대상프로그램도서관", "부산진구")
+        self.create_program(
+            library,
+            target_codes=["for_elementary"],
+            operation_status=OperationStatus.ONGOING,
+        )
+
+        candidates = self.retrieve_candidates_for_tags(["for_elementary"])
+
+        self.assertIn(library.id, [candidate["library_id"] for candidate in candidates])
+
+    def test_for_family_bridge_uses_program_target_codes_without_facility_mix(self):
+        self.create_program_bridge_tag("for_family", "가족 대상", TagGroup.PROGRAM_TARGET)
+        program_library = self.create_open_library("가족대상프로그램도서관", "남구")
+        facility_only_library = self.create_open_library("가족시설만있는도서관", "남구")
+        self.create_program(
+            program_library,
+            target_codes=["for_family"],
+            operation_status=OperationStatus.UPCOMING,
+        )
+        LibraryFacilityProfile.objects.create(
+            library=facility_only_library,
+            has_children_room=True,
+            has_nursing_room=True,
+            has_lounge=True,
+        )
+
+        candidates = self.retrieve_candidates_for_tags(["for_family"])
+        candidate_ids = [candidate["library_id"] for candidate in candidates]
+
+        self.assertIn(program_library.id, candidate_ids)
+        self.assertNotIn(facility_only_library.id, candidate_ids)
+
+    def test_for_other_bridge_is_not_scored(self):
+        self.create_program_bridge_tag("for_other", "기타 대상", TagGroup.PROGRAM_TARGET)
+        library = self.create_open_library("기타대상프로그램도서관", "수영구")
+        self.create_program(
+            library,
+            target_codes=["for_other"],
+            operation_status=OperationStatus.UPCOMING,
+        )
+
+        score_map = build_program_bridge_score_map([library.id], ["for_other"])
+        candidates = self.retrieve_candidates_for_tags(["for_other"])
+
+        self.assertEqual(score_map, {})
+        self.assertNotIn(library.id, [candidate["library_id"] for candidate in candidates])
+
+    def test_program_bridge_evidence_is_added_to_candidate_bundle(self):
+        self.create_program_bridge_tag("program_reading_writing", "독서·글쓰기 프로그램", TagGroup.PROGRAM_TYPE)
+        library = self.create_open_library("독서근거도서관", "기장군")
+        self.create_program(
+            library,
+            category_code=ProgramCategory.READING_WRITING,
+            operation_status=OperationStatus.UPCOMING,
+        )
+
+        candidate = self.get_candidate_for_library(["program_reading_writing"], library.id)
+
+        self.assertIn("program_reading_writing", candidate["matched_plan_tags"])
+        self.assertIn("program:reading_writing_registered", candidate["allowed_evidence_codes"])
+        self.assertEqual(
+            candidate["evidence_labels"]["program:reading_writing_registered"],
+            "독서·글쓰기 프로그램 정보",
+        )
+
+    def test_target_bridge_evidence_is_added_to_candidate_bundle(self):
+        self.create_program_bridge_tag("for_family", "가족 대상", TagGroup.PROGRAM_TARGET)
+        library = self.create_open_library("가족근거도서관", "남구")
+        self.create_program(
+            library,
+            target_codes=["for_family"],
+            operation_status=OperationStatus.ONGOING,
+        )
+
+        candidate = self.get_candidate_for_library(["for_family"], library.id)
+
+        self.assertIn("for_family", candidate["matched_plan_tags"])
+        self.assertIn("target:for_family_program", candidate["allowed_evidence_codes"])
+        self.assertEqual(candidate["evidence_labels"]["target:for_family_program"], "가족 대상 프로그램 정보")
+
+    def test_for_other_is_not_added_to_matched_or_evidence(self):
+        self.create_program_bridge_tag("for_other", "기타 대상", TagGroup.PROGRAM_TARGET)
+        library = self.create_open_library("기타근거제외도서관", "수영구")
+        self.create_program(
+            library,
+            target_codes=["for_other"],
+            operation_status=OperationStatus.UPCOMING,
+        )
+
+        candidates = self.retrieve_candidates_for_tags(["for_other"])
+
+        self.assertEqual(candidates, [])
+
+    def test_review_parking_bridge_uses_objective_parking_evidence_only(self):
+        self.create_review_tag("review_parking_convenient", "주차 편의")
+        library = self.create_open_library("주차근거도서관", "강서구")
+        LibraryFacilityProfile.objects.create(library=library, has_parking=True)
+
+        candidate = self.get_candidate_for_library(["review_parking_convenient"], library.id)
+
+        self.assertIn("review_parking_convenient", candidate["matched_plan_tags"])
+        self.assertIn("tag:facility_parking", candidate["allowed_evidence_codes"])
+        self.assertEqual(candidate["evidence_labels"]["tag:facility_parking"], "주차장 정보")
+        self.assertFalse(
+            any("review_parking_convenient" in code for code in candidate["allowed_evidence_codes"])
+        )
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+    )
+    def test_review_wifi_fallback_reason_uses_objective_wifi_label(self):
+        self.create_review_tag("review_wifi_reliable", "와이파이 안정")
+        library = self.create_open_library("와이파이근거도서관", "해운대구")
+        LibraryFacilityProfile.objects.create(library=library, has_wifi=True)
+
+        class InvalidReasonProvider:
+            provider_code = "invalid_reason"
+
+            def plan_preferences(self, context):
+                return {
+                    "priority_tags": [{"code": "review_wifi_reliable", "weight": 1}],
+                    "priority_purposes": [],
+                    "preferred_regions": [],
+                    "weights": {},
+                }
+
+            def rerank_libraries(self, bundle):
+                target = next(
+                    candidate
+                    for candidate in bundle["candidates"]
+                    if candidate["library_id"] == library.id
+                )
+                return {
+                    "items": [
+                        {
+                            "library_id": target["library_id"],
+                            "rank": 1,
+                            "confidence": 0.8,
+                            "matched_priority_tags": ["review_wifi_reliable"],
+                            "evidence_codes": ["tag:facility_wifi"],
+                            "recommendation_reason": {"bad": "type"},
+                        }
+                    ]
+                }
+
+        self.client.force_authenticate(self.user)
+        with patch("apps.recommendations.services.get_provider", return_value=InvalidReasonProvider()):
+            response = self.client.get("/api/v1/home/")
+
+        reason = response.data["personal_recommendations"]["items"][0]["recommendation_reason"]
+        self.assertIn("와이파이 시설 정보", reason)
+        self.assertNotIn("와이파이가 안정", reason)
+
+    def test_late_open_evidence_is_added_only_for_late_open_candidates(self):
+        self.create_program_bridge_tag("late_open", "늦게까지 운영", TagGroup.OPERATION)
+        late_library = self.create_open_library("늦은운영근거도서관", "북구")
+        normal_library = self.create_open_library("일반운영근거도서관", "북구")
+        late_schedule = LibraryDailySchedule.objects.get(library=late_library, date=timezone.localdate())
+        late_schedule.close_time = time(20, 0)
+        late_schedule.save(update_fields=["close_time", "updated_at"])
+
+        candidates = self.retrieve_candidates_for_tags(["late_open"])
+        late_candidate = next(candidate for candidate in candidates if candidate["library_id"] == late_library.id)
+
+        self.assertIn("late_open", late_candidate["matched_plan_tags"])
+        self.assertIn("operation:late_open", late_candidate["allowed_evidence_codes"])
+        self.assertNotIn(normal_library.id, [candidate["library_id"] for candidate in candidates])
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+    )
+    def test_provider_bridge_evidence_code_passes_validation(self):
+        self.create_program_bridge_tag("program_reading_writing", "독서·글쓰기 프로그램", TagGroup.PROGRAM_TYPE)
+        library = self.create_open_library("브릿지근거통과도서관", "기장군")
+        self.create_program(
+            library,
+            category_code=ProgramCategory.READING_WRITING,
+            operation_status=OperationStatus.UPCOMING,
+        )
+
+        class BridgeEvidenceProvider:
+            provider_code = "bridge_evidence"
+
+            def plan_preferences(self, context):
+                return {
+                    "priority_tags": [{"code": "program_reading_writing", "weight": 1}],
+                    "priority_purposes": [],
+                    "preferred_regions": [],
+                    "weights": {},
+                }
+
+            def rerank_libraries(self, bundle):
+                target = next(
+                    candidate
+                    for candidate in bundle["candidates"]
+                    if candidate["library_id"] == library.id
+                )
+                return {
+                    "items": [
+                        {
+                            "library_id": target["library_id"],
+                            "rank": 1,
+                            "confidence": 0.8,
+                            "matched_priority_tags": ["program_reading_writing"],
+                            "evidence_codes": ["program:reading_writing_registered"],
+                            "recommendation_reason": "독서·글쓰기 프로그램 정보가 확인된 추천이에요.",
+                        }
+                    ]
+                }
+
+        self.client.force_authenticate(self.user)
+        with patch("apps.recommendations.services.get_provider", return_value=BridgeEvidenceProvider()):
+            response = self.client.get("/api/v1/home/")
+
+        item = response.data["personal_recommendations"]["items"][0]
+        self.assertEqual(item["recommendation_reason"], "독서·글쓰기 프로그램 정보가 확인된 추천이에요.")
+        self.assertEqual(item["matched_priority_tags"], [{"code": "program_reading_writing", "label": "독서·글쓰기 프로그램"}])
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+    )
+    def test_invalid_bridge_evidence_code_is_removed_and_fallback_reason_is_used(self):
+        self.create_program_bridge_tag("program_reading_writing", "독서·글쓰기 프로그램", TagGroup.PROGRAM_TYPE)
+        library = self.create_open_library("브릿지근거제거도서관", "기장군")
+        self.create_program(
+            library,
+            category_code=ProgramCategory.READING_WRITING,
+            operation_status=OperationStatus.UPCOMING,
+        )
+
+        class InvalidBridgeEvidenceProvider:
+            provider_code = "invalid_bridge_evidence"
+
+            def plan_preferences(self, context):
+                return {
+                    "priority_tags": [{"code": "program_reading_writing", "weight": 1}],
+                    "priority_purposes": [],
+                    "preferred_regions": [],
+                    "weights": {},
+                }
+
+            def rerank_libraries(self, bundle):
+                target = next(
+                    candidate
+                    for candidate in bundle["candidates"]
+                    if candidate["library_id"] == library.id
+                )
+                return {
+                    "items": [
+                        {
+                            "library_id": target["library_id"],
+                            "rank": 1,
+                            "confidence": 0.8,
+                            "matched_priority_tags": ["program_reading_writing"],
+                            "evidence_codes": ["program:made_up"],
+                            "recommendation_reason": "없는 근거로 만든 추천 문장입니다.",
+                        }
+                    ]
+                }
+
+        self.client.force_authenticate(self.user)
+        with patch("apps.recommendations.services.get_provider", return_value=InvalidBridgeEvidenceProvider()):
+            response = self.client.get("/api/v1/home/")
+
+        reason = response.data["personal_recommendations"]["items"][0]["recommendation_reason"]
+        self.assertNotEqual(reason, "없는 근거로 만든 추천 문장입니다.")
+
+    def test_mock_provider_uses_bridge_matched_plan_tags(self):
+        self.create_program_bridge_tag("program_reading_writing", "독서·글쓰기 프로그램", TagGroup.PROGRAM_TYPE)
+        library = self.create_open_library("목브릿지매칭도서관", "기장군")
+        self.create_program(
+            library,
+            category_code=ProgramCategory.READING_WRITING,
+            operation_status=OperationStatus.UPCOMING,
+        )
+        candidate = self.get_candidate_for_library(["program_reading_writing"], library.id)
+
+        result = MockRecommendationProvider().rerank_libraries(
+            {
+                "plan": {"priority_tags": [{"code": "program_reading_writing", "weight": 1}]},
+                "candidates": [candidate],
+            }
+        )
+
+        self.assertEqual(result["items"][0]["matched_priority_tags"], ["program_reading_writing"])
+
     @override_settings(
         AI_RECOMMENDATION_ENABLED=True,
         AI_RECOMMENDATION_PROVIDER="mock",
@@ -735,6 +1128,36 @@ class HomeRecommendationV4APITestCase(TestCase):
             is_review_selectable=False,
         )
 
+    def create_program_bridge_tag(self, code, label, tag_group):
+        return Tag.objects.create(
+            code=code,
+            label=label,
+            semantic_kind=TagSemanticKind.CLASSIFICATION,
+            tag_group=tag_group,
+            is_profile_selectable=False,
+            is_review_selectable=False,
+        )
+
+    def create_program(
+        self,
+        library,
+        *,
+        category_code=ProgramCategory.READING_WRITING,
+        target_codes=None,
+        operation_status=OperationStatus.UPCOMING,
+        application_status="",
+    ):
+        return Program.objects.create(
+            library=library,
+            provider_code="test",
+            external_program_key=f"test-{library.id}-{Program.objects.count()}",
+            title=f"{library.name} 프로그램",
+            category_code=category_code,
+            target_codes=target_codes or [],
+            operation_status=operation_status,
+            application_status=application_status,
+        )
+
     def create_statistic(
         self,
         library,
@@ -755,7 +1178,7 @@ class HomeRecommendationV4APITestCase(TestCase):
             is_current=True,
         )
 
-    def retrieve_candidates_for_review_tags(self, tag_codes):
+    def retrieve_candidates_for_tags(self, tag_codes):
         libraries = list(get_candidate_libraries())
         plan = {
             "priority_tags": [{"code": code, "weight": 0.7} for code in tag_codes],
@@ -769,9 +1192,19 @@ class HomeRecommendationV4APITestCase(TestCase):
             [],
             {},
             plan,
-            "저장과 후기 활동을 바탕으로 골랐어요.",
+            "선호 설정을 바탕으로 골랐어요.",
         )
         return candidates
+
+    def get_candidate_for_library(self, tag_codes, library_id):
+        return next(
+            candidate
+            for candidate in self.retrieve_candidates_for_tags(tag_codes)
+            if candidate["library_id"] == library_id
+        )
+
+    def retrieve_candidates_for_review_tags(self, tag_codes):
+        return self.retrieve_candidates_for_tags(tag_codes)
 
     @override_settings(
         AI_RECOMMENDATION_ENABLED=True,

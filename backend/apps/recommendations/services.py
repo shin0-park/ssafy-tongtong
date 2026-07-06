@@ -27,6 +27,7 @@ from apps.preferences.services import (
     ensure_user_preference_current,
     get_behavior_preference_items,
 )
+from apps.programs.models import ApplicationStatus, OperationStatus, Program, ProgramCategory
 from apps.tags.models import Tag
 
 from .models import (
@@ -49,6 +50,50 @@ PERSONAL_ITEM_LIMIT = 3
 BEHAVIOR_ITEM_LIMIT = 20
 MANUAL_PERSONAL_WEIGHT = 1.0
 BEHAVIOR_PERSONAL_WEIGHT = 0.5
+
+PROGRAM_CATEGORY_TAG_MAP = {
+    "program_culture_art": ProgramCategory.CULTURE_ART,
+    "program_exhibition": ProgramCategory.EXHIBITION,
+    "program_experience_education": ProgramCategory.EXPERIENCE_EDUCATION,
+    "program_lecture_humanities": ProgramCategory.LECTURE_HUMANITIES,
+    "program_reading_writing": ProgramCategory.READING_WRITING,
+}
+PROGRAM_TARGET_TAG_CODES = {
+    "for_infant",
+    "for_elementary",
+    "for_teen",
+    "for_adult",
+    "for_senior",
+    "for_family",
+}
+PROGRAM_BRIDGE_SCORE_CAP = 2.0
+PROGRAM_BRIDGE_EVIDENCE = {
+    "program_culture_art": ("program:culture_art_registered", "문화·예술 프로그램 정보"),
+    "program_exhibition": ("program:exhibition_registered", "전시 프로그램 정보"),
+    "program_experience_education": ("program:experience_education_registered", "체험·교육 프로그램 정보"),
+    "program_lecture_humanities": ("program:lecture_humanities_registered", "인문 강좌 프로그램 정보"),
+    "program_reading_writing": ("program:reading_writing_registered", "독서·글쓰기 프로그램 정보"),
+}
+TARGET_BRIDGE_EVIDENCE = {
+    "for_infant": ("target:for_infant_program", "유아 대상 프로그램 정보"),
+    "for_elementary": ("target:for_elementary_program", "초등학생 대상 프로그램 정보"),
+    "for_teen": ("target:for_teen_program", "청소년 대상 프로그램 정보"),
+    "for_adult": ("target:for_adult_program", "성인 대상 프로그램 정보"),
+    "for_senior": ("target:for_senior_program", "시니어 대상 프로그램 정보"),
+    "for_family": ("target:for_family_program", "가족 대상 프로그램 정보"),
+}
+FACILITY_EVIDENCE_LABELS = {
+    "facility_reading_room": "열람실 정보",
+    "facility_children_room": "어린이자료실 정보",
+    "facility_digital_room": "디지털자료실 정보",
+    "facility_parking": "주차장 정보",
+    "facility_cafe": "카페 정보",
+    "facility_wifi": "와이파이 시설 정보",
+    "facility_accessible": "접근성 시설 정보",
+    "facility_elevator": "엘리베이터 정보",
+    "facility_lounge": "휴게공간 정보",
+    "facility_outdoor_space": "야외공간 정보",
+}
 
 logger = logging.getLogger(__name__)
 
@@ -416,6 +461,10 @@ def retrieve_personal_candidates(
     plan_region_values = {
         item["sigungu"] for item in plan.get("preferred_regions", []) if item.get("sigungu")
     }
+    bridge_context = build_bridge_context(
+        [library for library in libraries if library.is_active],
+        set(tag_codes) | set(plan_tag_codes),
+    )
 
     for library in libraries:
         if not library.is_active:
@@ -430,8 +479,9 @@ def retrieve_personal_candidates(
             tag_codes,
             behavior_tag_scores,
             stat_max,
+            bridge_context,
         )
-        baseline_score += score_plan_tags(library, plan_tag_codes, stat_max)
+        baseline_score += score_plan_tags(library, plan_tag_codes, stat_max, bridge_context)
         if library.sigungu in plan_region_values:
             baseline_score += 1
         if baseline_score <= 0:
@@ -441,7 +491,15 @@ def retrieve_personal_candidates(
                 -baseline_score,
                 library.name,
                 library.id,
-                build_candidate_feature(library, baseline_score, plan_tag_codes, plan_region_values, reason),
+                build_candidate_feature(
+                    library,
+                    baseline_score,
+                    plan_tag_codes,
+                    plan_region_values,
+                    reason,
+                    stat_max,
+                    bridge_context,
+                ),
             )
         )
 
@@ -453,9 +511,23 @@ def retrieve_personal_candidates(
     )
 
 
-def build_candidate_feature(library, baseline_score, plan_tag_codes, plan_region_values, reason):
+def build_candidate_feature(
+    library,
+    baseline_score,
+    plan_tag_codes,
+    plan_region_values,
+    reason,
+    stat_max,
+    bridge_context=None,
+):
     feature_tags = get_library_feature_tag_codes(library)
-    matched_plan_tags = [code for code in feature_tags if code in plan_tag_codes]
+    matched_plan_tags = build_matched_plan_tags(
+        library,
+        feature_tags,
+        plan_tag_codes,
+        stat_max,
+        bridge_context,
+    )
     statistic = get_current_statistic(library)
     book_count_bucket = number_bucket(statistic.book_count if statistic else None)
     reading_seat_count_bucket = number_bucket(statistic.reading_seat_count if statistic else None)
@@ -464,6 +536,10 @@ def build_candidate_feature(library, baseline_score, plan_tag_codes, plan_region
         feature_tags,
         book_count_bucket,
         reading_seat_count_bucket,
+        plan_tag_codes,
+        stat_max,
+        statistic,
+        bridge_context,
     )
     public_candidate = {
         "library_id": library.id,
@@ -490,29 +566,44 @@ def build_candidate_feature(library, baseline_score, plan_tag_codes, plan_region
     }
 
 
-def build_allowed_evidence(library, feature_tags, book_count_bucket, reading_seat_count_bucket):
+def build_allowed_evidence(
+    library,
+    feature_tags,
+    book_count_bucket,
+    reading_seat_count_bucket,
+    plan_tag_codes=None,
+    stat_max=None,
+    statistic=None,
+    bridge_context=None,
+):
     evidence_labels = {}
     evidence_codes = []
 
     for tag_code in feature_tags[:20]:
         evidence_code = f"tag:{tag_code}"
-        evidence_codes.append(evidence_code)
-        evidence_labels[evidence_code] = tag_label(tag_code)
+        add_evidence(evidence_codes, evidence_labels, evidence_code, evidence_label_for_tag(tag_code))
 
     if book_count_bucket in {"medium", "large"}:
-        evidence_codes.append("metric:book_count_high")
-        evidence_labels["metric:book_count_high"] = "장서 규모"
+        add_evidence(evidence_codes, evidence_labels, "metric:book_count_high", "장서 규모")
     if reading_seat_count_bucket in {"medium", "large"}:
-        evidence_codes.append("metric:reading_seat_count_high")
-        evidence_labels["metric:reading_seat_count_high"] = "좌석 규모"
+        add_evidence(evidence_codes, evidence_labels, "metric:reading_seat_count_high", "좌석 규모")
 
-    evidence_codes.append("operation:open_today")
-    evidence_labels["operation:open_today"] = "오늘 운영"
+    add_bridge_evidence(
+        library,
+        evidence_codes,
+        evidence_labels,
+        plan_tag_codes or [],
+        stat_max,
+        statistic,
+        bridge_context,
+        reading_seat_count_bucket,
+    )
+
+    add_evidence(evidence_codes, evidence_labels, "operation:open_today", "오늘 운영")
 
     if library.sigungu:
         region_code = f"region:{library.sigungu}"
-        evidence_codes.append(region_code)
-        evidence_labels[region_code] = f"{library.sigungu} 지역"
+        add_evidence(evidence_codes, evidence_labels, region_code, f"{library.sigungu} 지역")
 
     return dedupe(evidence_codes), evidence_labels
 
@@ -554,8 +645,8 @@ def get_library_feature_tag_codes(library):
     return codes
 
 
-def score_plan_tags(library, plan_tag_codes, stat_max):
-    return sum(score_preferred_tag(library, tag_code, stat_max) for tag_code in plan_tag_codes)
+def score_plan_tags(library, plan_tag_codes, stat_max, bridge_context=None):
+    return sum(score_preferred_tag(library, tag_code, stat_max, bridge_context) for tag_code in plan_tag_codes)
 
 
 def build_priority_tag_payloads(priority_tags):
@@ -634,7 +725,7 @@ def score_purpose(library, purpose_code, stat_max, lat=None, lng=None):
     return 0
 
 
-def score_personal(library, purpose_codes, region_values, tag_codes, stat_max):
+def score_personal(library, purpose_codes, region_values, tag_codes, stat_max, bridge_context=None):
     score = 0
     if library.sigungu in region_values:
         score += 4
@@ -643,12 +734,20 @@ def score_personal(library, purpose_codes, region_values, tag_codes, stat_max):
             continue
         score += score_purpose(library, purpose_code, stat_max, None, None)
     for tag_code in tag_codes:
-        score += score_preferred_tag(library, tag_code, stat_max)
+        score += score_preferred_tag(library, tag_code, stat_max, bridge_context)
     return score
 
 
-def score_personal_with_behavior(library, purpose_codes, region_values, tag_codes, behavior_tag_scores, stat_max):
-    manual_score = score_personal(library, purpose_codes, region_values, tag_codes, stat_max)
+def score_personal_with_behavior(
+    library,
+    purpose_codes,
+    region_values,
+    tag_codes,
+    behavior_tag_scores,
+    stat_max,
+    bridge_context=None,
+):
+    manual_score = score_personal(library, purpose_codes, region_values, tag_codes, stat_max, bridge_context)
     behavior_score = score_behavior_tags(library, behavior_tag_scores)
     return manual_score * MANUAL_PERSONAL_WEIGHT + behavior_score * BEHAVIOR_PERSONAL_WEIGHT
 
@@ -683,7 +782,7 @@ def personal_reason(has_manual_preference, has_behavior_preference):
     return "선호 설정을 바탕으로 골랐어요."
 
 
-def score_preferred_tag(library, tag_code, stat_max):
+def score_preferred_tag(library, tag_code, stat_max, bridge_context=None):
     facility_code_map = {
         "facility_reading_room": "has_reading_room",
         "facility_children_room": "has_children_room",
@@ -712,10 +811,233 @@ def score_preferred_tag(library, tag_code, stat_max):
         return normalized_stat(library, "book_count", stat_max)
     if tag_code == "late_open":
         return score_late_open(library)
+    program_bridge_score = score_program_bridge(library, tag_code, bridge_context)
+    if program_bridge_score:
+        return program_bridge_score
     review_bridge_score = score_review_preference_bridge(library, tag_code, stat_max)
     if review_bridge_score:
         return review_bridge_score
     return 0
+
+
+def build_bridge_context(libraries, tag_codes):
+    library_ids = [library.id for library in libraries]
+    program_context = build_program_bridge_context(library_ids, tag_codes)
+    return {
+        "program_scores": program_context["scores"],
+        "program_evidence": program_context["evidence"],
+        "program_matched_tags": program_context["matched_tags"],
+    }
+
+
+def build_matched_plan_tags(library, feature_tags, plan_tag_codes, stat_max, bridge_context=None):
+    matched_tags = [code for code in feature_tags if code in plan_tag_codes]
+    program_matched_tags = (
+        bridge_context.get("program_matched_tags", {}).get(library.id, [])
+        if bridge_context
+        else []
+    )
+    matched_tags.extend(code for code in program_matched_tags if code in plan_tag_codes)
+    for tag_code in plan_tag_codes:
+        if tag_code == "late_open" and score_late_open(library):
+            matched_tags.append(tag_code)
+        elif score_review_preference_bridge(library, tag_code, stat_max):
+            matched_tags.append(tag_code)
+    return dedupe(matched_tags)[:5]
+
+
+def add_bridge_evidence(
+    library,
+    evidence_codes,
+    evidence_labels,
+    plan_tag_codes,
+    stat_max,
+    statistic,
+    bridge_context,
+    reading_seat_count_bucket,
+):
+    if bridge_context:
+        for evidence_code, label in bridge_context.get("program_evidence", {}).get(library.id, {}).items():
+            add_evidence(evidence_codes, evidence_labels, evidence_code, label)
+
+    for tag_code in plan_tag_codes:
+        if tag_code == "late_open" and score_late_open(library):
+            add_evidence(evidence_codes, evidence_labels, "operation:late_open", "오늘 18시 이후 운영 정보")
+        add_review_bridge_evidence(
+            library,
+            tag_code,
+            evidence_codes,
+            evidence_labels,
+            stat_max,
+            statistic,
+            reading_seat_count_bucket,
+        )
+
+
+def add_review_bridge_evidence(
+    library,
+    tag_code,
+    evidence_codes,
+    evidence_labels,
+    stat_max,
+    statistic,
+    reading_seat_count_bucket,
+):
+    if not score_review_preference_bridge(library, tag_code, stat_max):
+        return
+    if tag_code == "review_quiet_study":
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_reading_room", "facility_reading_room")
+        add_reading_seat_evidence(evidence_codes, evidence_labels, reading_seat_count_bucket)
+    elif tag_code == "review_seats_sufficient":
+        add_reading_seat_evidence(evidence_codes, evidence_labels, reading_seat_count_bucket)
+    elif tag_code in {"review_comfortable_space", "review_stay_friendly"}:
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_lounge", "facility_lounge")
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_cafe", "facility_cafe")
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_outdoor_space", "facility_outdoor_space")
+        add_space_size_evidence(evidence_codes, evidence_labels, statistic)
+        if tag_code == "review_stay_friendly":
+            add_reading_seat_evidence(evidence_codes, evidence_labels, reading_seat_count_bucket)
+    elif tag_code == "review_easy_to_visit":
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_accessible_facility", "facility_accessible")
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_elevator", "facility_elevator")
+        if library.latitude is not None and library.longitude is not None:
+            add_evidence(evidence_codes, evidence_labels, "location:coordinates_available", "위치 좌표 정보")
+    elif tag_code == "review_parking_convenient":
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_parking", "facility_parking")
+    elif tag_code == "review_wifi_reliable":
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_wifi", "facility_wifi")
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_digital_room", "facility_digital_room")
+    elif tag_code == "review_children_room_good":
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_children_room", "facility_children_room")
+        if library.library_type == LibraryType.CHILDREN:
+            add_evidence(evidence_codes, evidence_labels, "library_type:children", "어린이도서관 유형 정보")
+    elif tag_code == "review_laptop_friendly":
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_digital_room", "facility_digital_room")
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_wifi", "facility_wifi")
+        add_facility_evidence_if_true(library, evidence_codes, evidence_labels, "has_reading_room", "facility_reading_room")
+        add_reading_seat_evidence(evidence_codes, evidence_labels, reading_seat_count_bucket)
+
+
+def add_facility_evidence_if_true(library, evidence_codes, evidence_labels, field_name, tag_code):
+    if score_facility(library, field_name):
+        add_evidence(evidence_codes, evidence_labels, f"tag:{tag_code}", evidence_label_for_tag(tag_code))
+
+
+def add_reading_seat_evidence(evidence_codes, evidence_labels, reading_seat_count_bucket):
+    if reading_seat_count_bucket in {"medium", "large"}:
+        add_evidence(evidence_codes, evidence_labels, "metric:reading_seat_count_high", "열람실과 좌석 정보")
+
+
+def add_space_size_evidence(evidence_codes, evidence_labels, statistic):
+    if not statistic:
+        return
+    if statistic.building_area or statistic.site_area:
+        add_evidence(evidence_codes, evidence_labels, "metric:space_size_available", "공간 규모 정보")
+
+
+def add_evidence(evidence_codes, evidence_labels, evidence_code, label):
+    evidence_codes.append(evidence_code)
+    evidence_labels[evidence_code] = label
+
+
+def evidence_label_for_tag(tag_code):
+    return FACILITY_EVIDENCE_LABELS.get(tag_code) or tag_label(tag_code)
+
+
+def build_program_bridge_score_map(library_ids, tag_codes):
+    return build_program_bridge_context(library_ids, tag_codes)["scores"]
+
+
+def build_program_bridge_context(library_ids, tag_codes):
+    tag_codes = set(tag_codes or [])
+    category_tag_codes = set(PROGRAM_CATEGORY_TAG_MAP) & tag_codes
+    target_tag_codes = PROGRAM_TARGET_TAG_CODES & tag_codes
+    if not library_ids or not category_tag_codes and not target_tag_codes:
+        return {"scores": {}, "evidence": {}, "matched_tags": {}}
+
+    category_code_to_tag = {
+        category_code: tag_code
+        for tag_code, category_code in PROGRAM_CATEGORY_TAG_MAP.items()
+        if tag_code in category_tag_codes
+    }
+    bridge_scores = {}
+    bridge_evidence = {}
+    bridge_matched_tags = {}
+    programs = (
+        Program.objects.filter(
+            library_id__in=library_ids,
+            is_visible=True,
+            deleted_at__isnull=True,
+        )
+        .exclude(operation_status=OperationStatus.ENDED)
+        .only("library_id", "category_code", "target_codes", "operation_status", "application_status")
+    )
+    for program in programs:
+        score = score_program_bridge_item(program)
+        if score <= 0:
+            continue
+        category_tag_code = category_code_to_tag.get(program.category_code)
+        if category_tag_code:
+            add_program_bridge_match(
+                bridge_scores,
+                bridge_evidence,
+                bridge_matched_tags,
+                program.library_id,
+                category_tag_code,
+                score,
+            )
+        for target_code in program.target_codes or []:
+            if target_code in target_tag_codes:
+                add_program_bridge_match(
+                    bridge_scores,
+                    bridge_evidence,
+                    bridge_matched_tags,
+                    program.library_id,
+                    target_code,
+                    score,
+                )
+    return {
+        "scores": bridge_scores,
+        "evidence": bridge_evidence,
+        "matched_tags": bridge_matched_tags,
+    }
+
+
+def score_program_bridge_item(program):
+    if program.operation_status in {OperationStatus.ONGOING, OperationStatus.UPCOMING}:
+        score = 0.6 if program.application_status == ApplicationStatus.CLOSED else 1.0
+    elif not program.operation_status:
+        score = 0.3
+    else:
+        return 0
+    if program.application_status == ApplicationStatus.AVAILABLE:
+        score += 0.2
+    return score
+
+
+def add_program_bridge_score(bridge_scores, library_id, tag_code, score):
+    library_scores = bridge_scores.setdefault(library_id, {})
+    library_scores[tag_code] = min(
+        library_scores.get(tag_code, 0) + score,
+        PROGRAM_BRIDGE_SCORE_CAP,
+    )
+
+
+def add_program_bridge_match(bridge_scores, bridge_evidence, bridge_matched_tags, library_id, tag_code, score):
+    add_program_bridge_score(bridge_scores, library_id, tag_code, score)
+    bridge_matched_tags.setdefault(library_id, [])
+    if tag_code not in bridge_matched_tags[library_id]:
+        bridge_matched_tags[library_id].append(tag_code)
+    evidence = PROGRAM_BRIDGE_EVIDENCE.get(tag_code) or TARGET_BRIDGE_EVIDENCE.get(tag_code)
+    if evidence:
+        evidence_code, label = evidence
+        bridge_evidence.setdefault(library_id, {})[evidence_code] = label
+
+
+def score_program_bridge(library, tag_code, bridge_context):
+    if not bridge_context:
+        return 0
+    return bridge_context.get("program_scores", {}).get(library.id, {}).get(tag_code, 0)
 
 
 def score_late_open(library):

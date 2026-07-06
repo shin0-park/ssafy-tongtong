@@ -33,12 +33,12 @@ class MockRecommendationProvider:
         }
         for index, candidate in enumerate(bundle.get("candidates", []), start=1):
             feature_tags = candidate.get("feature_tags", [])
-            matched_tags = [code for code in feature_tags if code in priority_tag_codes]
-            evidence_codes = [f"tag:{code}" for code in matched_tags]
-            if candidate.get("matched_region"):
-                evidence_codes.append(f"region:{candidate.get('sigungu')}")
-            if candidate.get("operation", {}).get("open_today") is True:
-                evidence_codes.append("operation:open_today")
+            matched_tags = [
+                code
+                for code in candidate.get("matched_plan_tags", feature_tags)
+                if code in priority_tag_codes
+            ]
+            evidence_codes = candidate.get("allowed_evidence_codes", [])[:3]
             items.append(
                 {
                     "library_id": candidate["library_id"],
@@ -65,7 +65,7 @@ class RuleBasedFallbackRecommendationProvider:
                     "library_id": candidate["library_id"],
                     "rank": index,
                     "confidence": 0.0,
-                    "matched_priority_tags": candidate.get("feature_tags", [])[:3],
+                    "matched_priority_tags": candidate.get("matched_plan_tags", candidate.get("feature_tags", []))[:3],
                     "evidence_codes": candidate.get("allowed_evidence_codes", [])[:3],
                     "recommendation_reason": candidate.get("fallback_reason") or "선호와 활동 기준으로 골랐어요.",
                 }
