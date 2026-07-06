@@ -280,7 +280,7 @@ def build_personal_recommendations_v4(
             valid_purpose_codes=get_valid_profile_purpose_codes(),
             valid_tag_codes=get_valid_tag_codes(),
         )
-        candidates = retrieve_personal_candidates(
+        public_candidates, candidate_by_id = retrieve_personal_candidates(
             libraries,
             stat_max,
             purpose_codes,
@@ -291,11 +291,11 @@ def build_personal_recommendations_v4(
             reason,
         )
         rerank_result = validate_rerank_result(
-            provider.rerank_libraries({"plan": plan, "candidates": candidates}),
-            candidate_by_id={candidate["library_id"]: candidate for candidate in candidates},
+            provider.rerank_libraries({"plan": plan, "candidates": public_candidates}),
+            candidate_by_id=candidate_by_id,
             valid_tag_codes=get_valid_tag_codes(),
         )
-        items = apply_rerank_result(rerank_result, candidates)
+        items = apply_rerank_result(rerank_result, candidate_by_id)
         if not items:
             raise RecommendationProviderError("Provider returned no valid recommendation items.")
         return build_personal_result(plan, items, fallback_used, provider_code, "ai")
@@ -303,29 +303,38 @@ def build_personal_recommendations_v4(
         fallback_used = True
 
     fallback_provider_code = getattr(settings, "AI_RECOMMENDATION_FALLBACK_PROVIDER", "rule_based")
-    fallback_provider = get_provider(fallback_provider_code)
-    fallback_plan = validate_preference_plan(
-        fallback_provider.plan_preferences(context),
-        valid_purpose_codes=get_valid_profile_purpose_codes(),
-        valid_tag_codes=get_valid_tag_codes(),
-    )
-    fallback_candidates = retrieve_personal_candidates(
-        libraries,
-        stat_max,
-        purpose_codes,
-        region_values,
-        tag_codes,
-        behavior_tag_scores,
-        fallback_plan,
-        reason,
-    )
-    fallback_rerank_result = validate_rerank_result(
-        fallback_provider.rerank_libraries({"plan": fallback_plan, "candidates": fallback_candidates}),
-        candidate_by_id={candidate["library_id"]: candidate for candidate in fallback_candidates},
-        valid_tag_codes=get_valid_tag_codes(),
-    )
-    fallback_items = apply_rerank_result(fallback_rerank_result, fallback_candidates)
-    return build_personal_result(fallback_plan, fallback_items, fallback_used, fallback_provider_code, "fallback")
+    try:
+        fallback_provider = get_provider(fallback_provider_code)
+        fallback_plan = validate_preference_plan(
+            fallback_provider.plan_preferences(context),
+            valid_purpose_codes=get_valid_profile_purpose_codes(),
+            valid_tag_codes=get_valid_tag_codes(),
+        )
+        fallback_public_candidates, fallback_candidate_by_id = retrieve_personal_candidates(
+            libraries,
+            stat_max,
+            purpose_codes,
+            region_values,
+            tag_codes,
+            behavior_tag_scores,
+            fallback_plan,
+            reason,
+        )
+        fallback_rerank_result = validate_rerank_result(
+            fallback_provider.rerank_libraries({"plan": fallback_plan, "candidates": fallback_public_candidates}),
+            candidate_by_id=fallback_candidate_by_id,
+            valid_tag_codes=get_valid_tag_codes(),
+        )
+        fallback_items = apply_rerank_result(fallback_rerank_result, fallback_candidate_by_id)
+        return build_personal_result(fallback_plan, fallback_items, fallback_used, fallback_provider_code, "fallback")
+    except (RecommendationProviderError, RecommendationSchemaError, TypeError, ValueError):
+        return build_personal_result(
+            {"priority_tags": []},
+            [],
+            True,
+            fallback_provider_code or "unavailable",
+            "fallback_failed",
+        )
 
 
 def build_preference_planning_context(preferred_purposes, preferred_regions, preferred_tags, behavior_items):
@@ -397,14 +406,18 @@ def retrieve_personal_candidates(
         )
 
     scored_candidates.sort()
-    return [candidate for _, _, _, candidate in scored_candidates[:candidate_limit]]
+    internal_candidates = [candidate for _, _, _, candidate in scored_candidates[:candidate_limit]]
+    return (
+        [candidate["public"] for candidate in internal_candidates],
+        {candidate["public"]["library_id"]: candidate for candidate in internal_candidates},
+    )
 
 
 def build_candidate_feature(library, baseline_score, plan_tag_codes, plan_region_values, reason):
     feature_tags = get_library_feature_tag_codes(library)
     matched_plan_tags = [code for code in feature_tags if code in plan_tag_codes]
     statistic = get_current_statistic(library)
-    return {
+    public_candidate = {
         "library_id": library.id,
         "name": library.name,
         "sigungu": library.sigungu,
@@ -413,16 +426,21 @@ def build_candidate_feature(library, baseline_score, plan_tag_codes, plan_region
         "matched_plan_tags": matched_plan_tags[:5],
         "matched_region": library.sigungu in plan_region_values,
         "stats": {
-            "book_count": statistic.book_count if statistic else None,
-            "reading_seat_count": statistic.reading_seat_count if statistic else None,
+            "book_count_bucket": number_bucket(statistic.book_count if statistic else None),
+            "reading_seat_count_bucket": number_bucket(statistic.reading_seat_count if statistic else None),
+        },
+        "operation": {
+            "open_today": True,
         },
         "fallback_reason": reason,
+    }
+    return {
+        "public": public_candidate,
         "_library": library,
     }
 
 
-def apply_rerank_result(rerank_result, candidates):
-    candidate_by_id = {candidate["library_id"]: candidate for candidate in candidates}
+def apply_rerank_result(rerank_result, candidate_by_id):
     items = []
     for item in rerank_result["items"][:PERSONAL_ITEM_LIMIT]:
         candidate = candidate_by_id.get(item["library_id"])
@@ -676,6 +694,19 @@ def normalized_stat(library, field, stat_max):
 
 def number(value):
     return float(value or 0)
+
+
+def number_bucket(value):
+    if value is None:
+        return None
+    value = number(value)
+    if value <= 0:
+        return "none"
+    if value < 100:
+        return "small"
+    if value < 1000:
+        return "medium"
+    return "large"
 
 
 def parse_coordinate(value):
