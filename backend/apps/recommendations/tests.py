@@ -115,6 +115,7 @@ class HomeRecommendationV4APITestCase(TestCase):
                             "rank": 1,
                             "confidence": 1,
                             "matched_priority_tags": ["missing_tag"],
+                            "evidence_codes": ["tag:missing_tag"],
                             "recommendation_reason": "없는 도서관",
                         },
                         {
@@ -122,6 +123,7 @@ class HomeRecommendationV4APITestCase(TestCase):
                             "rank": 2,
                             "confidence": 0.9,
                             "matched_priority_tags": ["facility_lounge", "missing_tag"],
+                            "evidence_codes": ["tag:facility_lounge", "tag:missing_tag"],
                             "recommendation_reason": "검증 가능한 추천",
                         },
                     ]
@@ -199,6 +201,7 @@ class HomeRecommendationV4APITestCase(TestCase):
                             "rank": 1,
                             "confidence": 0.9,
                             "matched_priority_tags": ["facility_lounge"],
+                            "evidence_codes": ["tag:facility_lounge"],
                             "recommendation_reason": "검증 가능한 추천",
                         }
                     ]
@@ -215,6 +218,162 @@ class HomeRecommendationV4APITestCase(TestCase):
         self.assertIn("book_count_bucket", candidate["stats"])
         self.assertIn("reading_seat_count_bucket", candidate["stats"])
         self.assertEqual(candidate["operation"], {"open_today": True})
+        self.assertIn("tag:facility_lounge", candidate["allowed_evidence_codes"])
+        self.assertIn("operation:open_today", candidate["allowed_evidence_codes"])
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+    )
+    def test_valid_evidence_codes_keep_provider_reason(self):
+        class ValidEvidenceProvider:
+            provider_code = "valid_evidence"
+
+            def plan_preferences(self, context):
+                return {
+                    "priority_tags": [{"code": "facility_lounge", "weight": 1}],
+                    "priority_purposes": [],
+                    "preferred_regions": [],
+                    "weights": {},
+                }
+
+            def rerank_libraries(self, bundle):
+                return {
+                    "items": [
+                        {
+                            "library_id": bundle["candidates"][0]["library_id"],
+                            "rank": 1,
+                            "confidence": 0.9,
+                            "matched_priority_tags": ["facility_lounge"],
+                            "evidence_codes": ["tag:facility_lounge"],
+                            "recommendation_reason": "휴게공간 선호가 반영된 추천이에요.",
+                        }
+                    ]
+                }
+
+        self.client.force_authenticate(self.user)
+        with patch("apps.recommendations.services.get_provider", return_value=ValidEvidenceProvider()):
+            response = self.client.get("/api/v1/home/")
+
+        item = response.data["personal_recommendations"]["items"][0]
+        self.assertEqual(item["recommendation_reason"], "휴게공간 선호가 반영된 추천이에요.")
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+    )
+    def test_invalid_evidence_code_replaces_provider_reason(self):
+        class InvalidEvidenceProvider:
+            provider_code = "invalid_evidence"
+
+            def plan_preferences(self, context):
+                return {
+                    "priority_tags": [{"code": "facility_lounge", "weight": 1}],
+                    "priority_purposes": [],
+                    "preferred_regions": [],
+                    "weights": {},
+                }
+
+            def rerank_libraries(self, bundle):
+                return {
+                    "items": [
+                        {
+                            "library_id": bundle["candidates"][0]["library_id"],
+                            "rank": 1,
+                            "confidence": 0.9,
+                            "matched_priority_tags": ["facility_lounge"],
+                            "evidence_codes": ["metric:made_up"],
+                            "recommendation_reason": "없는 사실로 만든 추천 문장입니다.",
+                        }
+                    ]
+                }
+
+        self.client.force_authenticate(self.user)
+        with patch("apps.recommendations.services.get_provider", return_value=InvalidEvidenceProvider()):
+            response = self.client.get("/api/v1/home/")
+
+        item = response.data["personal_recommendations"]["items"][0]
+        self.assertNotEqual(item["recommendation_reason"], "없는 사실로 만든 추천 문장입니다.")
+        self.assertIn("휴게공간", item["recommendation_reason"])
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+    )
+    def test_empty_evidence_codes_replace_provider_reason(self):
+        class EmptyEvidenceProvider:
+            provider_code = "empty_evidence"
+
+            def plan_preferences(self, context):
+                return {
+                    "priority_tags": [{"code": "facility_lounge", "weight": 1}],
+                    "priority_purposes": [],
+                    "preferred_regions": [],
+                    "weights": {},
+                }
+
+            def rerank_libraries(self, bundle):
+                return {
+                    "items": [
+                        {
+                            "library_id": bundle["candidates"][0]["library_id"],
+                            "rank": 1,
+                            "confidence": 0.9,
+                            "matched_priority_tags": ["facility_lounge"],
+                            "evidence_codes": [],
+                            "recommendation_reason": "근거 없이 만든 추천 문장입니다.",
+                        }
+                    ]
+                }
+
+        self.client.force_authenticate(self.user)
+        with patch("apps.recommendations.services.get_provider", return_value=EmptyEvidenceProvider()):
+            response = self.client.get("/api/v1/home/")
+
+        item = response.data["personal_recommendations"]["items"][0]
+        self.assertNotEqual(item["recommendation_reason"], "근거 없이 만든 추천 문장입니다.")
+        self.assertIn("휴게공간", item["recommendation_reason"])
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+    )
+    def test_abnormal_reason_type_uses_fallback_reason(self):
+        class AbnormalReasonProvider:
+            provider_code = "abnormal_reason"
+
+            def plan_preferences(self, context):
+                return {
+                    "priority_tags": [{"code": "facility_lounge", "weight": 1}],
+                    "priority_purposes": [],
+                    "preferred_regions": [],
+                    "weights": {},
+                }
+
+            def rerank_libraries(self, bundle):
+                return {
+                    "items": [
+                        {
+                            "library_id": bundle["candidates"][0]["library_id"],
+                            "rank": 1,
+                            "confidence": 0.9,
+                            "matched_priority_tags": ["facility_lounge"],
+                            "evidence_codes": ["tag:facility_lounge"],
+                            "recommendation_reason": {"bad": "type"},
+                        }
+                    ]
+                }
+
+        self.client.force_authenticate(self.user)
+        with patch("apps.recommendations.services.get_provider", return_value=AbnormalReasonProvider()):
+            response = self.client.get("/api/v1/home/")
+
+        item = response.data["personal_recommendations"]["items"][0]
+        self.assertIn("휴게공간", item["recommendation_reason"])
 
     @override_settings(
         AI_RECOMMENDATION_ENABLED=True,

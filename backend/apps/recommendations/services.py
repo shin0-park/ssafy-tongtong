@@ -417,6 +417,14 @@ def build_candidate_feature(library, baseline_score, plan_tag_codes, plan_region
     feature_tags = get_library_feature_tag_codes(library)
     matched_plan_tags = [code for code in feature_tags if code in plan_tag_codes]
     statistic = get_current_statistic(library)
+    book_count_bucket = number_bucket(statistic.book_count if statistic else None)
+    reading_seat_count_bucket = number_bucket(statistic.reading_seat_count if statistic else None)
+    allowed_evidence_codes, evidence_labels = build_allowed_evidence(
+        library,
+        feature_tags,
+        book_count_bucket,
+        reading_seat_count_bucket,
+    )
     public_candidate = {
         "library_id": library.id,
         "name": library.name,
@@ -426,18 +434,47 @@ def build_candidate_feature(library, baseline_score, plan_tag_codes, plan_region
         "matched_plan_tags": matched_plan_tags[:5],
         "matched_region": library.sigungu in plan_region_values,
         "stats": {
-            "book_count_bucket": number_bucket(statistic.book_count if statistic else None),
-            "reading_seat_count_bucket": number_bucket(statistic.reading_seat_count if statistic else None),
+            "book_count_bucket": book_count_bucket,
+            "reading_seat_count_bucket": reading_seat_count_bucket,
         },
         "operation": {
             "open_today": True,
         },
+        "allowed_evidence_codes": allowed_evidence_codes,
+        "evidence_labels": evidence_labels,
         "fallback_reason": reason,
     }
     return {
         "public": public_candidate,
         "_library": library,
     }
+
+
+def build_allowed_evidence(library, feature_tags, book_count_bucket, reading_seat_count_bucket):
+    evidence_labels = {}
+    evidence_codes = []
+
+    for tag_code in feature_tags[:20]:
+        evidence_code = f"tag:{tag_code}"
+        evidence_codes.append(evidence_code)
+        evidence_labels[evidence_code] = tag_label(tag_code)
+
+    if book_count_bucket in {"medium", "large"}:
+        evidence_codes.append("metric:book_count_high")
+        evidence_labels["metric:book_count_high"] = "장서 규모"
+    if reading_seat_count_bucket in {"medium", "large"}:
+        evidence_codes.append("metric:reading_seat_count_high")
+        evidence_labels["metric:reading_seat_count_high"] = "좌석 규모"
+
+    evidence_codes.append("operation:open_today")
+    evidence_labels["operation:open_today"] = "오늘 운영"
+
+    if library.sigungu:
+        region_code = f"region:{library.sigungu}"
+        evidence_codes.append(region_code)
+        evidence_labels[region_code] = f"{library.sigungu} 지역"
+
+    return dedupe(evidence_codes), evidence_labels
 
 
 def apply_rerank_result(rerank_result, candidate_by_id):
@@ -494,6 +531,10 @@ def build_priority_tag_payloads(priority_tags):
 def build_tag_payloads(tag_codes):
     tag_by_code = get_tag_payload_by_code()
     return [tag_by_code[code] for code in tag_codes if code in tag_by_code]
+
+
+def tag_label(tag_code):
+    return get_tag_payload_by_code().get(tag_code, {}).get("label", tag_code)
 
 
 def get_tag_payload_by_code():
@@ -707,6 +748,14 @@ def number_bucket(value):
     if value < 1000:
         return "medium"
     return "large"
+
+
+def dedupe(values):
+    deduped = []
+    for value in values:
+        if value and value not in deduped:
+            deduped.append(value)
+    return deduped
 
 
 def parse_coordinate(value):
