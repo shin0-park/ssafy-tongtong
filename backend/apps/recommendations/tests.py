@@ -1,4 +1,5 @@
 import json
+from datetime import time
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
@@ -519,6 +520,125 @@ class HomeRecommendationV4APITestCase(TestCase):
         stat_max = build_stat_max([library])
 
         self.assertEqual(score_preferred_tag(library, "review_kind_guidance", stat_max), 0)
+
+    def test_late_open_bridge_scores_only_late_open_daily_schedule(self):
+        late_library = self.create_open_library("늦게닫는도서관", "북구")
+        normal_library = self.create_open_library("여섯시닫는도서관", "북구")
+        unknown_library = self.create_open_library("운영미상도서관", "북구")
+
+        late_schedule = LibraryDailySchedule.objects.get(library=late_library, date=timezone.localdate())
+        late_schedule.close_time = time(20, 0)
+        late_schedule.save(update_fields=["close_time", "updated_at"])
+
+        unknown_schedule = LibraryDailySchedule.objects.get(library=unknown_library, date=timezone.localdate())
+        unknown_schedule.status = ScheduleStatus.UNKNOWN
+        unknown_schedule.open_time = None
+        unknown_schedule.close_time = None
+        unknown_schedule.save(update_fields=["status", "open_time", "close_time", "updated_at"])
+
+        stat_max = build_stat_max([late_library, normal_library, unknown_library])
+
+        self.assertGreater(score_preferred_tag(late_library, "late_open", stat_max), 0)
+        self.assertEqual(score_preferred_tag(normal_library, "late_open", stat_max), 0)
+        self.assertEqual(score_preferred_tag(unknown_library, "late_open", stat_max), 0)
+
+    def test_late_open_bridge_scores_closes_next_day(self):
+        library = self.create_open_library("다음날닫는도서관", "동구")
+        schedule = LibraryDailySchedule.objects.get(library=library, date=timezone.localdate())
+        schedule.close_time = time(1, 0)
+        schedule.closes_next_day = True
+        schedule.save(update_fields=["close_time", "closes_next_day", "updated_at"])
+
+        self.assertGreater(score_preferred_tag(library, "late_open", build_stat_max([library])), 0)
+
+    def test_review_parking_convenient_bridge_uses_parking_feature_only(self):
+        review_tag = self.create_review_tag("review_parking_convenient", "주차 편의")
+        parking_library = self.create_open_library("주차정보도서관", "강서구")
+        no_parking_library = self.create_open_library("주차정보없음도서관", "강서구")
+        LibraryFacilityProfile.objects.create(library=parking_library, has_parking=True)
+        LibraryFacilityProfile.objects.create(library=no_parking_library, has_parking=False)
+        stat_max = build_stat_max([parking_library, no_parking_library])
+        before_count = LibraryTag.objects.count()
+
+        self.assertGreater(score_preferred_tag(parking_library, "review_parking_convenient", stat_max), 0)
+        self.assertEqual(score_preferred_tag(no_parking_library, "review_parking_convenient", stat_max), 0)
+        self.assertEqual(LibraryTag.objects.filter(tag=review_tag).count(), 0)
+        self.assertEqual(LibraryTag.objects.count(), before_count)
+
+    def test_review_wifi_reliable_bridge_uses_wifi_and_digital_room_features(self):
+        self.create_review_tag("review_wifi_reliable", "와이파이 안정")
+        wifi_library = self.create_open_library("와이파이정보도서관", "해운대구")
+        digital_library = self.create_open_library("디지털실정보도서관", "해운대구")
+        no_feature_library = self.create_open_library("네트워크정보없음도서관", "해운대구")
+        LibraryFacilityProfile.objects.create(library=wifi_library, has_wifi=True)
+        LibraryFacilityProfile.objects.create(library=digital_library, has_digital_room=True)
+        LibraryFacilityProfile.objects.create(library=no_feature_library, has_wifi=False, has_digital_room=False)
+        stat_max = build_stat_max([wifi_library, digital_library, no_feature_library])
+
+        self.assertGreater(score_preferred_tag(wifi_library, "review_wifi_reliable", stat_max), 0)
+        self.assertGreater(score_preferred_tag(digital_library, "review_wifi_reliable", stat_max), 0)
+        self.assertEqual(score_preferred_tag(no_feature_library, "review_wifi_reliable", stat_max), 0)
+
+    def test_review_children_room_good_bridge_uses_children_room_or_library_type(self):
+        self.create_review_tag("review_children_room_good", "어린이자료실 체감")
+        room_library = self.create_open_library("어린이실정보도서관", "사하구")
+        children_library = self.create_open_library("어린이유형도서관", "사하구")
+        no_feature_library = self.create_open_library("어린이정보없음도서관", "사하구")
+        children_library.library_type = LibraryType.CHILDREN
+        children_library.save(update_fields=["library_type", "updated_at"])
+        LibraryFacilityProfile.objects.create(library=room_library, has_children_room=True)
+        LibraryFacilityProfile.objects.create(library=no_feature_library, has_children_room=False)
+        stat_max = build_stat_max([room_library, children_library, no_feature_library])
+
+        self.assertGreater(score_preferred_tag(room_library, "review_children_room_good", stat_max), 0)
+        self.assertGreater(score_preferred_tag(children_library, "review_children_room_good", stat_max), 0)
+        self.assertEqual(score_preferred_tag(no_feature_library, "review_children_room_good", stat_max), 0)
+
+    def test_review_laptop_friendly_bridge_uses_digital_wifi_reading_room_and_seats(self):
+        self.create_review_tag("review_laptop_friendly", "노트북 이용 체감")
+        feature_library = self.create_open_library("노트북조건도서관", "연제구")
+        no_feature_library = self.create_open_library("노트북조건없음도서관", "연제구")
+        LibraryFacilityProfile.objects.create(
+            library=feature_library,
+            has_digital_room=True,
+            has_wifi=True,
+            has_reading_room=True,
+        )
+        LibraryFacilityProfile.objects.create(
+            library=no_feature_library,
+            has_digital_room=False,
+            has_wifi=False,
+            has_reading_room=False,
+        )
+        self.create_statistic(feature_library, reading_seat_count=120)
+        self.create_statistic(no_feature_library, reading_seat_count=0)
+        stat_max = build_stat_max([feature_library, no_feature_library])
+
+        self.assertGreater(score_preferred_tag(feature_library, "review_laptop_friendly", stat_max), 0)
+        self.assertEqual(score_preferred_tag(no_feature_library, "review_laptop_friendly", stat_max), 0)
+
+    def test_review_stay_friendly_bridge_uses_space_and_seat_features(self):
+        self.create_review_tag("review_stay_friendly", "오래 머물기 체감")
+        feature_library = self.create_open_library("체류조건도서관", "수영구")
+        no_feature_library = self.create_open_library("체류조건없음도서관", "수영구")
+        LibraryFacilityProfile.objects.create(
+            library=feature_library,
+            has_lounge=True,
+            has_cafe=True,
+            has_outdoor_space=True,
+        )
+        LibraryFacilityProfile.objects.create(
+            library=no_feature_library,
+            has_lounge=False,
+            has_cafe=False,
+            has_outdoor_space=False,
+        )
+        self.create_statistic(feature_library, reading_seat_count=80, building_area=1200, site_area=1600)
+        self.create_statistic(no_feature_library, reading_seat_count=0, building_area=0, site_area=0)
+        stat_max = build_stat_max([feature_library, no_feature_library])
+
+        self.assertGreater(score_preferred_tag(feature_library, "review_stay_friendly", stat_max), 0)
+        self.assertEqual(score_preferred_tag(no_feature_library, "review_stay_friendly", stat_max), 0)
 
     @override_settings(
         AI_RECOMMENDATION_ENABLED=True,

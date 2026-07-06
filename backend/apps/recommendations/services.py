@@ -1,5 +1,6 @@
 import logging
 import math
+from datetime import time
 
 from django.conf import settings
 from django.db.models import Prefetch
@@ -12,10 +13,13 @@ from apps.accounts.models import (
 )
 from apps.libraries.models import (
     Library,
+    LibraryDailySchedule,
     LibraryFacilityProfile,
     LibraryImage,
     LibraryStatisticSnapshot,
     LibraryTag,
+    LibraryType,
+    ScheduleStatus,
 )
 from apps.libraries.serializers import library_thumbnail_image_queryset
 from apps.libraries.services import resolve_library_operation_status
@@ -706,9 +710,25 @@ def score_preferred_tag(library, tag_code, stat_max):
         return normalized_stat(library, "reading_seat_count", stat_max)
     if tag_code == "rich_collection":
         return normalized_stat(library, "book_count", stat_max)
+    if tag_code == "late_open":
+        return score_late_open(library)
     review_bridge_score = score_review_preference_bridge(library, tag_code, stat_max)
     if review_bridge_score:
         return review_bridge_score
+    return 0
+
+
+def score_late_open(library):
+    daily_schedule = LibraryDailySchedule.objects.filter(
+        library=library,
+        date=timezone.localdate(),
+    ).first()
+    if daily_schedule is None or daily_schedule.status != ScheduleStatus.OPEN:
+        return 0
+    if daily_schedule.closes_next_day:
+        return 1.0
+    if daily_schedule.close_time and daily_schedule.close_time > time(18, 0):
+        return 1.0
     return 0
 
 
@@ -734,6 +754,32 @@ def score_review_preference_bridge(library, tag_code, stat_max):
             coordinate_score
             + score_facility(library, "has_accessible_facility") * 0.4
             + score_facility(library, "has_elevator") * 0.3
+        )
+    if tag_code == "review_parking_convenient":
+        return score_facility(library, "has_parking") * 0.8
+    if tag_code == "review_wifi_reliable":
+        return (
+            score_facility(library, "has_wifi") * 0.9
+            + score_facility(library, "has_digital_room") * 0.3
+        )
+    if tag_code == "review_children_room_good":
+        library_type_score = 0.6 if library.library_type == LibraryType.CHILDREN else 0
+        return score_facility(library, "has_children_room") * 1.0 + library_type_score
+    if tag_code == "review_laptop_friendly":
+        return (
+            score_facility(library, "has_digital_room") * 0.7
+            + score_facility(library, "has_wifi") * 0.6
+            + score_facility(library, "has_reading_room") * 0.4
+            + normalized_stat(library, "reading_seat_count", stat_max) * 0.5
+        )
+    if tag_code == "review_stay_friendly":
+        return (
+            score_facility(library, "has_lounge") * 0.8
+            + score_facility(library, "has_cafe") * 0.6
+            + score_facility(library, "has_outdoor_space") * 0.4
+            + normalized_stat(library, "building_area", stat_max) * 0.2
+            + normalized_stat(library, "site_area", stat_max) * 0.2
+            + normalized_stat(library, "reading_seat_count", stat_max) * 0.2
         )
     return 0
 
