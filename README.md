@@ -378,6 +378,8 @@ Frontend:
 - 문화 프로그램 데이터와 import report: `backend/fixtures/program_seed/`
 - 데모 사용자 활동과 로컬 프로젝트 스냅샷: `backend/fixtures/demo_seed/`
 
+`backend/fixtures/demo_seed/full_local_project_snapshot_2026_06_25_04_filtered.json.gz`는 도서관 기본 데이터뿐 아니라 2026년 일일 운영표(`LibraryDailySchedule`)까지 포함합니다. 홈 AI 개인 추천의 `open_today=True` 후보는 이 demo snapshot 적재를 전제로 동작합니다. demo snapshot 대신 개별 fixture를 나누어 적재하는 경우에는 `python manage.py build_library_daily_schedules --year 2026` 실행이 필요할 수 있습니다.
+
 데이터 import의 핵심 원칙은 외부 `library_name`, `sigungu`를 FK처럼 사용하지 않고 정규화와 매칭을 거쳐 내부 `Library.id`로 확정한 뒤 연결하는 것입니다.
 
 ### RESTful 설계
