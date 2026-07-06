@@ -46,5 +46,9 @@ class HomeRecommendationsAPIView(APIView):
         return {
             "available": personal["available"],
             "reason": personal["reason"],
+            "priority_tags": personal.get("priority_tags", []),
+            "fallback_used": personal.get("fallback_used", False),
+            "provider": personal.get("provider"),
+            "mode": personal.get("mode"),
             "items": RecommendationLibrarySerializer(personal["items"], many=True).data,
         }

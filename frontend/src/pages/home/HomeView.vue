@@ -53,11 +53,20 @@ const selectedThemeGroup = computed(() =>
 )
 const personalRecommendations = computed(() => homeData.value?.personal_recommendations ?? {})
 const personalItems = computed(() => personalRecommendations.value.items ?? [])
+const personalPriorityTags = computed(() =>
+  Array.isArray(personalRecommendations.value.priority_tags)
+    ? personalRecommendations.value.priority_tags.filter((tag) => tag?.label || tag?.code).slice(0, 5)
+    : [],
+)
 const dashboardSummarySentence = computed(() => {
   const sentence = dashboardData.value?.summary_sentence
   return sentence && !isBrokenText(sentence) ? sentence : ''
 })
 const personalReasonKeywords = computed(() => {
+  if (personalPriorityTags.value.length) {
+    return personalPriorityTags.value.map((tag) => tag.label || tag.code).slice(0, 4)
+  }
+
   const sourceText = dashboardSummarySentence.value
   if (!sourceText) return []
 
@@ -240,7 +249,7 @@ onMounted(loadHome)
             v-for="library in personalItems.slice(0, 3)"
             :key="library.id"
             :library="library"
-            :show-recommendation-reason="false"
+            :show-recommendation-reason="true"
           />
         </div>
       </section>

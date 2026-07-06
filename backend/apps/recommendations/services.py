@@ -1,5 +1,6 @@
 import math
 
+from django.conf import settings
 from django.db.models import Prefetch
 from django.utils import timezone
 
@@ -16,15 +17,23 @@ from apps.libraries.models import (
     LibraryTag,
 )
 from apps.libraries.serializers import library_thumbnail_image_queryset
+from apps.libraries.services import resolve_library_operation_status
 from apps.preferences.services import (
     ensure_user_preference_current,
     get_behavior_preference_items,
 )
+from apps.tags.models import Tag
 
 from .models import (
     DailyLibraryRecommendationSet,
     DailyRecommendationTheme,
     Purpose,
+)
+from .providers import RecommendationProviderError, get_provider
+from .schemas import (
+    RecommendationSchemaError,
+    validate_preference_plan,
+    validate_rerank_result,
 )
 
 
@@ -175,6 +184,10 @@ def build_personal_recommendations(user, libraries, stat_max):
         return {
             "available": False,
             "reason": "로그인 후 선호 목적과 지역을 설정하면 맞춤 추천을 볼 수 있어요.",
+            "priority_tags": [],
+            "fallback_used": False,
+            "provider": None,
+            "mode": "unavailable",
             "items": [],
         }
 
@@ -201,31 +214,285 @@ def build_personal_recommendations(user, libraries, stat_max):
         return {
             "available": False,
             "reason": "선호 목적과 지역을 설정하면 맞춤 추천을 볼 수 있어요.",
+            "priority_tags": [],
+            "fallback_used": False,
+            "provider": None,
+            "mode": "unavailable",
             "items": [],
         }
 
     region_values = {preference.sigungu for preference in preferred_regions if preference.sigungu}
     purpose_codes = [preference.purpose.code for preference in preferred_purposes]
     tag_codes = [preference.tag.code for preference in preferred_tags]
-    # 사용자가 직접 고른 선호와 행동 기반 성향은 원본을 섞어 저장하지 않고 점수 계산에서만 결합한다.
-    items = rank_libraries(
+    reason = personal_reason(has_manual_preference, has_behavior_preference)
+    context = build_preference_planning_context(
+        preferred_purposes,
+        preferred_regions,
+        preferred_tags,
+        behavior_items,
+    )
+    result = build_personal_recommendations_v4(
         libraries,
-        lambda library: score_personal_with_behavior(
+        stat_max,
+        purpose_codes,
+        region_values,
+        tag_codes,
+        behavior_tag_scores,
+        context,
+        reason,
+    )
+    if not result["items"]:
+        return {
+            "available": False,
+            "reason": "추천에 사용할 수 있는 운영 중 도서관이 아직 없어요.",
+            "priority_tags": result["priority_tags"],
+            "fallback_used": result["fallback_used"],
+            "provider": result["provider"],
+            "mode": result["mode"],
+            "items": [],
+        }
+    return {
+        "available": True,
+        "reason": reason,
+        **result,
+    }
+
+
+def build_personal_recommendations_v4(
+    libraries,
+    stat_max,
+    purpose_codes,
+    region_values,
+    tag_codes,
+    behavior_tag_scores,
+    context,
+    reason,
+):
+    fallback_used = False
+    provider_code = None
+    try:
+        if not getattr(settings, "AI_RECOMMENDATION_ENABLED", True):
+            raise RecommendationProviderError("AI recommendation is disabled.")
+        provider_code = getattr(settings, "AI_RECOMMENDATION_PROVIDER", "mock")
+        provider = get_provider(provider_code)
+        plan = validate_preference_plan(
+            provider.plan_preferences(context),
+            valid_purpose_codes=get_valid_profile_purpose_codes(),
+            valid_tag_codes=get_valid_tag_codes(),
+        )
+        candidates = retrieve_personal_candidates(
+            libraries,
+            stat_max,
+            purpose_codes,
+            region_values,
+            tag_codes,
+            behavior_tag_scores,
+            plan,
+            reason,
+        )
+        rerank_result = validate_rerank_result(
+            provider.rerank_libraries({"plan": plan, "candidates": candidates}),
+            candidate_by_id={candidate["library_id"]: candidate for candidate in candidates},
+            valid_tag_codes=get_valid_tag_codes(),
+        )
+        items = apply_rerank_result(rerank_result, candidates)
+        if not items:
+            raise RecommendationProviderError("Provider returned no valid recommendation items.")
+        return build_personal_result(plan, items, fallback_used, provider_code, "ai")
+    except (RecommendationProviderError, RecommendationSchemaError, TypeError, ValueError):
+        fallback_used = True
+
+    fallback_provider_code = getattr(settings, "AI_RECOMMENDATION_FALLBACK_PROVIDER", "rule_based")
+    fallback_provider = get_provider(fallback_provider_code)
+    fallback_plan = validate_preference_plan(
+        fallback_provider.plan_preferences(context),
+        valid_purpose_codes=get_valid_profile_purpose_codes(),
+        valid_tag_codes=get_valid_tag_codes(),
+    )
+    fallback_candidates = retrieve_personal_candidates(
+        libraries,
+        stat_max,
+        purpose_codes,
+        region_values,
+        tag_codes,
+        behavior_tag_scores,
+        fallback_plan,
+        reason,
+    )
+    fallback_rerank_result = validate_rerank_result(
+        fallback_provider.rerank_libraries({"plan": fallback_plan, "candidates": fallback_candidates}),
+        candidate_by_id={candidate["library_id"]: candidate for candidate in fallback_candidates},
+        valid_tag_codes=get_valid_tag_codes(),
+    )
+    fallback_items = apply_rerank_result(fallback_rerank_result, fallback_candidates)
+    return build_personal_result(fallback_plan, fallback_items, fallback_used, fallback_provider_code, "fallback")
+
+
+def build_preference_planning_context(preferred_purposes, preferred_regions, preferred_tags, behavior_items):
+    return {
+        "user_summary": {
+            "signal_count": len(behavior_items),
+            "top_behavior_tags": [
+                {
+                    "code": item.tag.code,
+                    "label": item.tag.label,
+                    "score": float(item.score or 0),
+                }
+                for item in behavior_items[:BEHAVIOR_ITEM_LIMIT]
+                if item.tag_id and item.tag
+            ],
+        },
+        "manual_preferences": {
+            "purposes": [preference.purpose.code for preference in preferred_purposes],
+            "regions": [preference.sigungu for preference in preferred_regions if preference.sigungu],
+            "tags": [preference.tag.code for preference in preferred_tags],
+        },
+        "available_tag_codes": sorted(get_valid_tag_codes()),
+    }
+
+
+def retrieve_personal_candidates(
+    libraries,
+    stat_max,
+    purpose_codes,
+    region_values,
+    tag_codes,
+    behavior_tag_scores,
+    plan,
+    reason,
+):
+    candidate_limit = max(1, int(getattr(settings, "AI_RECOMMENDATION_CANDIDATE_LIMIT", 20)))
+    scored_candidates = []
+    plan_tag_codes = [item["code"] for item in plan.get("priority_tags", [])]
+    plan_region_values = {
+        item["sigungu"] for item in plan.get("preferred_regions", []) if item.get("sigungu")
+    }
+
+    for library in libraries:
+        if not library.is_active:
+            continue
+        operation_status = resolve_library_operation_status(library)
+        if operation_status["open_today"] is not True:
+            continue
+        baseline_score = score_personal_with_behavior(
             library,
             purpose_codes,
             region_values,
             tag_codes,
             behavior_tag_scores,
             stat_max,
-        ),
-        PERSONAL_ITEM_LIMIT,
-        personal_reason(has_manual_preference, has_behavior_preference),
-    )
+        )
+        baseline_score += score_plan_tags(library, plan_tag_codes, stat_max)
+        if library.sigungu in plan_region_values:
+            baseline_score += 1
+        if baseline_score <= 0:
+            continue
+        scored_candidates.append(
+            (
+                -baseline_score,
+                library.name,
+                library.id,
+                build_candidate_feature(library, baseline_score, plan_tag_codes, plan_region_values, reason),
+            )
+        )
+
+    scored_candidates.sort()
+    return [candidate for _, _, _, candidate in scored_candidates[:candidate_limit]]
+
+
+def build_candidate_feature(library, baseline_score, plan_tag_codes, plan_region_values, reason):
+    feature_tags = get_library_feature_tag_codes(library)
+    matched_plan_tags = [code for code in feature_tags if code in plan_tag_codes]
+    statistic = get_current_statistic(library)
     return {
-        "available": True,
-        "reason": personal_reason(has_manual_preference, has_behavior_preference),
+        "library_id": library.id,
+        "name": library.name,
+        "sigungu": library.sigungu,
+        "baseline_score": baseline_score,
+        "feature_tags": feature_tags[:20],
+        "matched_plan_tags": matched_plan_tags[:5],
+        "matched_region": library.sigungu in plan_region_values,
+        "stats": {
+            "book_count": statistic.book_count if statistic else None,
+            "reading_seat_count": statistic.reading_seat_count if statistic else None,
+        },
+        "fallback_reason": reason,
+        "_library": library,
+    }
+
+
+def apply_rerank_result(rerank_result, candidates):
+    candidate_by_id = {candidate["library_id"]: candidate for candidate in candidates}
+    items = []
+    for item in rerank_result["items"][:PERSONAL_ITEM_LIMIT]:
+        candidate = candidate_by_id.get(item["library_id"])
+        if not candidate:
+            continue
+        library = candidate["_library"]
+        library.ai_rank = item["rank"]
+        library.ai_confidence = item["confidence"]
+        library.matched_priority_tags = build_tag_payloads(item["matched_priority_tags"])
+        set_reason(library, item["recommendation_reason"] or candidate["fallback_reason"])
+        items.append(library)
+    return items
+
+
+def build_personal_result(plan, items, fallback_used, provider_code, mode):
+    return {
+        "priority_tags": build_priority_tag_payloads(plan.get("priority_tags", [])),
+        "fallback_used": fallback_used,
+        "provider": provider_code,
+        "mode": mode,
         "items": items,
     }
+
+
+def get_library_feature_tag_codes(library):
+    links = getattr(library, "active_tag_links", None)
+    if links is None:
+        links = library.tag_links.filter(is_active=True).select_related("tag")
+    codes = []
+    for link in links:
+        if link.is_active and link.tag and link.tag.is_active and link.tag.code not in codes:
+            codes.append(link.tag.code)
+    return codes
+
+
+def score_plan_tags(library, plan_tag_codes, stat_max):
+    return sum(score_preferred_tag(library, tag_code, stat_max) for tag_code in plan_tag_codes)
+
+
+def build_priority_tag_payloads(priority_tags):
+    tag_by_code = get_tag_payload_by_code()
+    payloads = []
+    for item in priority_tags:
+        tag_payload = tag_by_code.get(item["code"])
+        if not tag_payload:
+            continue
+        payloads.append({**tag_payload, "weight": item["weight"]})
+    return payloads
+
+
+def build_tag_payloads(tag_codes):
+    tag_by_code = get_tag_payload_by_code()
+    return [tag_by_code[code] for code in tag_codes if code in tag_by_code]
+
+
+def get_tag_payload_by_code():
+    return {
+        tag.code: {"code": tag.code, "label": tag.label}
+        for tag in Tag.objects.filter(is_active=True)
+    }
+
+
+def get_valid_tag_codes():
+    return set(Tag.objects.filter(is_active=True).values_list("code", flat=True))
+
+
+def get_valid_profile_purpose_codes():
+    return set(
+        Purpose.objects.filter(is_active=True, is_profile_selectable=True).values_list("code", flat=True)
+    )
 
 
 def score_daily_theme(library, theme_code, stat_max):
