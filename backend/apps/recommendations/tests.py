@@ -12,6 +12,7 @@ from apps.libraries.models import (
     Library,
     LibraryDailySchedule,
     LibraryFacilityProfile,
+    LibraryStatisticSnapshot,
     LibraryTag,
     LibraryTagSourceMethod,
     LibraryType,
@@ -22,6 +23,8 @@ from apps.recommendations.services import (
     build_personal_recommendations_v4,
     build_stat_max,
     get_candidate_libraries,
+    retrieve_personal_candidates,
+    score_preferred_tag,
 )
 from apps.tags.models import Tag, TagGroup, TagSemanticKind
 
@@ -428,6 +431,124 @@ class HomeRecommendationV4APITestCase(TestCase):
         item = response.data["personal_recommendations"]["items"][0]
         self.assertIn("휴게공간", item["recommendation_reason"])
 
+    def test_review_quiet_study_bridge_creates_reading_room_candidate_without_librarytag(self):
+        review_tag = self.create_review_tag("review_quiet_study", "조용한 공부 환경")
+        library = self.create_open_library("조용한열람도서관", "부산진구")
+        LibraryFacilityProfile.objects.create(library=library, has_reading_room=True)
+        self.create_statistic(library, reading_seat_count=200)
+
+        before_count = LibraryTag.objects.count()
+        candidates = self.retrieve_candidates_for_review_tags(["review_quiet_study"])
+
+        self.assertGreater(len(candidates), 0)
+        self.assertEqual(LibraryTag.objects.filter(tag=review_tag).count(), 0)
+        self.assertEqual(LibraryTag.objects.count(), before_count)
+        self.assertIn(library.id, [candidate["library_id"] for candidate in candidates])
+
+    def test_review_comfortable_space_bridge_creates_lounge_candidate(self):
+        self.create_review_tag("review_comfortable_space", "편안한 공간")
+        library = self.create_open_library("편안한공간도서관", "수영구")
+        LibraryFacilityProfile.objects.create(
+            library=library,
+            has_lounge=True,
+            has_cafe=True,
+            has_outdoor_space=True,
+        )
+        self.create_statistic(library, building_area=1200, site_area=1600)
+
+        candidates = self.retrieve_candidates_for_review_tags(["review_comfortable_space"])
+
+        self.assertGreater(len(candidates), 0)
+        self.assertIn(library.id, [candidate["library_id"] for candidate in candidates])
+
+    def test_review_only_behavior_tags_can_create_candidates_without_review_librarytag(self):
+        for code in (
+            "review_easy_to_visit",
+            "review_kind_guidance",
+            "review_quiet_study",
+            "review_seats_sufficient",
+            "review_comfortable_space",
+        ):
+            self.create_review_tag(code, code)
+        library = self.create_open_library("리뷰성향후보도서관", "동래구")
+        library.latitude = "35.2000000"
+        library.longitude = "129.0800000"
+        library.save(update_fields=["latitude", "longitude", "updated_at"])
+        LibraryFacilityProfile.objects.create(
+            library=library,
+            has_reading_room=True,
+            has_lounge=True,
+            has_accessible_facility=True,
+            has_elevator=True,
+        )
+        self.create_statistic(library, reading_seat_count=150, building_area=900)
+
+        candidates = self.retrieve_candidates_for_review_tags(
+            [
+                "review_easy_to_visit",
+                "review_kind_guidance",
+                "review_quiet_study",
+                "review_seats_sufficient",
+                "review_comfortable_space",
+            ]
+        )
+
+        self.assertGreater(len(candidates), 0)
+        self.assertIn(library.id, [candidate["library_id"] for candidate in candidates])
+        self.assertFalse(
+            LibraryTag.objects.filter(
+                tag__code__in=[
+                    "review_easy_to_visit",
+                    "review_kind_guidance",
+                    "review_quiet_study",
+                    "review_seats_sufficient",
+                    "review_comfortable_space",
+                ]
+            ).exists()
+        )
+
+    def test_review_kind_guidance_does_not_create_direct_feature_score(self):
+        self.create_review_tag("review_kind_guidance", "친절한 안내")
+        library = self.create_open_library("친절점수없음도서관", "남구")
+        LibraryFacilityProfile.objects.create(
+            library=library,
+            has_lounge=True,
+            has_reading_room=True,
+            has_accessible_facility=True,
+        )
+        stat_max = build_stat_max([library])
+
+        self.assertEqual(score_preferred_tag(library, "review_kind_guidance", stat_max), 0)
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+    )
+    def test_primary_failure_logs_provider_stage_and_error(self):
+        class BrokenPrimaryProvider:
+            provider_code = "broken_primary"
+
+            def plan_preferences(self, context):
+                raise RecommendationProviderError("planner exploded")
+
+            def rerank_libraries(self, bundle):
+                return {"items": []}
+
+        self.client.force_authenticate(self.user)
+        with patch(
+            "apps.recommendations.services.get_provider",
+            side_effect=[BrokenPrimaryProvider(), RuleBasedFallbackRecommendationProvider()],
+        ):
+            with self.assertLogs("apps.recommendations.services", level="WARNING") as logs:
+                response = self.client.get("/api/v1/home/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["personal_recommendations"]["fallback_used"])
+        self.assertTrue(any("provider=mock" in message for message in logs.output))
+        self.assertTrue(any("stage=planner_call" in message for message in logs.output))
+        self.assertTrue(any("error=RecommendationProviderError" in message for message in logs.output))
+
     @override_settings(
         AI_RECOMMENDATION_ENABLED=True,
         AI_RECOMMENDATION_PROVIDER="gms_chat",
@@ -470,7 +591,8 @@ class HomeRecommendationV4APITestCase(TestCase):
                 BrokenFallbackProvider(),
             ],
         ):
-            response = self.client.get("/api/v1/home/")
+            with self.assertLogs("apps.recommendations.services", level="WARNING") as logs:
+                response = self.client.get("/api/v1/home/")
 
         self.assertEqual(response.status_code, 200)
         personal = response.data["personal_recommendations"]
@@ -480,6 +602,56 @@ class HomeRecommendationV4APITestCase(TestCase):
         self.assertTrue(personal["fallback_used"])
         self.assertEqual(personal["provider"], "rule_based")
         self.assertEqual(personal["mode"], "fallback_failed")
+        self.assertTrue(any("stage=provider_get" in message for message in logs.output))
+        self.assertTrue(any("stage=fallback_planner" in message for message in logs.output))
+
+    def create_review_tag(self, code, label):
+        return Tag.objects.create(
+            code=code,
+            label=label,
+            semantic_kind=TagSemanticKind.EXPERIENCE,
+            tag_group=TagGroup.STUDY_READING,
+            is_profile_selectable=False,
+            is_review_selectable=False,
+        )
+
+    def create_statistic(
+        self,
+        library,
+        *,
+        reading_seat_count=0,
+        book_count=0,
+        building_area=0,
+        site_area=0,
+    ):
+        return LibraryStatisticSnapshot.objects.create(
+            library=library,
+            provider_code="test",
+            reference_date=timezone.localdate(),
+            reading_seat_count=reading_seat_count,
+            book_count=book_count,
+            building_area=building_area,
+            site_area=site_area,
+            is_current=True,
+        )
+
+    def retrieve_candidates_for_review_tags(self, tag_codes):
+        libraries = list(get_candidate_libraries())
+        plan = {
+            "priority_tags": [{"code": code, "weight": 0.7} for code in tag_codes],
+            "preferred_regions": [],
+        }
+        candidates, _ = retrieve_personal_candidates(
+            libraries,
+            build_stat_max(libraries),
+            [],
+            set(),
+            [],
+            {},
+            plan,
+            "저장과 후기 활동을 바탕으로 골랐어요.",
+        )
+        return candidates
 
     @override_settings(
         AI_RECOMMENDATION_ENABLED=True,

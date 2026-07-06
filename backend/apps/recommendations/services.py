@@ -1,3 +1,4 @@
+import logging
 import math
 
 from django.conf import settings
@@ -44,6 +45,8 @@ PERSONAL_ITEM_LIMIT = 3
 BEHAVIOR_ITEM_LIMIT = 20
 MANUAL_PERSONAL_WEIGHT = 1.0
 BEHAVIOR_PERSONAL_WEIGHT = 0.5
+
+logger = logging.getLogger(__name__)
 
 TODAY_THEME_REASON_TEMPLATES = {
     "large_space": "넓은 공간과 규모를 기준으로 골랐어요.",
@@ -270,16 +273,22 @@ def build_personal_recommendations_v4(
 ):
     fallback_used = False
     provider_code = None
+    stage = "provider_get"
     try:
         if not getattr(settings, "AI_RECOMMENDATION_ENABLED", True):
             raise RecommendationProviderError("AI recommendation is disabled.")
         provider_code = getattr(settings, "AI_RECOMMENDATION_PROVIDER", "mock")
+        stage = "provider_get"
         provider = get_provider(provider_code)
+        stage = "planner_call"
+        raw_plan = provider.plan_preferences(context)
+        stage = "planner_schema"
         plan = validate_preference_plan(
-            provider.plan_preferences(context),
+            raw_plan,
             valid_purpose_codes=get_valid_profile_purpose_codes(),
             valid_tag_codes=get_valid_tag_codes(),
         )
+        stage = "candidate_retrieval"
         public_candidates, candidate_by_id = retrieve_personal_candidates(
             libraries,
             stat_max,
@@ -290,26 +299,37 @@ def build_personal_recommendations_v4(
             plan,
             reason,
         )
+        stage = "reranker_call"
+        raw_rerank_result = provider.rerank_libraries({"plan": plan, "candidates": public_candidates})
+        stage = "reranker_schema"
         rerank_result = validate_rerank_result(
-            provider.rerank_libraries({"plan": plan, "candidates": public_candidates}),
+            raw_rerank_result,
             candidate_by_id=candidate_by_id,
             valid_tag_codes=get_valid_tag_codes(),
         )
+        stage = "apply_rerank"
         items = apply_rerank_result(rerank_result, candidate_by_id)
         if not items:
+            stage = "empty_items"
             raise RecommendationProviderError("Provider returned no valid recommendation items.")
         return build_personal_result(plan, items, fallback_used, provider_code, "ai")
-    except (RecommendationProviderError, RecommendationSchemaError, TypeError, ValueError):
+    except (RecommendationProviderError, RecommendationSchemaError, TypeError, ValueError) as exc:
+        log_recommendation_failure("primary", provider_code or "unavailable", stage, exc)
         fallback_used = True
 
     fallback_provider_code = getattr(settings, "AI_RECOMMENDATION_FALLBACK_PROVIDER", "rule_based")
+    fallback_stage = "fallback_provider_get"
     try:
+        fallback_stage = "fallback_provider_get"
         fallback_provider = get_provider(fallback_provider_code)
+        fallback_stage = "fallback_planner"
+        raw_fallback_plan = fallback_provider.plan_preferences(context)
         fallback_plan = validate_preference_plan(
-            fallback_provider.plan_preferences(context),
+            raw_fallback_plan,
             valid_purpose_codes=get_valid_profile_purpose_codes(),
             valid_tag_codes=get_valid_tag_codes(),
         )
+        fallback_stage = "fallback_retrieval"
         fallback_public_candidates, fallback_candidate_by_id = retrieve_personal_candidates(
             libraries,
             stat_max,
@@ -320,14 +340,19 @@ def build_personal_recommendations_v4(
             fallback_plan,
             reason,
         )
+        fallback_stage = "fallback_reranker"
+        raw_fallback_rerank_result = fallback_provider.rerank_libraries(
+            {"plan": fallback_plan, "candidates": fallback_public_candidates}
+        )
         fallback_rerank_result = validate_rerank_result(
-            fallback_provider.rerank_libraries({"plan": fallback_plan, "candidates": fallback_public_candidates}),
+            raw_fallback_rerank_result,
             candidate_by_id=fallback_candidate_by_id,
             valid_tag_codes=get_valid_tag_codes(),
         )
         fallback_items = apply_rerank_result(fallback_rerank_result, fallback_candidate_by_id)
         return build_personal_result(fallback_plan, fallback_items, fallback_used, fallback_provider_code, "fallback")
-    except (RecommendationProviderError, RecommendationSchemaError, TypeError, ValueError):
+    except (RecommendationProviderError, RecommendationSchemaError, TypeError, ValueError) as exc:
+        log_recommendation_failure("fallback", fallback_provider_code or "unavailable", fallback_stage, exc)
         return build_personal_result(
             {"priority_tags": []},
             [],
@@ -335,6 +360,17 @@ def build_personal_recommendations_v4(
             fallback_provider_code or "unavailable",
             "fallback_failed",
         )
+
+
+def log_recommendation_failure(scope, provider_code, stage, exc):
+    logger.warning(
+        "AI recommendation %s failed provider=%s stage=%s error=%s message=%s",
+        scope,
+        provider_code,
+        stage,
+        exc.__class__.__name__,
+        str(exc)[:200],
+    )
 
 
 def build_preference_planning_context(preferred_purposes, preferred_regions, preferred_tags, behavior_items):
@@ -670,6 +706,35 @@ def score_preferred_tag(library, tag_code, stat_max):
         return normalized_stat(library, "reading_seat_count", stat_max)
     if tag_code == "rich_collection":
         return normalized_stat(library, "book_count", stat_max)
+    review_bridge_score = score_review_preference_bridge(library, tag_code, stat_max)
+    if review_bridge_score:
+        return review_bridge_score
+    return 0
+
+
+def score_review_preference_bridge(library, tag_code, stat_max):
+    if tag_code == "review_quiet_study":
+        return (
+            score_facility(library, "has_reading_room") * 1.2
+            + normalized_stat(library, "reading_seat_count", stat_max) * 0.8
+        )
+    if tag_code == "review_seats_sufficient":
+        return normalized_stat(library, "reading_seat_count", stat_max) * 1.2
+    if tag_code == "review_comfortable_space":
+        return (
+            score_facility(library, "has_lounge") * 1.0
+            + score_facility(library, "has_cafe") * 0.7
+            + score_facility(library, "has_outdoor_space") * 0.5
+            + normalized_stat(library, "building_area", stat_max) * 0.3
+            + normalized_stat(library, "site_area", stat_max) * 0.2
+        )
+    if tag_code == "review_easy_to_visit":
+        coordinate_score = 0.3 if library.latitude is not None and library.longitude is not None else 0
+        return (
+            coordinate_score
+            + score_facility(library, "has_accessible_facility") * 0.4
+            + score_facility(library, "has_elevator") * 0.3
+        )
     return 0
 
 
