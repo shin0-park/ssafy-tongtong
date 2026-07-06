@@ -487,6 +487,7 @@ def apply_rerank_result(rerank_result, candidate_by_id):
         library.ai_rank = item["rank"]
         library.ai_confidence = item["confidence"]
         library.matched_priority_tags = build_tag_payloads(item["matched_priority_tags"])
+        library.evidence_codes = item.get("evidence_codes", [])
         set_reason(library, item["recommendation_reason"] or candidate["fallback_reason"])
         items.append(library)
     return items

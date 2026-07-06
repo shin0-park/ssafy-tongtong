@@ -1,9 +1,12 @@
+import json
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 from unittest.mock import patch
 
+from apps.integrations.gms import GMSClientError, request_chat_json
 from apps.accounts.models import UserPreferredTag
 from apps.libraries.models import (
     Library,
@@ -15,6 +18,11 @@ from apps.libraries.models import (
     ScheduleStatus,
 )
 from apps.recommendations.providers import RecommendationProviderError, RuleBasedFallbackRecommendationProvider
+from apps.recommendations.services import (
+    build_personal_recommendations_v4,
+    build_stat_max,
+    get_candidate_libraries,
+)
 from apps.tags.models import Tag, TagGroup, TagSemanticKind
 
 
@@ -65,6 +73,51 @@ class HomeRecommendationV4APITestCase(TestCase):
             generated_at=timezone.now(),
         )
         return library
+
+    @override_settings(
+        GMS_API_KEY="test-key",
+        GMS_OPENAI_BASE_URL="https://api.openai.example/v1",
+    )
+    def test_request_chat_json_uses_max_completion_tokens_payload_key(self):
+        captured_payload = {}
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": json.dumps({"ok": True}),
+                                }
+                            }
+                        ]
+                    }
+                ).encode("utf-8")
+
+        def fake_urlopen(http_request, timeout):
+            captured_payload.update(json.loads(http_request.data.decode("utf-8")))
+            return FakeResponse()
+
+        with patch("apps.integrations.gms.request.urlopen", side_effect=fake_urlopen):
+            result = request_chat_json(
+                [{"role": "user", "content": '{"ok": true}'}],
+                model="gpt-5-mini",
+                timeout_seconds=5,
+                max_tokens=40,
+            )
+
+        self.assertEqual(result, {"ok": True})
+        self.assertEqual(captured_payload["max_completion_tokens"], 40)
+        self.assertNotIn("max_tokens", captured_payload)
+        self.assertNotIn("temperature", captured_payload)
+        self.assertEqual(captured_payload["response_format"], {"type": "json_object"})
 
     @override_settings(
         AI_RECOMMENDATION_ENABLED=True,
@@ -427,6 +480,192 @@ class HomeRecommendationV4APITestCase(TestCase):
         self.assertTrue(personal["fallback_used"])
         self.assertEqual(personal["provider"], "rule_based")
         self.assertEqual(personal["mode"], "fallback_failed")
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="gms_chat",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        GMS_API_KEY="",
+        GMS_OPENAI_BASE_URL="https://gms.example.test/v1",
+        AI_RECOMMENDATION_MODEL="gms-test-model",
+    )
+    def test_gms_missing_key_falls_back_to_rule_based(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get("/api/v1/home/")
+
+        self.assertEqual(response.status_code, 200)
+        personal = response.data["personal_recommendations"]
+        self.assertTrue(personal["available"])
+        self.assertTrue(personal["fallback_used"])
+        self.assertEqual(personal["provider"], "rule_based")
+        self.assertEqual(personal["mode"], "fallback")
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="gms_chat",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        GMS_API_KEY="test-key",
+        GMS_OPENAI_BASE_URL="https://gms.example.test/v1",
+        AI_RECOMMENDATION_MODEL="gms-test-model",
+    )
+    def test_gms_malformed_json_falls_back_to_rule_based(self):
+        self.client.force_authenticate(self.user)
+
+        with patch(
+            "apps.recommendations.providers.request_chat_json",
+            side_effect=GMSClientError("malformed json"),
+        ):
+            response = self.client.get("/api/v1/home/")
+
+        self.assertEqual(response.status_code, 200)
+        personal = response.data["personal_recommendations"]
+        self.assertTrue(personal["available"])
+        self.assertTrue(personal["fallback_used"])
+        self.assertEqual(personal["provider"], "rule_based")
+        self.assertEqual(personal["mode"], "fallback")
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="gms_chat",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        GMS_API_KEY="test-key",
+        GMS_OPENAI_BASE_URL="https://gms.example.test/v1",
+        AI_RECOMMENDATION_MODEL="gms-test-model",
+    )
+    def test_gms_invalid_library_id_is_removed(self):
+        self.client.force_authenticate(self.user)
+        plan = {
+            "priority_tags": [{"code": "facility_lounge", "weight": 1}],
+            "priority_purposes": [],
+            "preferred_regions": [],
+            "weights": {},
+        }
+        rerank = {
+            "items": [
+                {
+                    "library_id": 999999,
+                    "rank": 1,
+                    "confidence": 1,
+                    "matched_priority_tags": ["facility_lounge"],
+                    "evidence_codes": ["tag:facility_lounge"],
+                    "recommendation_reason": "없는 도서관 추천",
+                },
+                {
+                    "library_id": self.library.id,
+                    "rank": 2,
+                    "confidence": 0.82,
+                    "matched_priority_tags": ["facility_lounge"],
+                    "evidence_codes": ["tag:facility_lounge"],
+                    "recommendation_reason": "휴게공간 선호가 반영된 추천이에요.",
+                },
+            ]
+        }
+
+        with patch("apps.recommendations.providers.request_chat_json", side_effect=[plan, rerank]):
+            response = self.client.get("/api/v1/home/")
+
+        personal = response.data["personal_recommendations"]
+        self.assertTrue(personal["available"])
+        self.assertFalse(personal["fallback_used"])
+        self.assertEqual(personal["provider"], "gms_chat")
+        self.assertEqual(len(personal["items"]), 1)
+        self.assertEqual(personal["items"][0]["id"], self.library.id)
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="gms_chat",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        GMS_API_KEY="test-key",
+        GMS_OPENAI_BASE_URL="https://gms.example.test/v1",
+        AI_RECOMMENDATION_MODEL="gms-test-model",
+    )
+    def test_gms_invalid_tag_and_evidence_are_sanitized(self):
+        self.client.force_authenticate(self.user)
+        plan = {
+            "priority_tags": [{"code": "facility_lounge", "weight": 1}, {"code": "missing_tag", "weight": 1}],
+            "priority_purposes": [],
+            "preferred_regions": [],
+            "weights": {},
+        }
+        rerank = {
+            "items": [
+                {
+                    "library_id": self.library.id,
+                    "rank": 1,
+                    "confidence": 0.91,
+                    "matched_priority_tags": ["facility_lounge", "missing_tag"],
+                    "evidence_codes": ["metric:made_up"],
+                    "recommendation_reason": "없는 근거로 만든 추천 문장입니다.",
+                }
+            ]
+        }
+
+        with patch("apps.recommendations.providers.request_chat_json", side_effect=[plan, rerank]):
+            response = self.client.get("/api/v1/home/")
+
+        item = response.data["personal_recommendations"]["items"][0]
+        self.assertEqual(item["matched_priority_tags"], [{"code": "facility_lounge", "label": "휴게공간"}])
+        self.assertNotEqual(item["recommendation_reason"], "없는 근거로 만든 추천 문장입니다.")
+        self.assertIn("휴게공간", item["recommendation_reason"])
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="gms_chat",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        GMS_API_KEY="test-key",
+        GMS_OPENAI_BASE_URL="https://gms.example.test/v1",
+        AI_RECOMMENDATION_MODEL="gms-test-model",
+    )
+    def test_gms_valid_json_applies_ai_fields_and_evidence_codes(self):
+        plan = {
+            "priority_tags": [{"code": "facility_lounge", "weight": 1}],
+            "priority_purposes": [],
+            "preferred_regions": [],
+            "weights": {},
+        }
+        rerank = {
+            "items": [
+                {
+                    "library_id": self.library.id,
+                    "rank": 1,
+                    "confidence": 0.88,
+                    "matched_priority_tags": ["facility_lounge"],
+                    "evidence_codes": ["tag:facility_lounge"],
+                    "recommendation_reason": "휴게공간 선호가 반영된 추천이에요.",
+                }
+            ]
+        }
+        libraries = list(get_candidate_libraries())
+
+        with patch("apps.recommendations.providers.request_chat_json", side_effect=[plan, rerank]):
+            result = build_personal_recommendations_v4(
+                libraries,
+                build_stat_max(libraries),
+                [],
+                set(),
+                ["facility_lounge"],
+                {},
+                {
+                    "user_summary": {"signal_count": 0, "top_behavior_tags": []},
+                    "manual_preferences": {
+                        "purposes": [],
+                        "regions": [],
+                        "tags": ["facility_lounge"],
+                    },
+                    "available_tag_codes": ["facility_lounge"],
+                },
+                "선호 설정을 바탕으로 골랐어요.",
+            )
+
+        self.assertFalse(result["fallback_used"])
+        self.assertEqual(result["provider"], "gms_chat")
+        self.assertEqual(result["priority_tags"], [{"code": "facility_lounge", "label": "휴게공간", "weight": 1.0}])
+        item = result["items"][0]
+        self.assertEqual(item.ai_rank, 1)
+        self.assertEqual(item.ai_confidence, 0.88)
+        self.assertEqual(item.evidence_codes, ["tag:facility_lounge"])
+        self.assertEqual(item.recommendation_reason, "휴게공간 선호가 반영된 추천이에요.")
 
     def test_no_personal_signal_keeps_personal_recommendations_unavailable(self):
         user = get_user_model().objects.create_user(

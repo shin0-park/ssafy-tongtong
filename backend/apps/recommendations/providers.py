@@ -1,4 +1,9 @@
+import json
 from typing import Protocol
+
+from django.conf import settings
+
+from apps.integrations.gms import GMSClientError, request_chat_json
 
 
 class RecommendationProviderError(RuntimeError):
@@ -73,10 +78,78 @@ class GMSChatRecommendationProvider:
     provider_code = "gms_chat"
 
     def plan_preferences(self, context):
-        raise RecommendationProviderError("GMS recommendation provider is not implemented in phase 1.")
+        return self.request_json(
+            [
+                {
+                    "role": "system",
+                    "content": (
+                        "너는 도서관 나들이 서비스의 AI Preference Planner다. "
+                        "사용자 행동 요약, 수동 선호, 사용 가능한 tag_code 목록만 보고 추천 검색 계획을 만든다. "
+                        "전체 도서관 raw data는 입력받지 않으며, 도서관 사실을 만들거나 수정하지 않는다. "
+                        "priority_purposes, priority_tags, preferred_regions, weights 키만 가진 JSON object를 반환한다. "
+                        "priority_purposes와 priority_tags는 {code, weight} 배열이고, preferred_regions는 {sigungu, weight} 배열이다. "
+                        "입력 available_tag_codes에 없는 tag_code를 절대 출력하지 않는다. "
+                        "weights는 purpose, tag, region, distance 숫자 값을 포함한다. JSON 외 텍스트는 출력하지 않는다."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        {
+                            "user_summary": context.get("user_summary", {}),
+                            "manual_preferences": context.get("manual_preferences", {}),
+                            "available_tag_codes": context.get("available_tag_codes", []),
+                        },
+                        ensure_ascii=False,
+                    ),
+                },
+            ],
+            max_tokens=700,
+        )
 
     def rerank_libraries(self, bundle):
-        raise RecommendationProviderError("GMS recommendation provider is not implemented in phase 1.")
+        return self.request_json(
+            [
+                {
+                    "role": "system",
+                    "content": (
+                        "너는 도서관 나들이 서비스의 AI Reranker다. "
+                        "Django가 고른 후보 10~20개의 요약 feature만 보고 최종 순위를 정한다. "
+                        "입력에 있는 library_id, tag_code, allowed_evidence_codes만 사용한다. "
+                        "없는 시설, 운영 여부, 장서, 위치, 후기, 이미지 사실을 만들지 않는다. "
+                        "recommendation_reason은 evidence_codes에 포함한 근거에 기반해서만 짧은 한국어 한 문장으로 작성한다. "
+                        "출력은 {items: [...]} JSON object 하나만 반환한다. "
+                        "각 item은 library_id, rank, confidence, matched_priority_tags, evidence_codes, recommendation_reason을 포함한다. "
+                        "matched_priority_tags는 입력 plan.priority_tags의 code 중 후보 feature_tags에 있는 값만 사용한다. "
+                        "evidence_codes는 해당 후보의 allowed_evidence_codes 안에 있는 값만 사용한다. JSON 외 텍스트는 출력하지 않는다."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        {
+                            "plan": bundle.get("plan", {}),
+                            "candidates": bundle.get("candidates", []),
+                        },
+                        ensure_ascii=False,
+                    ),
+                },
+            ],
+            max_tokens=1200,
+        )
+
+    def request_json(self, messages, *, max_tokens):
+        model = getattr(settings, "AI_RECOMMENDATION_MODEL", "") or getattr(settings, "GMS_MODEL", "")
+        timeout_seconds = getattr(settings, "AI_RECOMMENDATION_TIMEOUT_SECONDS", 5)
+        try:
+            return request_chat_json(
+                messages,
+                model=model,
+                timeout_seconds=timeout_seconds,
+                max_tokens=max_tokens,
+            )
+        except GMSClientError as exc:
+            raise RecommendationProviderError(str(exc)) from exc
 
 
 class FineTunedRecommendationProvider:
