@@ -15,7 +15,8 @@
   - [C. 데이터베이스 모델링](#c-데이터베이스-모델링)
   - [D. 추천 알고리즘에 대한 기술적 설명](#d-추천-알고리즘에-대한-기술적-설명)
     - [홈 추천](#홈-추천)
-    - [점수 기준](#점수-기준)
+    - [AI 추천 v4 흐름](#ai-추천-v4-흐름)
+    - [Fallback과 시연](#fallback과-시연)
     - [나의 나들이 성향 분석](#나의-나들이-성향-분석)
   - [E. 핵심 기능](#e-핵심-기능)
     - [인증과 세션](#인증과-세션)
@@ -166,7 +167,7 @@ erDiagram
 
 ## D. 추천 알고리즘에 대한 기술적 설명
 
-추천은 규칙 기반 점수 계산으로 동작합니다. GMS나 생성형 AI는 추천 후보 선정, 추천 점수, 추천 순위, 도서관 사실 판단에 관여하지 않습니다.
+추천 v4는 AI Recommendation Layer와 Django 검증 계층을 함께 사용합니다. AI는 사용자 성향 분석, 우선 태그 산출, 후보 재랭킹, 추천 이유 생성에 참여할 수 있지만, 원천 사실은 생성하거나 수정하지 않습니다.
 
 ### 홈 추천
 
@@ -174,20 +175,52 @@ erDiagram
 
 - 오늘의 추천: 날짜별 `DailyLibraryRecommendationSet`이 있으면 저장된 추천 세트를 우선 사용하고, 없으면 활성 `DailyRecommendationTheme` 중 날짜 기준으로 하나를 선택해 최대 3개 도서관을 반환합니다.
 - 공개 테마 추천: 홈 공개 테마 `study`, `book`, `kids`, `mood`, `nearby`별로 최대 6개 도서관을 반환합니다.
-- 개인화 추천: 로그인 사용자에게 선호 목적, 선호 지역, 선호 시설 태그와 행동 기반 태그 점수를 합산해 최대 3개 도서관을 반환합니다.
+- 개인화 추천: 로그인 사용자에게 AI Recommendation Layer가 산출한 우선 태그와 Django DB 후보 검색 결과를 결합해 최대 3개 도서관을 반환합니다.
 
-### 점수 기준
+### AI 추천 v4 흐름
 
-도서관 후보는 활성 도서관을 대상으로 하며, 현재 통계 스냅샷, 시설 profile, 활성 태그, 썸네일 이미지를 함께 조회합니다.
+개인화 추천은 다음 단계로 동작합니다.
 
-- `study`: 열람 좌석 수 정규화 점수와 열람실 보유 여부
-- `book`: 장서 수 정규화 점수
-- `kids`: 어린이 도서관 유형과 어린이자료실 보유 여부
-- `mood`: 건물 면적, 부지 면적, 휴게 공간, 카페, 야외 공간
-- `nearby`: 위도·경도가 있으면 현재 위치와의 거리 역수, 위치가 없으면 좌표 존재 여부
-- 개인화: 직접 선호 점수에 행동 기반 태그 점수를 가중치로 더함
+1. AI Preference Planner
+   - 사용자 행동 요약, 수동 선호, 사용 가능한 `Tag.code` 목록을 입력받습니다.
+   - `priority_purposes`, `priority_tags`, `preferred_regions`, `weights`를 JSON으로 반환합니다.
+   - 전체 도서관 raw data는 입력하지 않습니다.
+2. DB Retrieval
+   - Django가 우선 태그와 가중치를 이용해 후보 도서관을 10~20개로 줄입니다.
+   - 시설, 운영 여부, 장서 수, 좌석 수, 지역, 거리 계산은 DB와 기존 service가 담당합니다.
+3. AI Reranker
+   - 후보 10~20개의 요약 feature만 입력받습니다.
+   - 최종 rank, confidence, matched priority tags, recommendation reason을 JSON으로 반환합니다.
+4. Django Validation
+   - `library_id`, `tag_code`, 활성 도서관, 운영 필수 조건, JSON schema를 검증합니다.
+   - 검증 실패 시 mock 또는 rule-based fallback을 사용합니다.
 
-동점 정렬은 점수 내림차순 이후 도서관명, 내부 id 기준으로 안정적으로 처리합니다.
+AI는 도서관 존재 여부, 시설 여부, 운영 여부, 책·프로그램·후기 존재 여부, 이미지·출처·라이선스 같은 사실을 만들거나 DB에 반영하지 않습니다.
+
+기존 rule-based 추천은 주 추천기가 아니라 fallback/baseline입니다.
+
+### Fallback과 시연
+
+`GMS_API_KEY`가 없거나 만료되어도 문서와 시연 흐름은 성립해야 합니다. 문서나 발표에서 `GMS key` 또는 `GMS_KEY`라고 부르는 값은 이 프로젝트 환경변수 기준으로 `GMS_API_KEY`를 뜻합니다.
+
+권장 환경변수:
+
+```dotenv
+GMS_API_KEY=
+GMS_OPENAI_BASE_URL=https://gms.ssafy.io/gmsapi/api.openai.com/v1
+GMS_MODEL=
+AI_RECOMMENDATION_ENABLED=true
+AI_RECOMMENDATION_PROVIDER=mock
+AI_RECOMMENDATION_FALLBACK_PROVIDER=rule_based
+AI_RECOMMENDATION_TIMEOUT_SECONDS=5
+AI_RECOMMENDATION_CANDIDATE_LIMIT=20
+AI_RECOMMENDATION_SCHEMA_VERSION=v4.0
+```
+
+- GMS key가 있으면 `AI_RECOMMENDATION_PROVIDER=gms_chat`으로 실제 provider를 사용할 수 있습니다.
+- GMS key가 없거나 만료되면 `mock` provider로 결정론적 시연을 진행합니다.
+- provider timeout, quota 초과, JSON schema 위반, Django validation 실패 시 `rule_based` fallback을 사용합니다.
+- 프론트엔드는 AI/GMS를 직접 호출하지 않고 `/api/v1/home/` 응답의 `priority_tags`, `recommendation_reason`, `fallback_used` 등을 표시합니다.
 
 ### 나의 나들이 성향 분석
 
@@ -280,18 +313,24 @@ erDiagram
 
 ## F. 생성형 AI를 활용한 부분
 
-생성형 AI는 GMS를 통해 나의 나들이 대시보드의 `summary_sentence`를 순화하는 용도로만 사용합니다.
+생성형 AI는 v4에서 AI Recommendation Layer로 사용됩니다. 문장 표현 보조뿐 아니라 사용자 성향 분석, 우선 태그 산출, 후보 재랭킹, 추천 이유 생성에 참여할 수 있습니다.
 
 동작 흐름은 다음과 같습니다.
 
-1. 백엔드가 저장, 후기, 좋아요 활동을 기반으로 규칙 기반 성향 문장을 먼저 생성합니다.
-2. `GMS_SUMMARY_ENABLED`, `GMS_API_KEY`, `GMS_OPENAI_BASE_URL`, `GMS_MODEL`이 모두 설정된 경우에만 GMS 요청을 보냅니다.
-3. 요청 payload는 `top_axis`, `top_labels`, `signal_count`, `rule_sentence`로 제한합니다.
-4. 시스템 프롬프트는 입력된 사실만 유지하고 새로운 도서관명, 책명, 프로그램명, 시설 정보를 만들지 않도록 제한합니다.
-5. 응답은 한 문장, 최대 100자, 줄바꿈 없음 조건을 통과해야 합니다.
-6. GMS가 비활성화되었거나 실패하거나 유효하지 않은 문장을 반환하면 규칙 기반 문장을 그대로 사용합니다.
+1. Vue는 Django API만 호출합니다.
+2. Django가 `RecommendationProvider`를 선택합니다.
+3. provider는 preference planning과 reranking을 구조화 JSON으로 반환합니다.
+4. Django가 존재하지 않는 `library_id`, 존재하지 않는 `tag_code`, 비활성 도서관, 운영 필수 조건 위반 후보, schema 위반 결과를 제거합니다.
+5. 검증된 결과만 Vue에 반환합니다.
 
-따라서 AI는 표현을 다듬는 보조 수단이며, 추천 후보 선정, 추천 점수, 추천 순위, 시설·운영·도서·프로그램 사실 판단에는 사용되지 않습니다.
+Provider 구조:
+
+- `GMSChatRecommendationProvider`
+- `MockRecommendationProvider`
+- `RuleBasedFallbackRecommendationProvider`
+- 추후 `FineTunedRecommendationProvider`
+
+AI는 원천 사실을 생성하지 않으며, 검증된 DB/API 사실을 바탕으로 추천 판단과 설명만 보조합니다.
 
 ## G. 서비스 URL
 
@@ -370,4 +409,4 @@ Frontend:
 - 사용자 행동 신호의 최근성 반영과 4축 성향 분석 고도화
 - PostgreSQL `pg_trgm` 기반 도서관명·주소 검색 품질 개선
 - 배포 환경에서 정적 파일, media, CORS, Cookie 보안 설정 정리
-- 실시간 좌석, 실시간 대출 가능 여부, 내부 프로그램 예약·결제, AI 활용 확장
+- 실시간 좌석, 실시간 대출 가능 여부, 내부 프로그램 예약·결제, fine-tuned recommendation provider 확장

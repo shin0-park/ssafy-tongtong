@@ -1,7 +1,7 @@
-# 도서관 나들이 프론트 전달용 API 계약 문서 v2.0
+# 도서관 나들이 프론트 전달용 API 계약 문서 v4.0
 
-- 문서 버전: 2.0
-- 기준일: 2026-06-25
+- 문서 버전: 4.0
+- 기준일: 2026-07-06
 - 기준 구현: 현재 Django REST API `/api/v1`
 - 문서 성격: 프론트엔드가 지금부터 기준으로 삼을 최종 API 계약서
 
@@ -36,11 +36,34 @@ Authorization: Bearer <access_token>
 
 Kakao Map JavaScript SDK용 JavaScript Key만 브라우저에 노출할 수 있다. 프론트 환경변수는 `VITE_KAKAO_MAP_JAVASCRIPT_KEY`처럼 공개 식별자임이 드러나는 이름을 사용한다.
 
-### GMS 사용 경계
+### AI Recommendation Layer v4 사용 경계
 
-GMS는 나의 나들이 `summary_sentence` 표현 보조에만 사용할 수 있다. 추천 후보 선정, 추천 점수, 추천 순위, 도서관 운영 여부, 시설 정보, 책·프로그램 사실 판단에는 사용하지 않는다.
+v4에서는 AI를 사용자 성향 분석, 우선 태그 산출, 후보 재랭킹, 추천 이유 생성에 사용할 수 있다. 프론트엔드는 AI/GMS를 직접 호출하지 않고 항상 Django API만 호출한다.
 
-GMS가 비활성화되었거나 key가 없거나 timeout/failure가 발생하면 API는 규칙 기반 `summary_sentence`를 그대로 반환한다. 별도 디버그 필드는 제공하지 않는다.
+추천 흐름:
+
+```text
+Vue → Django API → RecommendationProvider → Django validation → Vue
+```
+
+세부 단계:
+
+```text
+AI Preference Planner
+→ DB Retrieval
+→ AI Reranker
+→ Django Validation
+```
+
+경계:
+
+- 전체 도서관 raw data를 AI에 직접 전달하지 않는다.
+- AI Preference Planner 입력은 사용자 행동 요약, 수동 선호, 사용 가능한 `Tag.code` 목록으로 제한한다.
+- DB Retrieval은 Django가 담당하며 시설, 운영 여부, 장서 수, 좌석 수, 지역, 거리 계산은 DB와 기존 service가 기준이다.
+- AI Reranker 입력은 후보 10~20개의 요약 feature로 제한한다.
+- AI는 도서관 존재 여부, 시설 여부, 운영 여부, 책·프로그램·후기 존재 여부, 이미지·출처·라이선스 같은 원천 사실을 생성하거나 수정하지 않는다.
+- AI 출력은 구조화 JSON이며 Django에서 `library_id`, `tag_code`, 활성 도서관, 운영 필수 조건, JSON schema를 검증한다.
+- `GMS_API_KEY`가 없거나 만료되어도 mock/fallback provider 기준으로 같은 API 응답 형태가 성립해야 한다.
 
 ### Pagination
 
@@ -293,7 +316,32 @@ Response `200`:
   "personal_recommendations": {
     "available": true,
     "reason": "선호 설정과 나들이 활동을 함께 반영했어요.",
-    "items": []
+    "priority_tags": [
+      {
+        "code": "facility_lounge",
+        "label": "휴게공간",
+        "weight": 0.7
+      }
+    ],
+    "fallback_used": false,
+    "items": [
+      {
+        "id": 12,
+        "name": "부산도서관",
+        "sigungu": "사상구",
+        "address": "부산광역시 사상구 ...",
+        "thumbnail": null,
+        "recommendation_reason": "최근 조용한 학습공간과 휴게공간 선호가 함께 보여 추천했어요.",
+        "ai_rank": 1,
+        "ai_confidence": 0.82,
+        "matched_priority_tags": [
+          {
+            "code": "facility_lounge",
+            "label": "휴게공간"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
@@ -303,9 +351,21 @@ Response `200`:
 - 수동 선호만 있으면 수동 선호 기반으로 제공된다.
 - 행동 신호만 있어도 제공될 수 있다.
 - 둘 다 없으면 `available=false`와 빈 `items`를 반환한다.
-- GMS는 home 추천 점수와 순위에 사용하지 않는다.
+- AI Preference Planner는 `priority_purposes`, `priority_tags`, `preferred_regions`, `weights`를 JSON으로 반환할 수 있다.
+- Django는 AI가 반환한 우선 태그와 가중치를 이용해 DB 후보를 10~20개로 줄인다.
+- AI Reranker는 후보 요약 feature만 입력받아 최종 `ai_rank`, `ai_confidence`, `matched_priority_tags`, `recommendation_reason`을 JSON으로 반환할 수 있다.
+- Django validation을 통과한 결과만 프론트에 반환한다.
+- AI 실패, timeout, key 없음, schema 위반, 검증 실패 시 `fallback_used=true`와 함께 mock 또는 rule-based fallback 결과를 반환한다.
 
 추천 item은 `RecommendationLibrary`이며 `LibraryList` 필드에 `recommendation_reason`이 추가된다.
+
+AI fallback 정책:
+
+- Planner 실패 시 수동 선호와 행동 기반 `UserPreferenceItem`으로 priority를 구성한다.
+- Reranker 실패 시 DB Retrieval 점수와 안정 정렬 기준으로 순위를 만든다.
+- 존재하지 않는 `library_id`, 존재하지 않는 `tag_code`, 비활성 도서관, 운영 필수 조건을 위반한 후보는 제거한다.
+- 제거 후 결과가 부족해도 휴관·미확인 도서관이나 원천 사실이 불명확한 후보로 채우지 않는다.
+- fallback 응답도 같은 response schema를 유지한다.
 
 ## 3. 도서관 API
 
@@ -916,7 +976,7 @@ Response:
 }
 ```
 
-`summary_sentence`는 규칙 기반 문장이 기본이다. GMS가 활성화되고 성공하면 같은 필드의 문장 표현만 보조될 수 있다. GMS 실패/비활성/key 없음이면 규칙 기반 문장을 반환한다.
+`summary_sentence`는 API가 반환한 문장을 그대로 표시한다. v4 추천 판단은 `personal_recommendations`의 AI Recommendation Layer가 담당하며, 요약 문장 표현 보조와 추천 재랭킹은 Django 내부 provider 경계에서 분리해 관리한다. AI/GMS 실패·비활성·key 없음이면 규칙 기반 문장 또는 fallback provider 결과를 반환한다.
 
 `preference_status.status` 값:
 
@@ -1047,4 +1107,4 @@ python manage.py import_busan_programs --start-date 2026-05-31 --end-date 2026-0
 - 시설 `null`과 facility profile 부재는 false가 아니다.
 - `holiday_operation_status`는 `holiday_status` 또는 `holiday_date` query가 있을 때만 목록 item에 포함된다.
 - 후기 이미지와 프로필 이미지는 local dev에서 `/media/` URL로 제공된다.
-- GMS 사용 여부는 프론트가 알 필요가 없다. 프론트는 `summary_sentence`만 표시한다.
+- 프론트는 AI/GMS를 직접 호출하지 않는다. 프론트는 `summary_sentence`, `personal_recommendations.priority_tags`, `recommendation_reason`, `fallback_used`처럼 API가 반환한 필드만 표시한다.
