@@ -11,9 +11,9 @@
 | 관심사 | 기준 문서 |
 |---|---|
 | 현재 코드·migration·설정 | 실제 저장소 |
-| 현재 공개 API Endpoint·Method·Request·Response | `library_outing_frontend_api_contract_v1.1.md` |
-| 모델·관계·도메인 정책 | `library_outing_Django_spec_v3.md`, `library_outing_ERD_v3.md` |
-| Frontend 구조·Route·Store·Service·UI/UX | `library_outing_frontend_spec_v2.1.md` |
+| 현재 공개 API Endpoint·Method·Request·Response | `library_outing_frontend_api_contract_v4.0.md` |
+| 모델·관계·도메인 정책 | `library_outing_Django_spec_v4.0.md`, `library_outing_ERD_v4.0.md` |
+| Frontend 구조·Route·Store·Service·UI/UX | `library_outing_frontend_spec_v4.0.md` |
 | 기술 스택·패키지 요약 | 본 문서 |
 
 현재 구현과 문서가 다르면 코드를 자동 변경하지 않는다. 먼저 실제 코드와 테스트를 확인하고 차이를 보고한다.
@@ -118,7 +118,7 @@ library_outing/
 └─ scripts/
 ```
 
-Frontend의 실제 디렉터리와 Route는 Frontend 명세 v2.0을 따른다. 본 문서에 별도 Frontend 폴더 구조를 복제하지 않는다.
+Frontend의 실제 디렉터리와 Route는 Frontend 명세 v4.0을 따른다. 본 문서에 별도 Frontend 폴더 구조를 복제하지 않는다.
 
 ## 4. Django 앱 책임
 
@@ -351,7 +351,7 @@ SERVICE_DEFAULT_SIDO=부산광역시
 SERVICE_DEFAULT_REGION_CODE=21
 ```
 
-추가 추천·캐시·업로드 변수는 Django 명세 v3와 실제 `.env.example`을 따른다.
+추가 추천·캐시·업로드 변수는 Django 명세 v4.0과 실제 `.env.example`을 따른다.
 
 ### Frontend
 
@@ -415,9 +415,9 @@ Frontend에서 Kakao Map JavaScript SDK를 직접 호출한다.
 
 현재 Endpoint, HTTP Method, Request·Response, Error 계약은 다음 문서만 따른다.
 
-- `library_outing_frontend_api_contract_v1.1.md`
+- `library_outing_frontend_api_contract_v4.0.md`
 
-본 문서에 Endpoint 목록을 중복 작성하지 않는다. Django 명세 v3의 API 예시는 장기 설계 참고이며 현재 공개 주소로 사용하지 않는다.
+본 문서에 Endpoint 목록을 중복 작성하지 않는다. Django 명세의 API 예시는 장기 설계 참고이며 현재 공개 주소로 사용하지 않는다.
 
 ### 인증 계약 주의
 
@@ -427,7 +427,7 @@ Frontend에서 Kakao Map JavaScript SDK를 직접 호출한다.
 
 Frontend 디렉터리, Route, Store, Service, DTO, Component와 UI/UX는 다음 문서를 따른다.
 
-- `library_outing_frontend_spec_v2.1.md`
+- `library_outing_frontend_spec_v4.0.md`
 
 본 문서에 Frontend Route나 폴더 구조를 복제하지 않는다.
 

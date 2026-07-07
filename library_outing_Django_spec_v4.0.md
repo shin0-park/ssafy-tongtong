@@ -2,7 +2,7 @@
 
 - 문서 버전: 4.0
 - 작성 기준일: 2026-07-06
-- 기준 ERD: `library_outing_ERD_v3.md` 내부 문서 버전 v4.0
+- 기준 ERD: `library_outing_ERD_v4.0.md`
 - 대상: Django REST API 백엔드, 데이터 import·동기화 작업, 추천·개인화 서비스
 - 1차 서비스 범위: 부산 지역 MVP, 전국 확장 가능한 코드 구조
 
@@ -2780,7 +2780,7 @@ cd ..
 
 ## 21. 참고 문서
 
-- `library_outing_ERD_v3.md`
+- `library_outing_ERD_v4.0.md`
 - 최종 도서관 나들이 주요 페이지 구조
 - 데이터셋 정보 문서
 - 전국도서관표준데이터 부산 JSON

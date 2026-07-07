@@ -1,6 +1,6 @@
 # 도서관 나들이 코드 리딩 노트
 
-이 문서는 학습용 코드 읽기를 돕기 위한 해설이다. 기준은 실제 저장소 코드, `library_outing_frontend_api_contract_v2.0.md`, `library_outing_Django_spec_v3.md`, `library_outing_ERD_v3.md`, `library_outing_frontend_spec_v3.md`, `README.md`, `AGENTS.md`다. 기능 동작, API 계약, 모델, migration, serializer, view의 의미를 바꾸지 않는다.
+이 문서는 학습용 코드 읽기를 돕기 위한 해설이다. 기준은 실제 저장소 코드, `library_outing_frontend_api_contract_v4.0.md`, `library_outing_Django_spec_v4.0.md`, `library_outing_ERD_v4.0.md`, `library_outing_frontend_spec_v4.0.md`, `README.md`, `AGENTS.md`다. 기능 동작, API 계약, 모델, migration, serializer, view의 의미를 바꾸지 않는다.
 
 ## 1. 프로젝트 전체 구조
 

@@ -12,12 +12,12 @@
 
 1. **검증된 현재 코드·migration·테스트·실행 결과**
 2. **현재 공개 API의 Endpoint, Method, Request, Response, Status**
-   - `library_outing_frontend_api_contract_v2.0.md` 내부 문서 버전 v4.0
+   - `library_outing_frontend_api_contract_v4.0.md`
 3. **모델, FK, 제약조건, import, 태그·추천 도메인 정책**
-   - `library_outing_ERD_v3.md` 내부 문서 버전 v4.0
-   - `library_outing_Django_spec_v3.md` 내부 문서 버전 v4.0
+   - `library_outing_ERD_v4.0.md`
+   - `library_outing_Django_spec_v4.0.md`
 4. **Frontend Route, Store, Service, Component, UI/UX**
-   - `library_outing_frontend_spec_v3.md` 내부 문서 버전 v4.0
+   - `library_outing_frontend_spec_v4.0.md`
 5. **기술 스택과 프로젝트 구성 요약**
    - 루트 `SKILLS.md`
 6. 초기 아이디어, 목업, 과거 버전 명세
