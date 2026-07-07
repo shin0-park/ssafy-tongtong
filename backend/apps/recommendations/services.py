@@ -1,8 +1,11 @@
+import json
 import logging
 import math
 from datetime import time
+from hashlib import sha256
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db.models import Prefetch
 from django.utils import timezone
 
@@ -27,6 +30,7 @@ from apps.preferences.services import (
     ensure_user_preference_current,
     get_behavior_preference_items,
 )
+from apps.preferences.models import UserPreference
 from apps.programs.models import ApplicationStatus, OperationStatus, Program, ProgramCategory
 from apps.tags.models import Tag
 
@@ -50,6 +54,7 @@ PERSONAL_ITEM_LIMIT = 3
 BEHAVIOR_ITEM_LIMIT = 20
 MANUAL_PERSONAL_WEIGHT = 1.0
 BEHAVIOR_PERSONAL_WEIGHT = 0.5
+PERSONAL_RECOMMENDATION_EMPTY_REASON = "추천에 사용할 수 있는 운영 중 도서관이 아직 없어요."
 
 PROGRAM_CATEGORY_TAG_MAP = {
     "program_culture_art": ProgramCategory.CULTURE_ART,
@@ -121,11 +126,168 @@ def build_home_payload(user=None, lat=None, lng=None, date=None):
     stat_max = build_stat_max(libraries)
     today = build_today_recommendations(libraries, stat_max, date)
     themes = build_theme_recommendations(libraries, stat_max, lat, lng)
-    personal = build_personal_recommendations(user, libraries, stat_max)
     return {
         "today": today,
         "themes": themes,
-        "personal": personal,
+    }
+
+
+def build_personal_home_payload(user=None):
+    if not user or not user.is_authenticated:
+        return build_personal_recommendations(user, [], {})
+
+    cache_key = build_personal_recommendation_cache_key(user)
+    cached_payload = cache.get(cache_key) if cache_key else None
+    if cached_payload is not None:
+        return hydrate_cached_personal_recommendations(cached_payload)
+
+    libraries = list(get_candidate_libraries())
+    stat_max = build_stat_max(libraries)
+    result = build_personal_recommendations(user, libraries, stat_max)
+    cache_key = build_personal_recommendation_cache_key(user)
+    cache_personal_recommendation_result(cache_key, result)
+    return result
+
+
+def build_personal_recommendation_cache_key(user):
+    if not user or not user.is_authenticated:
+        return None
+
+    preference = UserPreference.objects.filter(user=user).first()
+    payload = {
+        "user_id": user.id,
+        "schema_version": getattr(settings, "AI_RECOMMENDATION_SCHEMA_VERSION", "v4"),
+        "provider": getattr(settings, "AI_RECOMMENDATION_PROVIDER", "mock"),
+        "fallback_provider": getattr(settings, "AI_RECOMMENDATION_FALLBACK_PROVIDER", "rule_based"),
+        "model": getattr(settings, "AI_RECOMMENDATION_MODEL", "") or getattr(settings, "GMS_MODEL", ""),
+        "preference_status": preference.status if preference else "",
+        "preference_updated_at": preference.updated_at.isoformat() if preference and preference.updated_at else "",
+        "preference_calculated_at": preference.calculated_at.isoformat() if preference and preference.calculated_at else "",
+        "manual_preferences": build_manual_preference_signature(user),
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    return f"personal-recommendation:v4:{sha256(encoded.encode('utf-8')).hexdigest()}"
+
+
+def build_manual_preference_signature(user):
+    return {
+        "purposes": [
+            {"id": preferred_purpose.id, "code": preferred_purpose.purpose.code}
+            for preferred_purpose in UserPreferredPurpose.objects.filter(
+                user=user,
+                is_active=True,
+                purpose__is_active=True,
+            )
+            .select_related("purpose")
+            .order_by("purpose__code", "id")
+        ],
+        "regions": [
+            {"id": preferred_region.id, "sigungu": preferred_region.sigungu}
+            for preferred_region in UserPreferredRegion.objects.filter(user=user, is_active=True)
+            .order_by("sigungu", "id")
+        ],
+        "tags": [
+            {"id": preferred_tag.id, "code": preferred_tag.tag.code}
+            for preferred_tag in UserPreferredTag.objects.filter(
+                user=user,
+                is_active=True,
+                tag__is_active=True,
+            )
+            .select_related("tag")
+            .order_by("tag__code", "id")
+        ],
+    }
+
+
+def cache_personal_recommendation_result(cache_key, result):
+    if not cache_key:
+        return
+    if result.get("mode") == "fallback_failed":
+        return
+    timeout = max(0, int(getattr(settings, "PERSONAL_RECOMMENDATION_CACHE_SECONDS", 60 * 60 * 6)))
+    if timeout <= 0:
+        return
+    cache.set(cache_key, serialize_personal_recommendation_for_cache(result), timeout)
+
+
+def serialize_personal_recommendation_for_cache(result):
+    return {
+        "available": bool(result.get("available")),
+        "reason": result.get("reason", ""),
+        "priority_tags": result.get("priority_tags", []),
+        "fallback_used": bool(result.get("fallback_used", False)),
+        "provider": result.get("provider"),
+        "mode": result.get("mode"),
+        "items": [
+            {
+                "library_id": library.id,
+                "ai_rank": getattr(library, "ai_rank", None),
+                "ai_confidence": getattr(library, "ai_confidence", None),
+                "matched_priority_tags": getattr(library, "matched_priority_tags", []),
+                "recommendation_reason": getattr(library, "recommendation_reason", ""),
+            }
+            for library in result.get("items", [])
+        ],
+    }
+
+
+def hydrate_cached_personal_recommendations(cached_payload):
+    if not isinstance(cached_payload, dict):
+        return {
+            "available": False,
+            "reason": PERSONAL_RECOMMENDATION_EMPTY_REASON,
+            "priority_tags": [],
+            "fallback_used": False,
+            "provider": None,
+            "mode": "cache_invalid",
+            "items": [],
+        }
+    cached_items = cached_payload.get("items", []) if isinstance(cached_payload, dict) else []
+    if not cached_items:
+        return {
+            "available": bool(cached_payload.get("available", False)),
+            "reason": cached_payload.get("reason", ""),
+            "priority_tags": cached_payload.get("priority_tags", []),
+            "fallback_used": bool(cached_payload.get("fallback_used", False)),
+            "provider": cached_payload.get("provider"),
+            "mode": cached_payload.get("mode"),
+            "items": [],
+        }
+
+    library_ids = [item.get("library_id") for item in cached_items if item.get("library_id")]
+    library_by_id = {library.id: library for library in get_candidate_libraries().filter(id__in=library_ids)}
+    items = []
+    for cached_item in cached_items:
+        library = library_by_id.get(cached_item.get("library_id"))
+        if not library:
+            continue
+        if resolve_library_operation_status(library)["open_today"] is not True:
+            continue
+        library.ai_rank = cached_item.get("ai_rank")
+        library.ai_confidence = cached_item.get("ai_confidence")
+        library.matched_priority_tags = cached_item.get("matched_priority_tags", [])
+        set_reason(library, cached_item.get("recommendation_reason", ""))
+        items.append(library)
+
+    if not items and cached_payload.get("available"):
+        return {
+            "available": False,
+            "reason": PERSONAL_RECOMMENDATION_EMPTY_REASON,
+            "priority_tags": cached_payload.get("priority_tags", []),
+            "fallback_used": bool(cached_payload.get("fallback_used", False)),
+            "provider": cached_payload.get("provider"),
+            "mode": cached_payload.get("mode"),
+            "items": [],
+        }
+
+    return {
+        "available": bool(cached_payload.get("available")) and bool(items),
+        "reason": cached_payload.get("reason", ""),
+        "priority_tags": cached_payload.get("priority_tags", []),
+        "fallback_used": bool(cached_payload.get("fallback_used", False)),
+        "provider": cached_payload.get("provider"),
+        "mode": cached_payload.get("mode"),
+        "items": items,
     }
 
 
@@ -296,7 +458,7 @@ def build_personal_recommendations(user, libraries, stat_max):
     if not result["items"]:
         return {
             "available": False,
-            "reason": "추천에 사용할 수 있는 운영 중 도서관이 아직 없어요.",
+            "reason": PERSONAL_RECOMMENDATION_EMPTY_REASON,
             "priority_tags": result["priority_tags"],
             "fallback_used": result["fallback_used"],
             "provider": result["provider"],

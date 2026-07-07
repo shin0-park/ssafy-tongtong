@@ -171,11 +171,11 @@ erDiagram
 
 ### 홈 추천
 
-`/api/v1/home/`은 `build_home_payload()`에서 다음 세 묶음을 생성합니다.
+홈 추천은 public 추천과 AI 개인 추천 API를 분리합니다. `/api/v1/home/`은 `build_home_payload()`에서 public 추천 두 묶음을 생성합니다.
 
 - 오늘의 추천: 날짜별 `DailyLibraryRecommendationSet`이 있으면 저장된 추천 세트를 우선 사용하고, 없으면 활성 `DailyRecommendationTheme` 중 날짜 기준으로 하나를 선택해 최대 3개 도서관을 반환합니다.
 - 공개 테마 추천: 홈 공개 테마 `study`, `book`, `kids`, `mood`, `nearby`별로 최대 6개 도서관을 반환합니다.
-- 개인화 추천: 로그인 사용자에게 AI Recommendation Layer가 산출한 우선 태그와 Django DB 후보 검색 결과를 결합해 최대 3개 도서관을 반환합니다.
+- 개인화 추천: `/api/v1/home/personal-recommendations/`에서 로그인 사용자에게 AI Recommendation Layer가 산출한 우선 태그와 Django DB 후보 검색 결과를 결합해 최대 3개 도서관을 반환합니다.
 
 ### AI 추천 v4 흐름
 
@@ -215,12 +215,14 @@ AI_RECOMMENDATION_FALLBACK_PROVIDER=rule_based
 AI_RECOMMENDATION_TIMEOUT_SECONDS=5
 AI_RECOMMENDATION_CANDIDATE_LIMIT=20
 AI_RECOMMENDATION_SCHEMA_VERSION=v4.0
+PERSONAL_RECOMMENDATION_CACHE_SECONDS=21600
 ```
 
 - GMS key가 있으면 `AI_RECOMMENDATION_PROVIDER=gms_chat`으로 실제 provider를 사용할 수 있습니다.
 - GMS key가 없거나 만료되면 `mock` provider로 결정론적 시연을 진행합니다.
 - provider timeout, quota 초과, JSON schema 위반, Django validation 실패 시 `rule_based` fallback을 사용합니다.
-- 프론트엔드는 AI/GMS를 직접 호출하지 않고 `/api/v1/home/` 응답의 `priority_tags`, `recommendation_reason`, `fallback_used` 등을 표시합니다.
+- 홈 AI 개인 추천은 기본 6시간 캐시되며, 같은 사용자와 같은 추천 조건에서는 provider를 반복 호출하지 않습니다.
+- 프론트엔드는 AI/GMS를 직접 호출하지 않고 `/api/v1/home/personal-recommendations/` 응답의 `priority_tags`, `recommendation_reason`, `fallback_used` 등을 표시합니다.
 
 ### 나의 나들이 성향 분석
 

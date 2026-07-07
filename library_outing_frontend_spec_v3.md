@@ -305,7 +305,10 @@ interface ReviewImageDto {
 ```http
 GET /api/v1/home/
 GET /api/v1/home/?lat={lat}&lng={lng}
+GET /api/v1/home/personal-recommendations/
 ```
+
+홈 public 추천과 AI 개인 추천은 별도 요청으로 분리한다. `/home/`은 `today_recommendations`, `theme_recommendations`만 반환하고, “여기는 어때요?”는 `/home/personal-recommendations/` 응답을 사용한다.
 
 ### 6.3 구성
 
@@ -338,9 +341,12 @@ Hero
 ### 6.6 Personal Recommendations
 
 - 로그인 access token이 있으면 요청에 포함한다.
-- `personal_recommendations.available=true`일 때만 섹션을 표시한다.
+- 홈 public data가 먼저 도착하면 Hero, 오늘의 추천, 테마별 추천을 먼저 렌더링한다.
+- 개인 추천 요청 중에는 “여기는 어때요?” 섹션 내부에만 loading을 표시한다.
+- 개인 추천 요청 실패는 홈 전체 error로 확산하지 않고 해당 섹션만 조용히 비우거나 안내한다.
+- 개인 추천 응답의 `available=true`일 때만 추천 item 섹션을 표시한다.
 - 수동 선호와 행동 기반 성향이 함께 반영될 수 있다.
-- `personal_recommendations.priority_tags`는 chip으로 표시할 수 있다.
+- `priority_tags`는 chip으로 표시할 수 있다.
 - item의 `recommendation_reason`은 추천 근거 문장으로 표시한다.
 - item의 `matched_priority_tags`는 카드 보조 chip으로 표시할 수 있다.
 - `fallback_used=true`이면 AI 실패를 과하게 드러내지 않고 일반 추천/기본 추천 상태로 자연스럽게 표시한다.
@@ -741,7 +747,7 @@ GET /api/v1/my-outings/liked-reviews/
 | `ready` | 분석 완료 |
 | `failed` | 분석 실패, 이후 재시도 가능 |
 
-`summary_sentence`는 AI/GMS 성공 여부와 무관하게 API 필드만 표시한다. 추천 판단은 홈 `personal_recommendations`의 검증된 응답 필드만 사용한다.
+`summary_sentence`는 AI/GMS 성공 여부와 무관하게 API 필드만 표시한다. 추천 판단은 `/home/personal-recommendations/`의 검증된 응답 필드만 사용한다.
 
 ## 14. 사용자/프로필
 

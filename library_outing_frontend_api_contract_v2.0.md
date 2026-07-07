@@ -283,7 +283,7 @@ Response `200`: `GET /users/me/`와 동일한 user object.
 GET /api/v1/home/
 ```
 
-비로그인 조회 가능. 로그인 사용자는 access token을 포함하면 personal 추천이 활성화될 수 있다.
+비로그인 조회 가능. 홈 public 추천만 반환하며 AI 개인 추천은 별도 endpoint에서 조회한다.
 
 Query:
 
@@ -312,41 +312,56 @@ Response `200`:
       },
       "items": []
     }
-  ],
-  "personal_recommendations": {
-    "available": true,
-    "reason": "선호 설정과 나들이 활동을 함께 반영했어요.",
-    "priority_tags": [
-      {
-        "code": "facility_lounge",
-        "label": "휴게공간",
-        "weight": 0.7
-      }
-    ],
-    "fallback_used": false,
-    "items": [
-      {
-        "id": 12,
-        "name": "부산도서관",
-        "sigungu": "사상구",
-        "address": "부산광역시 사상구 ...",
-        "thumbnail": null,
-        "recommendation_reason": "최근 조용한 학습공간과 휴게공간 선호가 함께 보여 추천했어요.",
-        "ai_rank": 1,
-        "ai_confidence": 0.82,
-        "matched_priority_tags": [
-          {
-            "code": "facility_lounge",
-            "label": "휴게공간"
-          }
-        ]
-      }
-    ]
-  }
+  ]
 }
 ```
 
-`personal_recommendations`는 수동 선호와 행동 기반 성향을 함께 반영한다.
+### 2.2 홈 AI 개인 추천 조회
+
+```http
+GET /api/v1/home/personal-recommendations/
+```
+
+비로그인 조회 가능. 비로그인 또는 개인화 신호가 없는 사용자는 `available=false`, `items=[]`를 반환한다.
+
+Response `200`:
+
+```json
+{
+  "available": true,
+  "reason": "선호 설정과 나들이 활동을 함께 반영했어요.",
+  "priority_tags": [
+    {
+      "code": "facility_lounge",
+      "label": "휴게공간",
+      "weight": 0.7
+    }
+  ],
+  "fallback_used": false,
+  "provider": "gms_chat",
+  "mode": "ai",
+  "items": [
+    {
+      "id": 12,
+      "name": "부산도서관",
+      "sigungu": "사상구",
+      "address": "부산광역시 사상구 ...",
+      "thumbnail": null,
+      "recommendation_reason": "최근 조용한 학습공간과 휴게공간 선호가 함께 보여 추천했어요.",
+      "ai_rank": 1,
+      "ai_confidence": 0.82,
+      "matched_priority_tags": [
+        {
+          "code": "facility_lounge",
+          "label": "휴게공간"
+        }
+      ]
+    }
+  ]
+}
+```
+
+개인 추천은 수동 선호와 행동 기반 성향을 함께 반영한다.
 
 - 수동 선호만 있으면 수동 선호 기반으로 제공된다.
 - 행동 신호만 있어도 제공될 수 있다.
@@ -976,7 +991,7 @@ Response:
 }
 ```
 
-`summary_sentence`는 API가 반환한 문장을 그대로 표시한다. v4 추천 판단은 `personal_recommendations`의 AI Recommendation Layer가 담당하며, 요약 문장 표현 보조와 추천 재랭킹은 Django 내부 provider 경계에서 분리해 관리한다. AI/GMS 실패·비활성·key 없음이면 규칙 기반 문장 또는 fallback provider 결과를 반환한다.
+`summary_sentence`는 API가 반환한 문장을 그대로 표시한다. v4 추천 판단은 `/home/personal-recommendations/`의 AI Recommendation Layer가 담당하며, 요약 문장 표현 보조와 추천 재랭킹은 Django 내부 provider 경계에서 분리해 관리한다. AI/GMS 실패·비활성·key 없음이면 규칙 기반 문장 또는 fallback provider 결과를 반환한다.
 
 `preference_status.status` 값:
 
@@ -1107,4 +1122,4 @@ python manage.py import_busan_programs --start-date 2026-05-31 --end-date 2026-0
 - 시설 `null`과 facility profile 부재는 false가 아니다.
 - `holiday_operation_status`는 `holiday_status` 또는 `holiday_date` query가 있을 때만 목록 item에 포함된다.
 - 후기 이미지와 프로필 이미지는 local dev에서 `/media/` URL로 제공된다.
-- 프론트는 AI/GMS를 직접 호출하지 않는다. 프론트는 `summary_sentence`, `personal_recommendations.priority_tags`, `recommendation_reason`, `fallback_used`처럼 API가 반환한 필드만 표시한다.
+- 프론트는 AI/GMS를 직접 호출하지 않는다. 프론트는 `summary_sentence`, `/home/personal-recommendations/`의 `priority_tags`, `recommendation_reason`, `fallback_used`처럼 API가 반환한 필드만 표시한다.

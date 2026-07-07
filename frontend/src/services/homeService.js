@@ -9,3 +9,8 @@ export async function fetchHome(params = {}) {
   })
   return data
 }
+
+export async function fetchPersonalHomeRecommendations() {
+  const { data } = await apiClient.get('/home/personal-recommendations/')
+  return data
+}

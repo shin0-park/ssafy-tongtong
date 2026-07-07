@@ -7,7 +7,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorState from '@/components/feedback/ErrorState.vue'
 import LoadingState from '@/components/feedback/LoadingState.vue'
 import LocationPermissionPanel from '@/components/location/LocationPermissionPanel.vue'
-import { fetchHome } from '@/services/homeService'
+import { fetchHome, fetchPersonalHomeRecommendations } from '@/services/homeService'
 import { fetchMyOutingsDashboard } from '@/services/myOutingsService'
 import { useAuthStore } from '@/stores/auth'
 import { PURPOSE_LABELS, isBrokenText } from '@/utils/display'
@@ -16,9 +16,12 @@ import { readStoredLocation, storeLocation } from '@/utils/locationPreference'
 const router = useRouter()
 const authStore = useAuthStore()
 const homeData = ref(null)
+const personalRecommendationData = ref(null)
 const dashboardData = ref(null)
-const isLoading = ref(false)
-const error = ref(null)
+const isHomeLoading = ref(false)
+const isPersonalLoading = ref(false)
+const homeError = ref(null)
+const personalError = ref(null)
 const locationMessage = ref('')
 const currentLocation = ref(readStoredLocation())
 const showLocationPanel = ref(false)
@@ -51,7 +54,7 @@ const selectedThemeCode = ref('study')
 const selectedThemeGroup = computed(() =>
   themeGroups.value.find((group) => group.code === selectedThemeCode.value) ?? themeGroups.value[0],
 )
-const personalRecommendations = computed(() => homeData.value?.personal_recommendations ?? {})
+const personalRecommendations = computed(() => personalRecommendationData.value ?? {})
 const personalItems = computed(() => personalRecommendations.value.items ?? [])
 const personalPriorityTags = computed(() =>
   Array.isArray(personalRecommendations.value.priority_tags)
@@ -89,27 +92,53 @@ const showPersonalRecommendations = computed(
   () => authStore.isAuthenticated && personalRecommendations.value.available === true && personalItems.value.length > 0,
 )
 const hasContent = computed(
-  () => todayItems.value.length > 0 || showPersonalRecommendations.value || themeGroups.value.some((group) => group.items.length),
+  () =>
+    todayItems.value.length > 0 ||
+    showPersonalRecommendations.value ||
+    (authStore.isAuthenticated && (isPersonalLoading.value || personalError.value)) ||
+    themeGroups.value.some((group) => group.items.length),
 )
 
 async function loadHome() {
-  isLoading.value = true
-  error.value = null
+  isHomeLoading.value = true
+  homeError.value = null
+  personalError.value = null
+  homeData.value = null
+  personalRecommendationData.value = null
   dashboardData.value = null
 
   try {
-    const [homeResult, dashboardResult] = await Promise.allSettled([
-      fetchHome(currentLocation.value ?? {}),
-      authStore.isAuthenticated ? fetchMyOutingsDashboard() : Promise.resolve(null),
+    homeData.value = await fetchHome(currentLocation.value ?? {})
+  } catch (requestError) {
+    homeError.value = requestError
+  } finally {
+    isHomeLoading.value = false
+  }
+
+  if (authStore.isAuthenticated && homeData.value) {
+    loadPersonalRecommendations()
+  }
+}
+
+async function loadPersonalRecommendations() {
+  isPersonalLoading.value = true
+  personalError.value = null
+  personalRecommendationData.value = null
+  dashboardData.value = null
+
+  try {
+    const [personalResult, dashboardResult] = await Promise.allSettled([
+      fetchPersonalHomeRecommendations(),
+      fetchMyOutingsDashboard(),
     ])
 
-    if (homeResult.status === 'rejected') throw homeResult.reason
-    homeData.value = homeResult.value
+    if (personalResult.status === 'rejected') throw personalResult.reason
+    personalRecommendationData.value = personalResult.value
     dashboardData.value = dashboardResult.status === 'fulfilled' ? dashboardResult.value : null
   } catch (requestError) {
-    error.value = requestError
+    personalError.value = requestError
   } finally {
-    isLoading.value = false
+    isPersonalLoading.value = false
   }
 }
 
@@ -191,11 +220,11 @@ onMounted(loadHome)
       </div>
     </div>
 
-    <LoadingState v-if="isLoading" title="추천 도서관을 불러오는 중입니다." />
+    <LoadingState v-if="isHomeLoading" title="추천 도서관을 불러오는 중입니다." />
     <ErrorState
-      v-else-if="error"
+      v-else-if="homeError"
       title="홈 정보를 불러오지 못했습니다."
-      :message="error.message"
+      :message="homeError.message"
       @retry="loadHome"
     />
     <EmptyState
@@ -227,7 +256,7 @@ onMounted(loadHome)
         </div>
       </section>
 
-      <section v-if="showPersonalRecommendations">
+      <section v-if="authStore.isAuthenticated && (isPersonalLoading || personalError || showPersonalRecommendations)">
         <div class="section-header-row">
           <div>
             <h2 class="section-title mb-1">{{ personalRecommendations.title || '여기는 어때요?' }}</h2>
@@ -244,7 +273,17 @@ onMounted(loadHome)
           </div>
           <RouterLink class="btn btn-outline-primary btn-sm" to="/my-outings/dashboard">나의 나들이</RouterLink>
         </div>
-        <div class="home-feature-grid home-feature-grid-secondary">
+        <LoadingState
+          v-if="isPersonalLoading"
+          title="추천 도서관을 불러오는 중입니다."
+          message="잠시만 기다려주세요."
+        />
+        <EmptyState
+          v-else-if="personalError"
+          title="맞춤 추천을 불러오지 못했습니다."
+          description="오늘의 추천과 테마별 추천은 계속 이용할 수 있어요."
+        />
+        <div v-else class="home-feature-grid home-feature-grid-secondary">
           <LibraryCard
             v-for="library in personalItems.slice(0, 3)"
             :key="library.id"

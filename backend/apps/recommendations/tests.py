@@ -1,14 +1,15 @@
 import json
-from datetime import time
+from datetime import timedelta, time
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 from unittest.mock import patch
 
 from apps.integrations.gms import GMSClientError, request_chat_json
-from apps.accounts.models import UserPreferredTag
+from apps.accounts.models import UserPreferredRegion, UserPreferredTag
 from apps.libraries.models import (
     Library,
     LibraryDailySchedule,
@@ -25,6 +26,7 @@ from apps.recommendations.providers import (
     RuleBasedFallbackRecommendationProvider,
 )
 from apps.recommendations.services import (
+    build_personal_recommendation_cache_key,
     build_program_bridge_score_map,
     build_personal_recommendations_v4,
     build_stat_max,
@@ -38,6 +40,7 @@ from apps.tags.models import Tag, TagGroup, TagSemanticKind
 
 class HomeRecommendationV4APITestCase(TestCase):
     def setUp(self):
+        cache.clear()
         self.client = APIClient()
         self.user = get_user_model().objects.create_user(
             email="recommend@example.com",
@@ -135,23 +138,256 @@ class HomeRecommendationV4APITestCase(TestCase):
         AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
         GMS_API_KEY="",
     )
-    def test_home_personal_recommendations_use_mock_without_gms_key(self):
+    def test_home_returns_public_recommendations_without_personal_payload(self):
         self.client.force_authenticate(self.user)
 
         response = self.client.get("/api/v1/home/")
 
         self.assertEqual(response.status_code, 200)
-        personal = response.data["personal_recommendations"]
-        self.assertTrue(personal["available"])
-        self.assertFalse(personal["fallback_used"])
-        self.assertEqual(personal["provider"], "mock")
-        self.assertEqual(personal["mode"], "ai")
-        self.assertEqual(personal["priority_tags"][0]["code"], "facility_lounge")
-        item = personal["items"][0]
+        self.assertIn("today_recommendations", response.data)
+        self.assertIn("theme_recommendations", response.data)
+        self.assertNotIn("personal_recommendations", response.data)
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        GMS_API_KEY="",
+    )
+    def test_home_public_recommendations_do_not_call_personal_provider(self):
+        self.client.force_authenticate(self.user)
+
+        with patch("apps.recommendations.services.get_provider") as provider_mock:
+            response = self.client.get("/api/v1/home/")
+
+        self.assertEqual(response.status_code, 200)
+        provider_mock.assert_not_called()
+
+    def test_personal_recommendations_endpoint_returns_unavailable_for_anonymous_user(self):
+        response = self.client.get("/api/v1/home/personal-recommendations/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["available"])
+        self.assertEqual(response.data["items"], [])
+        self.assertEqual(response.data["priority_tags"], [])
+        self.assertEqual(response.data["mode"], "unavailable")
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        GMS_API_KEY="",
+    )
+    def test_home_personal_recommendations_use_mock_without_gms_key(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get("/api/v1/home/personal-recommendations/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["available"])
+        self.assertFalse(response.data["fallback_used"])
+        self.assertEqual(response.data["provider"], "mock")
+        self.assertEqual(response.data["mode"], "ai")
+        self.assertEqual(response.data["priority_tags"][0]["code"], "facility_lounge")
+        item = response.data["items"][0]
         self.assertEqual(item["ai_rank"], 1)
         self.assertIsNotNone(item["ai_confidence"])
         self.assertEqual(item["matched_priority_tags"][0]["code"], "facility_lounge")
         self.assertTrue(item["recommendation_reason"])
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        PERSONAL_RECOMMENDATION_CACHE_SECONDS=21600,
+    )
+    def test_personal_recommendations_cache_hit_does_not_call_provider_again(self):
+        provider_calls = {"plan": 0, "rerank": 0}
+
+        class CountingProvider:
+            provider_code = "counting"
+
+            def plan_preferences(self, context):
+                provider_calls["plan"] += 1
+                return {
+                    "priority_tags": [{"code": "facility_lounge", "weight": 1}],
+                    "priority_purposes": [],
+                    "preferred_regions": [],
+                    "weights": {},
+                }
+
+            def rerank_libraries(self, bundle):
+                provider_calls["rerank"] += 1
+                return {
+                    "items": [
+                        {
+                            "library_id": bundle["candidates"][0]["library_id"],
+                            "rank": 1,
+                            "confidence": 0.9,
+                            "matched_priority_tags": ["facility_lounge"],
+                            "evidence_codes": ["tag:facility_lounge"],
+                            "recommendation_reason": "휴게공간 정보가 반영된 추천이에요.",
+                        }
+                    ]
+                }
+
+        self.client.force_authenticate(self.user)
+        with patch("apps.recommendations.services.get_provider", return_value=CountingProvider()):
+            first_response = self.client.get("/api/v1/home/personal-recommendations/")
+            second_response = self.client.get("/api/v1/home/personal-recommendations/")
+
+        self.assertTrue(first_response.data["available"])
+        self.assertTrue(second_response.data["available"])
+        self.assertEqual(provider_calls, {"plan": 1, "rerank": 1})
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        PERSONAL_RECOMMENDATION_CACHE_SECONDS=21600,
+    )
+    def test_personal_recommendations_cache_payload_is_json_serializable(self):
+        self.client.force_authenticate(self.user)
+
+        self.client.get("/api/v1/home/personal-recommendations/")
+
+        cached_payload = cache.get(build_personal_recommendation_cache_key(self.user))
+        json.dumps(cached_payload)
+        self.assertIsInstance(cached_payload["items"][0]["library_id"], int)
+        self.assertNotIn("_library", cached_payload["items"][0])
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        PERSONAL_RECOMMENDATION_CACHE_SECONDS=21600,
+    )
+    def test_personal_recommendations_cache_key_changes_when_preference_calculated_at_changes(self):
+        provider_calls = {"plan": 0}
+
+        class CountingProvider(MockRecommendationProvider):
+            def plan_preferences(self, context):
+                provider_calls["plan"] += 1
+                return super().plan_preferences(context)
+
+        self.client.force_authenticate(self.user)
+        with patch("apps.recommendations.services.get_provider", return_value=CountingProvider()):
+            self.client.get("/api/v1/home/personal-recommendations/")
+            preference = self.user.preference
+            preference.calculated_at = timezone.now() + timedelta(seconds=1)
+            preference.save(update_fields=["calculated_at", "updated_at"])
+            self.client.get("/api/v1/home/personal-recommendations/")
+
+        self.assertEqual(provider_calls["plan"], 2)
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        PERSONAL_RECOMMENDATION_CACHE_SECONDS=21600,
+    )
+    def test_personal_recommendations_cache_key_changes_when_manual_tag_signature_changes(self):
+        provider_calls = {"plan": 0}
+
+        class CountingProvider(MockRecommendationProvider):
+            def plan_preferences(self, context):
+                provider_calls["plan"] += 1
+                return super().plan_preferences(context)
+
+        new_tag = Tag.objects.create(
+            code="facility_wifi",
+            label="무료 와이파이",
+            semantic_kind=TagSemanticKind.OBJECTIVE,
+            tag_group=TagGroup.FACILITY,
+            is_profile_selectable=True,
+            is_filterable=True,
+        )
+        self.client.force_authenticate(self.user)
+        with patch("apps.recommendations.services.get_provider", return_value=CountingProvider()):
+            self.client.get("/api/v1/home/personal-recommendations/")
+            UserPreferredTag.objects.create(user=self.user, tag=new_tag, display_order=2)
+            self.client.get("/api/v1/home/personal-recommendations/")
+
+        self.assertEqual(provider_calls["plan"], 2)
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        PERSONAL_RECOMMENDATION_CACHE_SECONDS=21600,
+    )
+    def test_personal_recommendations_cache_key_changes_when_manual_region_signature_changes(self):
+        provider_calls = {"plan": 0}
+
+        class CountingProvider(MockRecommendationProvider):
+            def plan_preferences(self, context):
+                provider_calls["plan"] += 1
+                return super().plan_preferences(context)
+
+        self.client.force_authenticate(self.user)
+        with patch("apps.recommendations.services.get_provider", return_value=CountingProvider()):
+            self.client.get("/api/v1/home/personal-recommendations/")
+            UserPreferredRegion.objects.create(user=self.user, sigungu="해운대구", display_order=1)
+            self.client.get("/api/v1/home/personal-recommendations/")
+
+        self.assertEqual(provider_calls["plan"], 2)
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        PERSONAL_RECOMMENDATION_CACHE_SECONDS=21600,
+    )
+    def test_personal_recommendations_cache_hit_removes_inactive_library(self):
+        self.client.force_authenticate(self.user)
+        first_response = self.client.get("/api/v1/home/personal-recommendations/")
+        self.assertTrue(first_response.data["available"])
+
+        self.library.is_active = False
+        self.library.save(update_fields=["is_active", "updated_at"])
+        with patch("apps.recommendations.services.get_provider") as provider_mock:
+            second_response = self.client.get("/api/v1/home/personal-recommendations/")
+
+        provider_mock.assert_not_called()
+        self.assertFalse(second_response.data["available"])
+        self.assertEqual(second_response.data["items"], [])
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="mock",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="rule_based",
+        PERSONAL_RECOMMENDATION_CACHE_SECONDS=21600,
+    )
+    def test_personal_recommendations_cache_hit_removes_closed_today_library(self):
+        self.client.force_authenticate(self.user)
+        first_response = self.client.get("/api/v1/home/personal-recommendations/")
+        self.assertTrue(first_response.data["available"])
+
+        LibraryDailySchedule.objects.filter(library=self.library, date=timezone.localdate()).update(
+            status=ScheduleStatus.CLOSED
+        )
+        with patch("apps.recommendations.services.get_provider") as provider_mock:
+            second_response = self.client.get("/api/v1/home/personal-recommendations/")
+
+        provider_mock.assert_not_called()
+        self.assertFalse(second_response.data["available"])
+        self.assertEqual(second_response.data["items"], [])
+
+    @override_settings(
+        AI_RECOMMENDATION_ENABLED=True,
+        AI_RECOMMENDATION_PROVIDER="gms_chat",
+        AI_RECOMMENDATION_FALLBACK_PROVIDER="missing_provider",
+        PERSONAL_RECOMMENDATION_CACHE_SECONDS=21600,
+        GMS_API_KEY="",
+        GMS_OPENAI_BASE_URL="https://gms.example.test/v1",
+    )
+    def test_fallback_failed_empty_result_is_not_cached_for_long_ttl(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get("/api/v1/home/personal-recommendations/")
+
+        self.assertEqual(response.data["mode"], "fallback_failed")
+        self.assertIsNone(cache.get(build_personal_recommendation_cache_key(self.user)))
 
     @override_settings(
         AI_RECOMMENDATION_ENABLED=True,
@@ -195,9 +431,9 @@ class HomeRecommendationV4APITestCase(TestCase):
         self_outer = self
         self.client.force_authenticate(self.user)
         with patch("apps.recommendations.services.get_provider", return_value=InvalidItemProvider()):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
-        personal = response.data["personal_recommendations"]
+        personal = response.data
         self.assertTrue(personal["available"])
         self.assertFalse(personal["fallback_used"])
         self.assertEqual(len(personal["items"]), 1)
@@ -227,9 +463,9 @@ class HomeRecommendationV4APITestCase(TestCase):
             "apps.recommendations.services.get_provider",
             side_effect=[MalformedProvider(), RuleBasedFallbackRecommendationProvider()],
         ):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
-        personal = response.data["personal_recommendations"]
+        personal = response.data
         self.assertTrue(personal["available"])
         self.assertTrue(personal["fallback_used"])
         self.assertEqual(personal["provider"], "rule_based")
@@ -272,7 +508,7 @@ class HomeRecommendationV4APITestCase(TestCase):
 
         self.client.force_authenticate(self.user)
         with patch("apps.recommendations.services.get_provider", return_value=InspectingProvider()):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(captured_candidates)
@@ -317,9 +553,9 @@ class HomeRecommendationV4APITestCase(TestCase):
 
         self.client.force_authenticate(self.user)
         with patch("apps.recommendations.services.get_provider", return_value=ValidEvidenceProvider()):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
-        item = response.data["personal_recommendations"]["items"][0]
+        item = response.data["items"][0]
         self.assertEqual(item["recommendation_reason"], "휴게공간 선호가 반영된 추천이에요.")
 
     @override_settings(
@@ -355,9 +591,9 @@ class HomeRecommendationV4APITestCase(TestCase):
 
         self.client.force_authenticate(self.user)
         with patch("apps.recommendations.services.get_provider", return_value=InvalidEvidenceProvider()):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
-        item = response.data["personal_recommendations"]["items"][0]
+        item = response.data["items"][0]
         self.assertNotEqual(item["recommendation_reason"], "없는 사실로 만든 추천 문장입니다.")
         self.assertIn("휴게공간", item["recommendation_reason"])
 
@@ -394,9 +630,9 @@ class HomeRecommendationV4APITestCase(TestCase):
 
         self.client.force_authenticate(self.user)
         with patch("apps.recommendations.services.get_provider", return_value=EmptyEvidenceProvider()):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
-        item = response.data["personal_recommendations"]["items"][0]
+        item = response.data["items"][0]
         self.assertNotEqual(item["recommendation_reason"], "근거 없이 만든 추천 문장입니다.")
         self.assertIn("휴게공간", item["recommendation_reason"])
 
@@ -433,9 +669,9 @@ class HomeRecommendationV4APITestCase(TestCase):
 
         self.client.force_authenticate(self.user)
         with patch("apps.recommendations.services.get_provider", return_value=AbnormalReasonProvider()):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
-        item = response.data["personal_recommendations"]["items"][0]
+        item = response.data["items"][0]
         self.assertIn("휴게공간", item["recommendation_reason"])
 
     def test_review_quiet_study_bridge_creates_reading_room_candidate_without_librarytag(self):
@@ -890,9 +1126,9 @@ class HomeRecommendationV4APITestCase(TestCase):
 
         self.client.force_authenticate(self.user)
         with patch("apps.recommendations.services.get_provider", return_value=InvalidReasonProvider()):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
-        reason = response.data["personal_recommendations"]["items"][0]["recommendation_reason"]
+        reason = response.data["items"][0]["recommendation_reason"]
         self.assertIn("와이파이 시설 정보", reason)
         self.assertNotIn("와이파이가 안정", reason)
 
@@ -957,9 +1193,9 @@ class HomeRecommendationV4APITestCase(TestCase):
 
         self.client.force_authenticate(self.user)
         with patch("apps.recommendations.services.get_provider", return_value=BridgeEvidenceProvider()):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
-        item = response.data["personal_recommendations"]["items"][0]
+        item = response.data["items"][0]
         self.assertEqual(item["recommendation_reason"], "독서·글쓰기 프로그램 정보가 확인된 추천이에요.")
         self.assertEqual(item["matched_priority_tags"], [{"code": "program_reading_writing", "label": "독서·글쓰기 프로그램"}])
 
@@ -1009,9 +1245,9 @@ class HomeRecommendationV4APITestCase(TestCase):
 
         self.client.force_authenticate(self.user)
         with patch("apps.recommendations.services.get_provider", return_value=InvalidBridgeEvidenceProvider()):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
-        reason = response.data["personal_recommendations"]["items"][0]["recommendation_reason"]
+        reason = response.data["items"][0]["recommendation_reason"]
         self.assertNotEqual(reason, "없는 근거로 만든 추천 문장입니다.")
 
     def test_mock_provider_uses_bridge_matched_plan_tags(self):
@@ -1054,10 +1290,10 @@ class HomeRecommendationV4APITestCase(TestCase):
             side_effect=[BrokenPrimaryProvider(), RuleBasedFallbackRecommendationProvider()],
         ):
             with self.assertLogs("apps.recommendations.services", level="WARNING") as logs:
-                response = self.client.get("/api/v1/home/")
+                response = self.client.get("/api/v1/home/personal-recommendations/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.data["personal_recommendations"]["fallback_used"])
+        self.assertTrue(response.data["fallback_used"])
         self.assertTrue(any("provider=mock" in message for message in logs.output))
         self.assertTrue(any("stage=planner_call" in message for message in logs.output))
         self.assertTrue(any("error=RecommendationProviderError" in message for message in logs.output))
@@ -1070,10 +1306,10 @@ class HomeRecommendationV4APITestCase(TestCase):
     def test_unknown_fallback_provider_returns_safe_empty_response(self):
         self.client.force_authenticate(self.user)
 
-        response = self.client.get("/api/v1/home/")
+        response = self.client.get("/api/v1/home/personal-recommendations/")
 
         self.assertEqual(response.status_code, 200)
-        personal = response.data["personal_recommendations"]
+        personal = response.data
         self.assertFalse(personal["available"])
         self.assertEqual(personal["items"], [])
         self.assertEqual(personal["priority_tags"], [])
@@ -1105,10 +1341,10 @@ class HomeRecommendationV4APITestCase(TestCase):
             ],
         ):
             with self.assertLogs("apps.recommendations.services", level="WARNING") as logs:
-                response = self.client.get("/api/v1/home/")
+                response = self.client.get("/api/v1/home/personal-recommendations/")
 
         self.assertEqual(response.status_code, 200)
-        personal = response.data["personal_recommendations"]
+        personal = response.data
         self.assertFalse(personal["available"])
         self.assertEqual(personal["items"], [])
         self.assertEqual(personal["priority_tags"], [])
@@ -1217,10 +1453,10 @@ class HomeRecommendationV4APITestCase(TestCase):
     def test_gms_missing_key_falls_back_to_rule_based(self):
         self.client.force_authenticate(self.user)
 
-        response = self.client.get("/api/v1/home/")
+        response = self.client.get("/api/v1/home/personal-recommendations/")
 
         self.assertEqual(response.status_code, 200)
-        personal = response.data["personal_recommendations"]
+        personal = response.data
         self.assertTrue(personal["available"])
         self.assertTrue(personal["fallback_used"])
         self.assertEqual(personal["provider"], "rule_based")
@@ -1241,10 +1477,10 @@ class HomeRecommendationV4APITestCase(TestCase):
             "apps.recommendations.providers.request_chat_json",
             side_effect=GMSClientError("malformed json"),
         ):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
         self.assertEqual(response.status_code, 200)
-        personal = response.data["personal_recommendations"]
+        personal = response.data
         self.assertTrue(personal["available"])
         self.assertTrue(personal["fallback_used"])
         self.assertEqual(personal["provider"], "rule_based")
@@ -1288,9 +1524,9 @@ class HomeRecommendationV4APITestCase(TestCase):
         }
 
         with patch("apps.recommendations.providers.request_chat_json", side_effect=[plan, rerank]):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
-        personal = response.data["personal_recommendations"]
+        personal = response.data
         self.assertTrue(personal["available"])
         self.assertFalse(personal["fallback_used"])
         self.assertEqual(personal["provider"], "gms_chat")
@@ -1327,9 +1563,9 @@ class HomeRecommendationV4APITestCase(TestCase):
         }
 
         with patch("apps.recommendations.providers.request_chat_json", side_effect=[plan, rerank]):
-            response = self.client.get("/api/v1/home/")
+            response = self.client.get("/api/v1/home/personal-recommendations/")
 
-        item = response.data["personal_recommendations"]["items"][0]
+        item = response.data["items"][0]
         self.assertEqual(item["matched_priority_tags"], [{"code": "facility_lounge", "label": "휴게공간"}])
         self.assertNotEqual(item["recommendation_reason"], "없는 근거로 만든 추천 문장입니다.")
         self.assertIn("휴게공간", item["recommendation_reason"])
@@ -1400,10 +1636,10 @@ class HomeRecommendationV4APITestCase(TestCase):
         )
         self.client.force_authenticate(user)
 
-        response = self.client.get("/api/v1/home/")
+        response = self.client.get("/api/v1/home/personal-recommendations/")
 
         self.assertEqual(response.status_code, 200)
-        personal = response.data["personal_recommendations"]
+        personal = response.data
         self.assertFalse(personal["available"])
         self.assertEqual(personal["priority_tags"], [])
         self.assertFalse(personal["fallback_used"])

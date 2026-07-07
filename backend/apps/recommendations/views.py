@@ -5,28 +5,13 @@ from rest_framework.views import APIView
 from apps.recommendations.serializers import RecommendationLibrarySerializer
 from apps.recommendations.services import (
     build_home_payload,
+    build_personal_home_payload,
     parse_coordinate,
     purpose_payload,
 )
 
 
-class HomeRecommendationsAPIView(APIView):
-    permission_classes = (AllowAny,)
-
-    def get(self, request):
-        payload = build_home_payload(
-            user=request.user,
-            lat=parse_coordinate(request.query_params.get("lat")),
-            lng=parse_coordinate(request.query_params.get("lng")),
-        )
-        return Response(
-            {
-                "today_recommendations": self.serialize_today(payload["today"]),
-                "theme_recommendations": self.serialize_themes(payload["themes"]),
-                "personal_recommendations": self.serialize_personal(payload["personal"]),
-            }
-        )
-
+class HomeResponseMixin:
     def serialize_today(self, today):
         return {
             "theme": today["theme"],
@@ -52,3 +37,27 @@ class HomeRecommendationsAPIView(APIView):
             "mode": personal.get("mode"),
             "items": RecommendationLibrarySerializer(personal["items"], many=True).data,
         }
+
+
+class HomeRecommendationsAPIView(HomeResponseMixin, APIView):
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        payload = build_home_payload(
+            user=request.user,
+            lat=parse_coordinate(request.query_params.get("lat")),
+            lng=parse_coordinate(request.query_params.get("lng")),
+        )
+        return Response(
+            {
+                "today_recommendations": self.serialize_today(payload["today"]),
+                "theme_recommendations": self.serialize_themes(payload["themes"]),
+            }
+        )
+
+
+class HomePersonalRecommendationsAPIView(HomeResponseMixin, APIView):
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        return Response(self.serialize_personal(build_personal_home_payload(request.user)))
